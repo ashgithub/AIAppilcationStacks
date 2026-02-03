@@ -35,7 +35,7 @@
   },
   "wireit": {
     "copy-spec": {
-      "command": "mkdir -p src/v0_8/schemas && cp ../../specification/v0_8/json/*.json src/v0_8/schemas",
+      "command": "shx mkdir -p src/v0_8/schemas && shx cp ../../specification/v0_8/json/*.json src/v0_8/schemas",
       "files": [
         "../../specification/v0_8/json/*.json"
       ],
@@ -69,6 +69,7 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "typescript": "^5.8.3",
-    "wireit": "^0.15.0-pre.2"
+    "wireit": "^0.15.0-pre.2",
+    "shx": "^0.4.0"
   }
 }

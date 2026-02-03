@@ -1,0 +1,17 @@
+{
+  "name": "app-stack",
+  "version": "1.0.0",
+  "description": "",
+  "workspaces": [
+    "shell"
+  ],
+  "scripts": {
+    "serve:shell": "cd shell && npm run dev",
+    "serve:agent:edge": "cd ../server && uv run __main__.py",
+    "demo:edge": "concurrently -k -n \"SHELL,REST\" -c \"magenta,blue\" \"npm run serve:shell\" \"npm run serve:agent:edge\""
+  },
+  "devDependencies": {
+    "concurrently": "9.2.1",
+    "shx": "^0.4.0"
+  }
+}

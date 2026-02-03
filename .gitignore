@@ -3,3 +3,9 @@
 node_modules
 dist
 .wireit
+
+# Server side
+.venv
+.env
+uv.lock
+__pycache__
