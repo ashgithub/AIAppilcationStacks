@@ -1,0 +1,91 @@
+{
+  "title": "A2UI Message Schema (Condensed)",
+  "description": "A2UI messages are arrays containing beginRendering, surfaceUpdate, and dataModelUpdate actions. Components can be native types (Text, Button, Image, etc.) or custom widgets.",
+  "type": "array",
+  "items": {
+    "oneOf": [
+      {
+        "type": "object",
+        "description": "beginRendering: Initialize a UI surface",
+        "properties": {
+          "beginRendering": {
+            "type": "object",
+            "properties": {
+              "surfaceId": {"type": "string", "description": "Unique surface identifier"},
+              "root": {"type": "string", "description": "ID of root component"},
+              "styles": {
+                "type": "object",
+                "properties": {
+                  "font": {"type": "string"},
+                  "primaryColor": {"type": "string", "pattern": "^#[0-9a-fA-F]{6}$"}
+                }
+              }
+            },
+            "required": ["surfaceId", "root"]
+          }
+        },
+        "required": ["beginRendering"]
+      },
+      {
+        "type": "object",
+        "description": "surfaceUpdate: Add/modify UI components",
+        "properties": {
+          "surfaceUpdate": {
+            "type": "object",
+            "properties": {
+              "surfaceId": {"type": "string", "description": "Target surface identifier"},
+              "components": {
+                "type": "array",
+                "description": "UI components - can be native (Text, Button, Image, etc.) or custom widgets",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {"type": "string", "description": "Unique component identifier"},
+                    "weight": {"type": "number", "description": "Layout weight (optional)"},
+                    "component": {
+                      "type": "object",
+                      "description": "Component definition - use native components or get custom widget schemas from tools"
+                    }
+                  },
+                  "required": ["id", "component"]
+                }
+              }
+            },
+            "required": ["surfaceId", "components"]
+          }
+        },
+        "required": ["surfaceUpdate"]
+      },
+      {
+        "type": "object",
+        "description": "dataModelUpdate: Provide data for components",
+        "properties": {
+          "dataModelUpdate": {
+            "type": "object",
+            "properties": {
+              "surfaceId": {"type": "string", "description": "Target surface identifier"},
+              "path": {"type": "string", "description": "Data path (optional, defaults to root)"},
+              "contents": {
+                "type": "array",
+                "description": "Data entries with typed values (valueString, valueNumber, etc.)",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {"type": "string"},
+                    "valueString": {"type": "string"},
+                    "valueNumber": {"type": "number"},
+                    "valueBoolean": {"type": "boolean"},
+                    "valueMap": {"type": "array", "description": "Nested data structure"}
+                  },
+                  "required": ["key"]
+                }
+              }
+            },
+            "required": ["surfaceId", "contents"]
+          }
+        },
+        "required": ["dataModelUpdate"]
+      }
+    ]
+  }
+}

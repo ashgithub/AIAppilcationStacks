@@ -14,7 +14,7 @@ class GenAIProvider:
             service_endpoint=os.getenv("SERVICE_ENDPOINT"),
             compartment_id=os.getenv("COMPARTMENT_ID"),
             model_kwargs=model_kwargs,
-            auth_profile="DEFAULT",
+            auth_profile="API-USER",
         )
 
         return client

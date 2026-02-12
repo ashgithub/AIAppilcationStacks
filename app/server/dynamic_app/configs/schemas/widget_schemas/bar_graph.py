@@ -1,4 +1,6 @@
-BAR_GRAPH_EXAMPLE = """
+WIDGET_NAME = "bar-graph"
+WIDGET_DESCRIPTION = "component designed to compare using data bars with legend. Requires good data references and specifications."
+WIDGET_SCHEMA = """
 [
   {{ "beginRendering": {{ "surfaceId": "restaurant-view","root": "main-column" }} }},
   {{ "surfaceUpdate": {{

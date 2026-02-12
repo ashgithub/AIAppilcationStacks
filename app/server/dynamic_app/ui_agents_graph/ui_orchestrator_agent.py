@@ -1,8 +1,8 @@
 from langchain.agents import create_agent
-
-from dynamic_app.configs.gen_ai_provider import GenAIProvider
-from dynamic_app.configs.widget_skills_provider import SkillSelectionMiddleware
 from langgraph.graph.message import MessagesState
+
+from dynamic_app.ui_agents_graph.widget_tools import get_widget_catalog
+from dynamic_app.configs.gen_ai_provider import GenAIProvider
 
 class UIOrchestrator:
     """ Orchestrator that receives the user query, the summary of data found and widget skills to select the suitable ones """
@@ -28,8 +28,7 @@ class UIOrchestrator:
         return create_agent(
             model=self._client,
             system_prompt=self.system_prompt,
-            # Injects the skills lookup into the agent itself
-            middleware=[SkillSelectionMiddleware()],
+            tools=[get_widget_catalog],
             # Fix structured output wrappers
             # response_format=UIOrchestratorOutput,
             name=self.agent_name
