@@ -36,3 +36,9 @@ uv run .
 ```
 
 Add your OCI data on the ```.env``` file.
+
+## Testing
+```bash
+uv pip install -e ".[dev]"
+uv run pytest tests/test_ui_orchestrator_agent.py -v
+```

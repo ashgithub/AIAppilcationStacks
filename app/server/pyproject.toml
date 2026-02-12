@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "a2a-sdk[http-server]>=0.3.22",
-    "a2ui-agent", 
+    "a2ui-agent",
     "fastapi>=0.110.0",
     "jsonschema>=4.26.0",
     "langchain>=1.2.3",
@@ -16,7 +16,14 @@ dependencies = [
     "mcp>=1.25.0",
     "pydantic>=2.6.0",
     "python-dotenv>=1.2.1",
+    "pyyaml>=6.0",
     "uvicorn>=0.40.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
 ]
 
 [tool.hatch.build.targets.wheel]
