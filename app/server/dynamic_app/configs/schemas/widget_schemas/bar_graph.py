@@ -1,96 +1,96 @@
-WIDGET_NAME = "bar-graph"
+WIDGET_NAME = "bargraph"
 WIDGET_DESCRIPTION = "component designed to compare using data bars with legend. Requires good data references and specifications."
 WIDGET_SCHEMA = """
 [
-  {{ "beginRendering": {{ "surfaceId": "restaurant-view","root": "main-column" }} }},
+  {{ "beginRendering": {{ "surfaceId": "energy-view","root": "main-column" }} }},
   {{ "surfaceUpdate": {{
-    "surfaceId": "restaurant-view",
+    "surfaceId": "energy-view",
       "components": [
-        {{ "id": "main-column", "component": {{ "Column": {{ "children": {{ "explicitList": ["title", "restaurant-table"] }} }} }} }},
-        {{ "id": "title","component": {{ "Text": {{ "usageHint": "h2", "text": {{ "literalString": "Restaurant Rating Bar Chart" }} }} }} }},
-        {{ "id": "restaurant-table", "component": {{ "RestaurantBarChart": {{ "restaurants": {{ "path": "/restaurants" }} }} }} }}
+        {{ "id": "main-column", "component": {{ "Column": {{ "children": {{ "explicitList": ["title", "energy-table"] }} }} }} }},
+        {{ "id": "title","component": {{ "Text": {{ "usageHint": "h2", "text": {{ "literalString": "Energy Usage and Outages Bar Chart" }} }} }} }},
+        {{ "id": "energy-table", "component": {{ "EnergyBarChart": {{ "energy": {{ "path": "/energy" }} }} }} }}
       ]
     }}
   }},
   {{ "dataModelUpdate": {{
-      "surfaceId": "restaurant-view",
+      "surfaceId": "energy-view",
       "path": "/",
       "contents": [
         {{
-          "key": "restaurants",
+          "key": "energy",
           "valueMap": [
             {{
-              "key": "restaurant-1",
+              "key": "energy-1",
               "valueMap": [
                 {{
-                  "key": "name",
-                  "valueString": "Mario's Italian Kitchen"
+                  "key": "region",
+                  "valueString": "North District"
                 }},
                 {{
-                  "key": "cuisine",
-                  "valueString": "Italian"
+                  "key": "type",
+                  "valueString": "Residential"
                 }},
                 {{
-                  "key": "rating",
-                  "valueNumber": 4.5
+                  "key": "usage",
+                  "valueNumber": 1500
                 }},
                 {{
-                  "key": "priceRange",
-                  "valueString": "$$$"
+                  "key": "outages",
+                  "valueNumber": 2
                 }},
                 {{
                   "key": "description",
-                  "valueString": "Authentic Italian cuisine with fresh pasta and wood-fired pizzas"
+                  "valueString": "High residential energy consumption with minimal outages"
                 }}
               ]
             }},
             {{
-              "key": "restaurant-2",
+              "key": "energy-2",
               "valueMap": [
                 {{
-                  "key": "name",
-                  "valueString": "Golden Dragon"
+                  "key": "region",
+                  "valueString": "Downtown"
                 }},
                 {{
-                  "key": "cuisine",
-                  "valueString": "Chinese"
+                  "key": "type",
+                  "valueString": "Commercial"
                 }},
                 {{
-                  "key": "rating",
-                  "valueNumber": 4.2
+                  "key": "usage",
+                  "valueNumber": 3200
                 }},
                 {{
-                  "key": "priceRange",
-                  "valueString": "$$"
+                  "key": "outages",
+                  "valueNumber": 5
                 }},
                 {{
                   "key": "description",
-                  "valueString": "Traditional Chinese dishes with a modern twist"
+                  "valueString": "Heavy commercial usage with occasional outages"
                 }}
               ]
             }},
             {{
-              "key": "restaurant-3",
+              "key": "energy-3",
               "valueMap": [
                 {{
-                  "key": "name",
-                  "valueString": "Taco Fiesta"
+                  "key": "region",
+                  "valueString": "Industrial Zone"
                 }},
                 {{
-                  "key": "cuisine",
-                  "valueString": "Mexican"
+                  "key": "type",
+                  "valueString": "Industrial"
                 }},
                 {{
-                  "key": "rating",
-                  "valueNumber": 4.8
+                  "key": "usage",
+                  "valueNumber": 5000
                 }},
                 {{
-                  "key": "priceRange",
-                  "valueString": "$"
+                  "key": "outages",
+                  "valueNumber": 8
                 }},
                 {{
                   "key": "description",
-                  "valueString": "Authentic Mexican street food and fresh ingredients"
+                  "valueString": "Intensive industrial operations with frequent outages"
                 }}
               ]
             }}

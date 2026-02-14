@@ -12,6 +12,8 @@ class UIOrchestrator:
     Select the most suitable widgets skills to show the user a good visual response
     You have to analyze the query from the user, compare to the given data summary.
     Pick between 1-3 skills max to generate the queries and pass the list of the selected skills.
+    As final output generate the list of widgets to use followed by the raw data to populate
+    The next agent will receive the widget names and based on the data you share will render the visual details.
     """
 
     def __init__(self):

@@ -16,13 +16,13 @@ from dynamic_app.configs.common_struct import AgentConfig
 from dotenv import load_dotenv
 load_dotenv()
 
-class DynamicUIGraph:
+class DynamicGraph:
     """ Graph to call the UI agent chain """
 
     SUPPORTED_CONTENT_TYPES = ["text", "text/plain", "text/event-stream"]
     CONTENT_TRUNCATION_LENGTH = 50
 
-    def __init__(self, base_url:str, graph_configuration: dict[str, AgentConfig] = None, inline_catalog: list = None):
+    def __init__(self, base_url:str, use_ui:bool = False, graph_configuration: dict[str, AgentConfig] = None, inline_catalog: list = None):
         self._inline_catalog = inline_catalog or []
         self._backend_orchestrator = BackendOrchestratorAgent()
         self._ui_orchestrator = UIOrchestrator()

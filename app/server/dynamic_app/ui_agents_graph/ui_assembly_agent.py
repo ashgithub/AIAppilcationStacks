@@ -49,6 +49,23 @@ class UIAssemblyAgent:
             print(f"Warning: Could not load a2ui schema: {e}")
             return "{}"
 
+    def _inject_custom_schemas_into_schema(self, schema_str, custom_schemas):
+        """Inject custom component schemas into the A2UI schema."""
+        if not custom_schemas:
+            return schema_str
+        try:
+            schema_obj = json.loads(schema_str)
+            component_properties = schema_obj["properties"]["surfaceUpdate"]["properties"]["components"]["items"]["properties"]["component"]["properties"]
+            for custom_schema in custom_schemas:
+                if "name" in custom_schema and "schema" in custom_schema:
+                    component_name = custom_schema["name"]
+                    component_schema = custom_schema["schema"]
+                    component_properties[component_name] = component_schema
+            return json.dumps(schema_obj, indent=2)
+        except (json.JSONDecodeError, KeyError) as e:
+            logger.warning(f"Failed to inject custom schemas: {e}")
+            return schema_str
+
     def _get_agent_instructions(self):
         """Get the agent instructions with loaded schema and base_url."""
         return f"""
@@ -59,15 +76,77 @@ Your goal is to process the raw data and bind it to the right widgets selected u
 COMPONENT USAGE:
 - Use native components (Text, Button, Image, Column, Row, etc.) for basic UI elements
 - Use custom widgets from the catalog for complex UI patterns (charts, forms, etc.)
-- Get component examples and schemas using the available tools when needed
-- The component examples shows how the particular component schemas should be filled out
+- Use the tools get_widget_schema, get_native_component_example, get_native_component_catalog to retrieve component schemas and examples as needed
+- The retrieved examples show how to fill out component schemas correctly
 - Surfaces can contain multiple components - combine them as needed
 - When using images or other assets, use the base URL: {self.base_url} for resolving static assets
 
 DATA BINDING:
 - Use dataModelUpdate to provide data that components can reference via paths
 - Components can reference data using {{"path": "/data/key"}} or provide literal values
-- Ensure data structure matches what components expect
+- Ensure data structure matches component expectations
+- For bar graphs, use dataPath pointing to an object with categories and values as valueMap arrays
+
+--- UI TEMPLATE RULES ---
+- If the query is for a bar graph (e.g., "[bar-graph]"), use the BAR_GRAPH_EXAMPLE template below.
+
+--- BAR GRAPH EXAMPLE ---
+[
+  {{
+    "beginRendering": {{
+      "surfaceId": "energy_chart_surface",
+      "root": "chart_root",
+      "styles": {{"font": "Arial", "primaryColor": "#007bff"}}
+    }}
+  }},
+  {{
+    "dataModelUpdate": {{
+      "surfaceId": "energy_chart_surface",
+      "contents": [
+        {{
+          "key": "chartData",
+          "valueMap": [
+            {{"key": "categories", "valueMap": [{{"key": "0", "valueString": "Renewable"}}, {{"key": "1", "valueString": "Fossil"}}, {{"key": "2", "valueString": "Nuclear"}}]}},
+            {{"key": "values", "valueMap": [{{"key": "0", "valueNumber": 420000}}, {{"key": "1", "valueNumber": 380000}}, {{"key": "2", "valueNumber": 50000}}]}},
+            {{"key": "units", "valueString": "MWh"}}
+          ]
+        }}
+      ]
+    }}
+  }},
+  {{
+    "surfaceUpdate": {{
+      "surfaceId": "energy_chart_surface",
+      "components": [
+        {{
+          "id": "chart_root",
+          "component": {{
+            "Column": {{
+              "children": {{"explicitList": ["title", "chart"]}}
+            }}
+          }}
+        }},
+        {{
+          "id": "title",
+          "component": {{
+            "Text": {{
+              "text": {{"path": "/chartData/title"}},
+              "usageHint": "h2"
+            }}
+          }}
+        }},
+        {{
+          "id": "chart",
+          "component": {{
+            "BarGraph": {{
+              "dataPath": "/chartData"
+            }}
+          }}
+        }}
+      ]
+    }}
+  }}
+]
 
 Your final output MUST be an A2UI UI JSON response.
 
@@ -78,7 +157,7 @@ To generate the response, you MUST follow these rules:
 4.  The JSON part MUST conform to the A2UI message structure shown below.
 
 --- CONDENSED A2UI SCHEMA ---
-{self._load_condensed_schema()}
+{self._inject_custom_schemas_into_schema(self._load_condensed_schema(), self.inline_catalog)}
 --- END SCHEMA ---
 """
 
@@ -90,7 +169,7 @@ To generate the response, you MUST follow these rules:
         self.agent_name = "assembly_agent"
         self.system_prompt = self._get_agent_instructions()
         self.agent = self._build_agent()
-        self.A2UI_SCHEMA = self._load_full_a2ui_schema()
+        self.A2UI_SCHEMA = self._inject_custom_schemas_into_schema(self._load_full_a2ui_schema(), self.inline_catalog)
 
         # Load the A2UI_SCHEMA string into a Python object for validation
         try:
@@ -239,7 +318,24 @@ To generate the response, you MUST follow these rules:
     
 async def main():
     from langchain.messages import HumanMessage
-    orchestrator = UIAssemblyAgent()
+    # Define inline_catalog with BarGraph schema from register-components.ts
+    inline_catalog = [
+        {
+            "name": "BarGraph",
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "dataPath": {"type": "string"},
+                    "labelPath": {"type": "string"},
+                    "orientation": {"type": "string", "enum": ["vertical", "horizontal"]},
+                    "barWidth": {"type": "number"},
+                    "gap": {"type": "number"},
+                },
+                "required": ["dataPath", "labelPath"],
+            }
+        }
+    ]
+    orchestrator = UIAssemblyAgent(inline_catalog=inline_catalog)
     messages:MessagesState = {'messages':[HumanMessage("AIMessage(content='[bar-graph]'")]}
     response = await orchestrator(messages)
     print(response)
