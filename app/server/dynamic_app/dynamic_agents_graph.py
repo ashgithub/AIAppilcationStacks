@@ -104,7 +104,10 @@ class DynamicGraph:
 
     async def call_dynamic_ui_graph(self, query, session_id) -> AsyncIterable[dict[str, Any]]:
         current_message = {"messages":[HumanMessage(query)]}
-        config:RunnableConfig = {"run_id":str(session_id), "configurable":{"thread_id":str(session_id)}}
+        config:RunnableConfig = {
+            "run_id":str(session_id), 
+            "configurable":{"thread_id":str(session_id)},
+        }
         final_response_content = None
         model_token_count = 0
         node_name = "START"
@@ -162,7 +165,7 @@ class DynamicGraph:
 
 #region Testing
 async def main():
-    graph = DynamicUIGraph(base_url="http://localhost:8000")
+    graph = DynamicGraph(base_url="http://localhost:8000")
 
     await graph.build_graph()
 

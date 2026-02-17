@@ -358,8 +358,14 @@ export class DynamicModule extends LitElement {
       const newMessages: v0_8.Types.ServerToClientMessage[] = [];
       for (const part of event.status.message.parts) {
         if (part.kind === 'data') {
-          const a2uiMessage = part.data as v0_8.Types.ServerToClientMessage;
-          newMessages.push(a2uiMessage);
+          const data = part.data;
+          if (Array.isArray(data)) {
+            // Proper A2UI format: array of messages
+            newMessages.push(...data);
+          } else {
+            // Single message format (temporary compatibility)
+            newMessages.push(data);
+          }
         }
       }
       // Replace with latest messages, not accumulate

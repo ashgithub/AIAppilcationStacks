@@ -3,11 +3,15 @@ from typing import TypedDict, List, Optional
 from pydantic import BaseModel, Field
 from dataclasses import dataclass
 
-class Skill(TypedDict):  
+class Skill(TypedDict):
     """A skill that can be progressively disclosed to the agent."""
     name: str  # Unique identifier for the skill
     description: str  # 1-2 sentence description to show in system prompt
     content: str  # Full skill content with detailed instructions
+
+class UIOrchestratorOutput(BaseModel):
+    """Output from UI Orchestrator containing selected widgets."""
+    widgets: List[Skill] = Field(description="List of selected UI widgets (1-3 max)")
 
 # Data class for better json handling
 @dataclass

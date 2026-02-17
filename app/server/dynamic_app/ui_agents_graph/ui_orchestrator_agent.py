@@ -1,40 +1,60 @@
 from langchain.agents import create_agent
 from langgraph.graph.message import MessagesState
+from langchain.messages import AIMessage
 
 from dynamic_app.ui_agents_graph.widget_tools import get_widget_catalog
 from dynamic_app.configs.gen_ai_provider import GenAIProvider
+from dynamic_app.configs.common_struct import UIOrchestratorOutput
 
 class UIOrchestrator:
     """ Orchestrator that receives the user query, the summary of data found and widget skills to select the suitable ones """
 
     AGENT_INSTRUCTIONS = """
-    You are an orchestrator agent that is in charge of slecting the suitable skills to the agent
-    Select the most suitable widgets skills to show the user a good visual response
-    You have to analyze the query from the user, compare to the given data summary.
-    Pick between 1-3 skills max to generate the queries and pass the list of the selected skills.
-    As final output generate the list of widgets to use followed by the raw data to populate
-    The next agent will receive the widget names and based on the data you share will render the visual details.
+    You are an orchestrator agent that selects suitable UI components for data visualization.
+
+    TASK:
+    - Analyze the user query and available data
+    - Select 1-3 most appropriate UI components from the catalog ALWAYS use the 'get_widget_catalog' tool to select
+    - Return ONLY a simple list of component names in this format comming from the tool 'get_widget_catalog':
+
+    COMPONENTS: component1, component2, component3
+
+    EXAMPLE OUTPUT (confirm components available with the tool):
+    COMPONENTS: bar-graph, table
+
+    Do not include any other text or explanation. Just the component list.
     """
 
     def __init__(self):
         self.gen_ai_provider = GenAIProvider()
         self._client = self.gen_ai_provider.build_oci_client(model_id="openai.gpt-4.1",model_kwargs={"temperature":0.7})
+        self._output_client = self.gen_ai_provider.build_oci_client(model_id="openai.gpt-4.1",model_kwargs={"temperature":0.7})
         self.agent_name = "ui_orchestrator"
-        self.system_prompt = self.AGENT_INSTRUCTIONS
         self.agent = self._build_agent()
+        self.output_response = self._build_output_llm()
 
     async def __call__(self, state: MessagesState):
-        return await self.agent.ainvoke(state)
+        response =  await self.agent.ainvoke(state)
+        # To support structured output, seems langchain_oci has erro here
+        structured_response = await self.output_response.ainvoke(f"Build the component list with the information on: {response['messages'][-1].content}")
+        return {
+            'messages': state['messages'] + [
+                AIMessage(content=(
+                    str(structured_response.model_dump_json())
+                ))
+            ]
+        }
     
     def _build_agent(self):
         return create_agent(
             model=self._client,
-            system_prompt=self.system_prompt,
+            system_prompt=self.AGENT_INSTRUCTIONS,
             tools=[get_widget_catalog],
-            # Fix structured output wrappers
-            # response_format=UIOrchestratorOutput,
             name=self.agent_name
         )
+    
+    def _build_output_llm(self):
+        return self._output_client.with_structured_output(UIOrchestratorOutput)
     
 async def main():
     from langchain.messages import HumanMessage

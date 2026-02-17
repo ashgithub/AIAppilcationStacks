@@ -47,29 +47,30 @@ export class BarGraph extends Root {
         align-items: end;
         justify-content: space-around;
         height: 300px;
-        margin-bottom: 20px;
+        margin-bottom: 40px;
         padding: 0 20px;
       }
 
       .bar-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
         flex: 1;
-        margin: 0 5px;
+        position: relative;
+        height: 100%;
       }
 
       .bar {
         width: 100%;
-        min-height: 10px;
         border-radius: 4px 4px 0 0;
         transition: height 0.3s ease;
-        position: relative;
+        position: absolute;
+        bottom: 0;
       }
 
       .bar-label {
+        position: absolute;
+        bottom: -25px;
+        left: 50%;
+        transform: translateX(-50%);
         text-align: center;
-        margin-top: 8px;
         font-size: 12px;
         font-weight: 500;
         color: #666;
@@ -103,7 +104,7 @@ export class BarGraph extends Root {
       .legend {
         display: flex;
         justify-content: center;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         gap: 15px;
         margin-top: 20px;
       }
@@ -125,58 +126,34 @@ export class BarGraph extends Root {
   ];
 
   render() {
-    console.log('BarGraph render called with:', {
-      dataPath: this.dataPath,
-      labelPath: this.labelPath,
-      orientation: this.orientation,
-      barWidth: this.barWidth,
-      gap: this.gap
-    });
-
     let barData: BarData[] = [];
 
-    // Resolve dataPath
-    if (this.dataPath && typeof this.dataPath === 'string') {
+    // Resolve dataPath and labelPath
+    if (this.dataPath && typeof this.dataPath === 'string' && this.labelPath && typeof this.labelPath === 'string') {
       if (this.processor) {
-        const rawData = this.processor.getData(this.component, this.dataPath, this.surfaceId ?? 'default') as any;
-        let data: any = {};
-        if (rawData instanceof Map) {
-          // Handle resolved Map format from A2UI processor
-          for (const [key, value] of rawData.entries()) {
-            if (value instanceof Map) {
-              // Nested Maps (categories, values, colors) are converted to arrays
-              data[key] = Array.from(value.values());
-            } else {
-              data[key] = value;
-            }
-          }
-        } else if (Array.isArray(rawData)) {
-          // Fallback: Parse raw valueMap format: array of {key, valueString/valueNumber/...}
-          for (const entry of rawData) {
-            if (entry.key === 'categories' || entry.key === 'values' || entry.key === 'colors') {
-              // Sub valueMap
-              const subMap: any = {};
-              if (entry.valueMap && Array.isArray(entry.valueMap)) {
-                for (const subEntry of entry.valueMap) {
-                  subMap[subEntry.key] = subEntry.valueString || subEntry.valueNumber || subEntry.valueBoolean || '';
-                }
-              }
-              data[entry.key] = Object.values(subMap); // Convert to array
-            } else {
-              data[entry.key] = entry.valueString || entry.valueNumber || entry.valueBoolean || '';
-            }
-          }
-        } else if (rawData && typeof rawData === 'object') {
-          data = rawData;
+        let values = this.processor.getData(this.component, this.dataPath, this.surfaceId ?? 'default') as any;
+        let labels = this.processor.getData(this.component, this.labelPath, this.surfaceId ?? 'default') as any;
+
+        // Convert valueMap format to arrays
+        if (values instanceof Map) {
+          values = Array.from(values.values());
+        } else if (Array.isArray(values) && values[0] && typeof values[0] === 'object' && 'valueNumber' in values[0]) {
+          // Handle array of {valueNumber: ...}
+          values = values.map((item: any) => item.valueNumber || item.valueString || 0);
         }
-        const categories = data.categories;
-        const values = data.values;
-        const colors = data.colors || [];
-        if (Array.isArray(categories) && Array.isArray(values)) {
-          barData = categories.map((cat: any, i: number) => ({
-            category: String(cat),
+
+        if (labels instanceof Map) {
+          labels = Array.from(labels.values());
+        } else if (Array.isArray(labels) && labels[0] && typeof labels[0] === 'object' && 'valueString' in labels[0]) {
+          // Handle array of {valueString: ...}
+          labels = labels.map((item: any) => item.valueString || item.valueNumber || '');
+        }
+
+        if (Array.isArray(values) && Array.isArray(labels) && values.length === labels.length) {
+          barData = labels.map((label: any, i: number) => ({
+            category: String(label),
             value: typeof values[i] === 'number' ? values[i] : parseFloat(values[i]) || 0,
-            color: Array.isArray(colors) && colors[i] ? String(colors[i]) : '#4CAF50'
+            color: '#4CAF50' // Default color, could be extended to support custom colors
           }));
         }
       }
@@ -195,7 +172,7 @@ export class BarGraph extends Root {
     return html`
       <div class="bar-chart">
         <div class="chart-title">Data Comparison</div>
-        <div class="bar-container" style="gap: ${this.gap || 0}px;">
+        <div class="bar-container" style="gap: 10px;">
           ${barData.map((item) => this.renderBar(item, maxValue))}
         </div>
         <div class="legend">
