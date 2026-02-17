@@ -69,6 +69,20 @@ class UIAssemblyAgent:
         """Get the agent instructions with loaded schema and base_url."""
         allowed_str = ", ".join(allowed_components) if allowed_components else "any available"
 
+        # Identify which components are custom (have schemas in CUSTOM_CATALOG)
+        from dynamic_app.configs.schemas.widget_schemas.a2ui_custom_catalog_list import CUSTOM_CATALOG
+        custom_components = [comp for comp in allowed_components
+                           if any(cat["widget-name"].lower() == comp.lower() for cat in CUSTOM_CATALOG)]
+
+        # Build dynamic requirements for custom components
+        requirements = []
+        if custom_components:
+            requirements.append("CRITICAL: For all custom components, you MUST call get_custom_component_example() FIRST and use the EXACT schema structures provided.")
+            for comp in custom_components:
+                requirements.append(f"- {comp}: Use get_custom_component_example('{comp}') and follow the schema exactly")
+
+        requirements_str = "\n".join(requirements) if requirements else ""
+
         return f"""
 You are an A2UI UI generation agent. Your task is to create valid A2UI message arrays that will render dynamic user interfaces.
 
@@ -77,15 +91,19 @@ DATA TO VISUALIZE:
 
 ALLOWED COMPONENTS: {allowed_str}
 
+{requirements_str}
+
 INSTRUCTIONS:
-1. Use the available tools to get component schemas and examples for the allowed components.
-2. Build a complete A2UI message array with the following structure:
+1. FIRST, call get_custom_component_catalog() to see available custom components.
+2. For each custom component you plan to use, call get_custom_component_example(component_name) to get the exact schema structure.
+3. You MUST use the EXACT component configurations from the examples - do not modify property names or structures.
+4. Build a complete A2UI message array with the following structure:
    - beginRendering: Initialize the UI surface
    - surfaceUpdate: Define the UI components
    - dataModelUpdate: Provide the data to populate the components
 
-3. Extract relevant data from the provided data context and structure it as arrays in the data model.
-4. Use data paths like "/labels" and "/values" that point directly to arrays.
+5. Extract relevant data from the provided data context and structure it as specified in the component examples.
+6. Use data paths exactly as shown in the examples.
 
 EXAMPLE A2UI MESSAGE STRUCTURE:
 [
@@ -145,12 +163,13 @@ First, provide a brief conversational response.
 Then `---a2ui_JSON---`
 Then the complete JSON array of A2UI messages (no markdown code blocks).
 
-TOOLS:
-- Use get_custom_component_example(component_name) to see schema/examples
+MANDATORY TOOLS USAGE:
+- Always start with get_custom_component_catalog() to see available custom components
+- For each custom component: get_custom_component_example(component_name)
 - Use get_native_component_example(component_name) for native components
-- Use get_custom_component_catalog() and get_native_component_catalog() to see available options
+- Use get_native_component_catalog() to see available native options
 
-Generate a complete, valid A2UI message array that uses only the allowed components and properly structures the provided data.
+Generate a complete, valid A2UI message array that uses only the allowed components and follows the EXACT predefined schema structures from the tools.
 """
     
     #region agent logic
