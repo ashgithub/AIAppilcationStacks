@@ -21,9 +21,9 @@ export class BarGraph extends Root {
     css`
       :host {
         display: block;
-        background: #f8f9fa;
+        background: #1a1a1a;
         border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
         padding: 16px;
         margin: 8px;
         overflow-x: auto;
@@ -39,7 +39,7 @@ export class BarGraph extends Root {
         margin-bottom: 20px;
         font-size: 18px;
         font-weight: 600;
-        color: #333;
+        color: #ffffff;
       }
 
       .bar-container {
@@ -73,7 +73,7 @@ export class BarGraph extends Root {
         text-align: center;
         font-size: 12px;
         font-weight: 500;
-        color: #666;
+        color: #cccccc;
         max-width: 80px;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -87,8 +87,8 @@ export class BarGraph extends Root {
         transform: translateX(-50%);
         font-size: 12px;
         font-weight: 600;
-        color: #333;
-        background: rgba(255, 255, 255, 0.9);
+        color: #ffffff;
+        background: rgba(0, 0, 0, 0.8);
         padding: 2px 4px;
         border-radius: 3px;
         white-space: nowrap;
@@ -96,7 +96,7 @@ export class BarGraph extends Root {
 
       .empty-state {
         text-align: center;
-        color: #666;
+        color: #cccccc;
         padding: 20px;
         font-style: italic;
       }
@@ -114,7 +114,7 @@ export class BarGraph extends Root {
         align-items: center;
         gap: 5px;
         font-size: 12px;
-        color: #666;
+        color: #cccccc;
       }
 
       .legend-color {

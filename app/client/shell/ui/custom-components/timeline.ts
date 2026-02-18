@@ -13,20 +13,15 @@ interface TimelineEvent {
 @customElement('timeline-component')
 export class TimelineComponent extends Root {
   @property({ attribute: false }) accessor dataPath: any = "";
-  @property({ attribute: false }) accessor eventsPath: any = ""; // Keep for backward compatibility
-  @property({ attribute: false }) accessor dateFormat: string = 'MM/DD/YYYY';
-  @property({ attribute: false }) accessor eventColor: string = '#FF5722';
-  @property({ attribute: false }) accessor lineColor: string = '#007bff';
-  @property({ attribute: false }) accessor title: string = "";
 
   static styles = [
     ...Root.styles,
     css`
       :host {
         display: block;
-        background: #f8f9fa;
+        background: #1a1a1a;
         border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
         padding: 16px;
         margin: 8px;
         overflow-y: auto;
@@ -45,7 +40,7 @@ export class TimelineComponent extends Root {
         top: 0;
         bottom: 0;
         width: 2px;
-        background: #ddd;
+        background: #444;
       }
 
       .timeline-item {
@@ -63,20 +58,20 @@ export class TimelineComponent extends Root {
         height: 12px;
         border-radius: 50%;
         background: #4CAF50;
-        border: 2px solid #fff;
-        box-shadow: 0 0 0 2px #ddd;
+        border: 2px solid #1a1a1a;
+        box-shadow: 0 0 0 2px #444;
       }
 
       .timeline-content {
-        background: #fff;
+        background: #2a2a2a;
         border-radius: 6px;
         padding: 12px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
       }
 
       .timeline-date {
         font-size: 12px;
-        color: #666;
+        color: #cccccc;
         margin-bottom: 4px;
         font-weight: 500;
       }
@@ -84,13 +79,13 @@ export class TimelineComponent extends Root {
       .timeline-title {
         font-size: 16px;
         font-weight: 600;
-        color: #333;
+        color: #ffffff;
         margin-bottom: 4px;
       }
 
       .timeline-description {
         font-size: 14px;
-        color: #666;
+        color: #cccccc;
         line-height: 1.4;
       }
 
@@ -101,13 +96,13 @@ export class TimelineComponent extends Root {
         font-size: 11px;
         font-weight: 500;
         margin-top: 8px;
-        background: #e9ecef;
-        color: #495057;
+        background: #333;
+        color: #cccccc;
       }
 
       .empty-state {
         text-align: center;
-        color: #666;
+        color: #cccccc;
         padding: 40px;
         font-style: italic;
       }
@@ -119,42 +114,9 @@ export class TimelineComponent extends Root {
   ];
 
   render() {
-    let events: TimelineEvent[] = [];
+    const events = this.getEvents();
 
-    // Use dataPath if provided (server preference), otherwise eventsPath
-    const dataSource = this.dataPath || this.eventsPath;
-
-    // Resolve data source
-    if (dataSource && typeof dataSource === 'string') {
-      if (this.processor) {
-        let data = this.processor.getData(this.component, dataSource, this.surfaceId ?? 'default') as any;
-
-        if (data instanceof Map) {
-          data = Array.from(data.values());
-        }
-
-        if (Array.isArray(data)) {
-          events = data.map((item: any) => {
-            if (typeof item === 'object') {
-              // Handle server payload structure: {description, end, start, title}
-              return {
-                date: item.start || item.date || item.timestamp || '',
-                title: item.title || 'Event',
-                description: item.description || '',
-                category: 'Outage', // Default category for outages
-                color: this.eventColor || '#FF5722' // Use configured event color
-              };
-            }
-            return null;
-          }).filter(Boolean) as TimelineEvent[];
-        }
-      }
-    }
-
-    // Sort events by date
-    events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-    if (!events || events.length === 0) {
+    if (events.length === 0) {
       return html`
         <div class="empty-state">
           No timeline data available
@@ -169,11 +131,58 @@ export class TimelineComponent extends Root {
     `;
   }
 
-  updated(changedProperties: Map<string | number | symbol, unknown>) {
-    super.updated(changedProperties);
-    if (changedProperties.has('dataPath') || changedProperties.has('eventsPath') || changedProperties.has('eventColor')) {
-      this.requestUpdate();
+  private getEvents(): TimelineEvent[] {
+    let events: TimelineEvent[] = [];
+
+    if (this.dataPath && typeof this.dataPath === 'string') {
+      if (this.processor) {
+        let data = this.processor.getData(this.component, this.dataPath, this.surfaceId ?? 'default') as any;
+
+        if (data instanceof Map) {
+          data = Array.from(data.values());
+        }
+
+        if (Array.isArray(data)) {
+          events = data.map((item: any) => {
+            let eventData: any = {};
+
+            if (item instanceof Map) {
+              // Handle A2UI Map structure: Map('date' -> '2023-01-15', 'title' -> 'Project Start', ...)
+              for (const [key, value] of item.entries()) {
+                if (key === 'date') eventData.date = value;
+                if (key === 'title') eventData.title = value;
+                if (key === 'description') eventData.description = value;
+                if (key === 'category') eventData.category = value;
+              }
+            } else if (typeof item === 'object' && item.valueMap && Array.isArray(item.valueMap)) {
+              // Handle A2UI structure: {valueMap: [{key: 'date', valueString: ...}, ...]}
+              item.valueMap.forEach((entry: any) => {
+                if (entry.key === 'date' && entry.valueString) eventData.date = entry.valueString;
+                if (entry.key === 'title' && entry.valueString) eventData.title = entry.valueString;
+                if (entry.key === 'description' && entry.valueString) eventData.description = entry.valueString;
+                if (entry.key === 'category' && entry.valueString) eventData.category = entry.valueString;
+              });
+            }
+
+            if (eventData.date) {
+              return {
+                date: eventData.date,
+                title: eventData.title || 'Event',
+                description: eventData.description || '',
+                category: eventData.category || 'Event',
+                color: '#4CAF50'
+              };
+            }
+            return null;
+          }).filter(Boolean) as TimelineEvent[];
+        }
+      }
     }
+
+    // Sort events by date
+    events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    return events;
   }
 
   private renderTimelineItem(event: TimelineEvent) {

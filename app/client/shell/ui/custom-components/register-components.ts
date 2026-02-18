@@ -22,14 +22,9 @@ export function registerShellComponents() {
     type: "object",
     properties: {
       dataPath: { type: "string" },
-      markersPath: { type: "string" },
-      center: { type: "object" },
       centerLat: { type: "number" },
       centerLng: { type: "number" },
       zoom: { type: "number" },
-      styleUrl: { type: "string" },
-      markerColor: { type: "string" },
-      title: { type: "string" },
     },
     required: [],
   });
@@ -39,11 +34,6 @@ export function registerShellComponents() {
     type: "object",
     properties: {
       dataPath: { type: "string" },
-      eventsPath: { type: "string" },
-      dateFormat: { type: "string" },
-      eventColor: { type: "string" },
-      lineColor: { type: "string" },
-      title: { type: "string" },
     },
     required: [],
   });

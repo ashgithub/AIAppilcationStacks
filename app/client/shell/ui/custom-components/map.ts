@@ -14,17 +14,13 @@ interface MapMarker {
 @customElement('map-component')
 export class MapComponent extends Root {
   @property({ attribute: false }) accessor dataPath: any = "";
-  @property({ attribute: false }) accessor markersPath: any = ""; // Keep for backward compatibility
   @property({ attribute: false }) accessor centerLat: number = 40.7328;
   @property({ attribute: false }) accessor centerLng: number = -74.006;
-  @property({ attribute: false }) accessor center: any = null;
   @property({ attribute: false }) accessor zoom: number = 10;
-  @property({ attribute: false }) accessor styleUrl: string = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
-  @property({ attribute: false }) accessor markerColor: string = "#ff0000";
-  @property({ attribute: false }) accessor title: string = "";
 
   private map: maplibregl.Map | null = null;
-  private mapContainer: HTMLElement | null = null;
+  private mapContainer!: HTMLElement;
+  private resizeObserver: ResizeObserver | null = null;
 
   static styles = [
     ...Root.styles,
@@ -33,15 +29,19 @@ export class MapComponent extends Root {
         display: block;
         height: 400px;
         width: 100%;
+        max-width: 600px;
         border-radius: 8px;
         overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
         margin: 8px;
+        background: #1a1a1a;
       }
 
       .map-container {
         height: 100%;
         width: 100%;
+        position: relative;
+        box-sizing: border-box;
       }
 
       .empty-state {
@@ -49,22 +49,56 @@ export class MapComponent extends Root {
         align-items: center;
         justify-content: center;
         height: 100%;
-        color: #666;
+        color: #cccccc;
         font-style: italic;
       }
     `,
   ];
 
   render() {
+    const markers = this.getMarkers();
+
+    // Update markers on the map when data is available and map is loaded
+    if (this.map && this.map.isStyleLoaded() && markers.length > 0) {
+      this.addMarkers();
+    }
+
+    return html`
+      <div class="map-container">
+        ${markers.length === 0 ? html`<div class="empty-state">No map data available</div>` : ''}
+      </div>
+    `;
+  }
+
+  firstUpdated() {
+    this.mapContainer = this.shadowRoot!.querySelector('.map-container') as HTMLElement;
+    this.initializeMap();
+
+    this.resizeObserver = new ResizeObserver(() => {
+      if (this.map) {
+        this.map.resize();
+      }
+    });
+    this.resizeObserver.observe(this);
+  }
+
+  updated(changedProperties: Map<string | number | symbol, unknown>) {
+    super.updated(changedProperties);
+    if (changedProperties.has('dataPath') || changedProperties.has('centerLat') || changedProperties.has('centerLng') || changedProperties.has('zoom')) {
+      this.updateMap();
+    }
+  }
+
+  private getCenter(): [number, number] {
+    return [this.centerLng, this.centerLat];
+  }
+
+  private getMarkers(): MapMarker[] {
     let markers: MapMarker[] = [];
 
-    // Use dataPath if provided (server preference), otherwise markersPath
-    const dataSource = this.dataPath || this.markersPath;
-
-    // Resolve data source
-    if (dataSource && typeof dataSource === 'string') {
+    if (this.dataPath && typeof this.dataPath === 'string') {
       if (this.processor) {
-        let data = this.processor.getData(this.component, dataSource, this.surfaceId ?? 'default') as any;
+        let data = this.processor.getData(this.component, this.dataPath, this.surfaceId ?? 'default') as any;
 
         if (data instanceof Map) {
           data = Array.from(data.values());
@@ -72,13 +106,37 @@ export class MapComponent extends Root {
 
         if (Array.isArray(data)) {
           markers = data.map((item: any) => {
-            if (typeof item === 'object' && item.lat !== undefined && item.lng !== undefined) {
-              // Handle server payload structure: {info, lat, lng, title}
+            let markerData: any = {};
+
+            if (item instanceof Map) {
+              // Handle A2UI Map structure: Map('name' -> 'New York', 'latitude' -> 40.7128, ...)
+              for (const [key, value] of item.entries()) {
+                if (key === 'name') markerData.name = value;
+                if (key === 'latitude' || key === 'lat') markerData.lat = value;
+                if (key === 'longitude' || key === 'lng') markerData.lng = value;
+                if (key === 'description') markerData.description = value;
+              }
+            } else if (typeof item === 'object') {
+              if (item.lat !== undefined && item.lng !== undefined) {
+                // Handle direct structure: {lat, lng, name, description}
+                markerData = item;
+              } else if (item.valueMap && Array.isArray(item.valueMap)) {
+                // Handle A2UI structure: {valueMap: [{key: 'name', valueString: ...}, ...]}
+                item.valueMap.forEach((entry: any) => {
+                  if (entry.key === 'name' && entry.valueString) markerData.name = entry.valueString;
+                  if ((entry.key === 'lat' || entry.key === 'latitude') && entry.valueNumber !== undefined) markerData.lat = entry.valueNumber;
+                  if ((entry.key === 'lng' || entry.key === 'longitude') && entry.valueNumber !== undefined) markerData.lng = entry.valueNumber;
+                  if (entry.key === 'description' && entry.valueString) markerData.description = entry.valueString;
+                });
+              }
+            }
+
+            if (markerData.lat !== undefined && markerData.lng !== undefined) {
               return {
-                name: item.title || item.location || 'Location',
-                lat: parseFloat(item.lat),
-                lng: parseFloat(item.lng),
-                description: item.info || item.customers ? `${item.customers} affected` : item.title
+                name: markerData.name || markerData.title || 'Location',
+                lat: parseFloat(markerData.lat),
+                lng: parseFloat(markerData.lng),
+                description: markerData.description || markerData.info || ''
               };
             }
             return null;
@@ -87,29 +145,7 @@ export class MapComponent extends Root {
       }
     }
 
-    return html`
-      <div class="map-container" ${this.mapContainer = this.mapContainer}>
-        ${markers.length === 0 ? html`<div class="empty-state">No map data available</div>` : ''}
-      </div>
-    `;
-  }
-
-  firstUpdated() {
-    this.initializeMap();
-  }
-
-  updated(changedProperties: Map<string | number | symbol, unknown>) {
-    super.updated(changedProperties);
-    if (changedProperties.has('dataPath') || changedProperties.has('markersPath') || changedProperties.has('centerLat') || changedProperties.has('centerLng') || changedProperties.has('center') || changedProperties.has('zoom') || changedProperties.has('styleUrl')) {
-      this.updateMap();
-    }
-  }
-
-  private getCenter(): [number, number] {
-    if (this.center && typeof this.center === 'object' && this.center.lng !== undefined && this.center.lat !== undefined) {
-      return [this.center.lng, this.center.lat];
-    }
-    return [this.centerLng, this.centerLat];
+    return markers;
   }
 
   private initializeMap() {
@@ -117,7 +153,7 @@ export class MapComponent extends Root {
 
     this.map = new maplibregl.Map({
       container: this.mapContainer,
-      style: this.styleUrl,
+      style: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
       center: this.getCenter(),
       zoom: this.zoom,
     });
@@ -132,47 +168,15 @@ export class MapComponent extends Root {
 
     this.map.setCenter(this.getCenter());
     this.map.setZoom(this.zoom);
-    this.map.setStyle(this.styleUrl);
-
-    // Re-add markers after style change
-    this.map.on('style.load', () => {
+    if (this.map.isStyleLoaded()) {
       this.addMarkers();
-    });
+    }
   }
 
   private addMarkers() {
-    if (!this.map) return;
+    if (!this.map || !this.map.isStyleLoaded()) return;
 
-    let markers: MapMarker[] = [];
-
-    // Use dataPath if provided (server preference), otherwise markersPath
-    const dataSource = this.dataPath || this.markersPath;
-
-    // Get current data
-    if (dataSource && typeof dataSource === 'string') {
-      if (this.processor) {
-        let data = this.processor.getData(this.component, dataSource, this.surfaceId ?? 'default') as any;
-
-        if (data instanceof Map) {
-          data = Array.from(data.values());
-        }
-
-        if (Array.isArray(data)) {
-          markers = data.map((item: any) => {
-            if (typeof item === 'object' && item.lat !== undefined && item.lng !== undefined) {
-              // Handle server payload structure: {info, lat, lng, title}
-              return {
-                name: item.title || item.location || 'Location',
-                lat: parseFloat(item.lat),
-                lng: parseFloat(item.lng),
-                description: item.info || item.customers ? `${item.customers} affected` : item.title
-              };
-            }
-            return null;
-          }).filter(Boolean) as MapMarker[];
-        }
-      }
-    }
+    const markers = this.getMarkers();
 
     // Remove existing markers
     if (this.map.getSource('markers')) {
@@ -214,12 +218,18 @@ export class MapComponent extends Root {
       this.map.on("click", "markers-layer", (e) => {
         const coordinates = (e.features?.[0].geometry as GeoJSON.Point).coordinates.slice() as [number, number];
         const name = e.features?.[0].properties?.name;
-        const description = e.features?.[0].properties?.description;
 
-        new maplibregl.Popup()
+        const popup = new maplibregl.Popup({ anchor: 'top' })
           .setLngLat(coordinates)
-          .setHTML(`<strong>${name}</strong><br>${description || ''}`)
-          .addTo(this.map!);
+          .setHTML(`<strong>${name}</strong>`);
+
+        // Add to map first for positioning, then move to document.body
+        popup.addTo(this.map!);
+        const el = popup.getElement();
+        if (el && el.parentNode) {
+          el.parentNode.removeChild(el);
+          document.body.appendChild(el);
+        }
       });
 
       // Change cursor on hover
@@ -233,7 +243,13 @@ export class MapComponent extends Root {
     }
   }
 
+
+
   disconnectedCallback() {
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
     super.disconnectedCallback();
     if (this.map) {
       this.map.remove();
