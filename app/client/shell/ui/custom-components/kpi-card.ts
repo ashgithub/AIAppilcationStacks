@@ -45,8 +45,11 @@ export class KpiCard extends Root {
     css`
       :host {
         display: block;
-        flex: 1;
+        flex: 0 1 auto;
         min-width: 180px;
+        max-width: 280px;
+        box-sizing: border-box;
+        padding: 12px;
       }
 
       .kpi-card {
@@ -54,7 +57,7 @@ export class KpiCard extends Root {
         border-radius: 12px;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
         padding: 20px;
-        height: 100%;
+        min-height: 140px;
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
@@ -317,7 +320,8 @@ export class KpiCardGroup extends Root {
     css`
       :host {
         display: block;
-        margin: 8px;
+        padding: 16px 8px;
+        box-sizing: border-box;
       }
 
       .kpi-group {
@@ -334,13 +338,13 @@ export class KpiCardGroup extends Root {
 
       .kpi-group-container {
         display: flex;
-        gap: 16px;
+        gap: 8px;
         flex-wrap: wrap;
+        padding: 4px;
       }
 
       .kpi-group-container > * {
-        flex: 1 1 200px;
-        min-width: 180px;
+        flex: 0 1 auto;
       }
 
       .empty-state {
