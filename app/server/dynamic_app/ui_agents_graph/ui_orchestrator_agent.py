@@ -2,7 +2,7 @@ from langchain.agents import create_agent
 from langgraph.graph.message import MessagesState
 from langchain.messages import AIMessage
 
-from dynamic_app.ui_agents_graph.widget_tools import get_widget_catalog
+from dynamic_app.ui_agents_graph.widget_tools import get_widget_catalog, get_native_component_catalog
 from dynamic_app.configs.gen_ai_provider import GenAIProvider
 from dynamic_app.configs.common_struct import UIOrchestratorOutput
 
@@ -14,15 +14,18 @@ class UIOrchestrator:
 
     TASK:
     - Analyze the user query and available data
-    - Select 1-3 most appropriate UI components from the catalog ALWAYS use the 'get_widget_catalog' tool to select
-    - Return ONLY a simple list of component names in this format comming from the tool 'get_widget_catalog':
+    - Select 1-3 most appropriate UI components from the available catalogs
+    - ALWAYS use 'get_widget_catalog' for custom visualization components (charts, tables, etc.)
+    - Optionally use 'get_native_component_catalog' for basic UI components (Text, Button, etc.) if needed for layout
+    - Return ONLY a simple list of component names in this format:
 
     COMPONENTS: component1, component2, component3
 
-    EXAMPLE OUTPUT (confirm components available with the tool):
-    COMPONENTS: bar-graph, table
+    EXAMPLE OUTPUT (confirm components available with the tools):
+    COMPONENTS: bar-graph, table, text
 
     Do not include any other text or explanation. Just the component list.
+    Focus on selecting the main visualization components, native components are supplementary.
     """
 
     def __init__(self):
@@ -49,7 +52,7 @@ class UIOrchestrator:
         return create_agent(
             model=self._client,
             system_prompt=self.AGENT_INSTRUCTIONS,
-            tools=[get_widget_catalog],
+            tools=[get_widget_catalog, get_native_component_catalog],
             name=self.agent_name
         )
     
