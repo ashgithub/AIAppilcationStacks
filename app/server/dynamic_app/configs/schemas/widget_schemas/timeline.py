@@ -8,7 +8,7 @@ WIDGET_SCHEMA = """
       "components": [
         {{ "id": "main-column", "component": {{ "Column": {{ "children": {{ "explicitList": ["title", "event-timeline"] }} }} }} }},
         {{ "id": "title","component": {{ "Text": {{ "usageHint": "h2", "text": {{ "literalString": "Event Timeline" }} }} }} }},
-        {{ "id": "event-timeline", "component": {{ "TimelineComponent": {{ "dataPath": {{ "path": "/events" }} }} }} }}
+        {{ "id": "event-timeline", "component": {{ "TimelineComponent": {{ "dataPath": "/timelineData" }} }} }}
       ]
     }}
   }},
@@ -17,10 +17,10 @@ WIDGET_SCHEMA = """
       "path": "/",
       "contents": [
         {{
-          "key": "events",
+          "key": "timelineData",
           "valueMap": [
             {{
-              "key": "event-1",
+              "key": "0",
               "valueMap": [
                 {{
                   "key": "date",
@@ -28,11 +28,11 @@ WIDGET_SCHEMA = """
                 }},
                 {{
                   "key": "title",
-                  "valueString": "Project Launch"
+                  "valueString": "Project Start"
                 }},
                 {{
                   "key": "description",
-                  "valueString": "Initial project kickoff meeting with stakeholders"
+                  "valueString": "Initial project kickoff"
                 }},
                 {{
                   "key": "category",
@@ -41,61 +41,19 @@ WIDGET_SCHEMA = """
               ]
             }},
             {{
-              "key": "event-2",
+              "key": "1",
               "valueMap": [
                 {{
                   "key": "date",
-                  "valueString": "2023-03-22"
+                  "valueString": "2023-06-01"
                 }},
                 {{
                   "key": "title",
-                  "valueString": "First Milestone"
+                  "valueString": "First Release"
                 }},
                 {{
                   "key": "description",
-                  "valueString": "Completed initial development phase"
-                }},
-                {{
-                  "key": "category",
-                  "valueString": "Development"
-                }}
-              ]
-            }},
-            {{
-              "key": "event-3",
-              "valueMap": [
-                {{
-                  "key": "date",
-                  "valueString": "2023-06-10"
-                }},
-                {{
-                  "key": "title",
-                  "valueString": "Beta Release"
-                }},
-                {{
-                  "key": "description",
-                  "valueString": "Public beta version released for testing"
-                }},
-                {{
-                  "key": "category",
-                  "valueString": "Release"
-                }}
-              ]
-            }},
-            {{
-              "key": "event-4",
-              "valueMap": [
-                {{
-                  "key": "date",
-                  "valueString": "2023-09-05"
-                }},
-                {{
-                  "key": "title",
-                  "valueString": "Final Launch"
-                }},
-                {{
-                  "key": "description",
-                  "valueString": "Official product launch and public announcement"
+                  "valueString": "Beta version released"
                 }},
                 {{
                   "key": "category",

@@ -196,9 +196,6 @@ Generate a complete, valid A2UI message array that uses only the allowed compone
 
         # Parse the orchestrator output to extract allowed components
         allowed_components = self._extract_allowed_components(orchestrator_data)
-        print("FINAL message to assembly agent")
-        print(allowed_components)
-        print("="*50)
 
         # Extract data from message history
         data_context = state['messages'][-2].content

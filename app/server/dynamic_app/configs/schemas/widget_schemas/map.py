@@ -8,7 +8,12 @@ WIDGET_SCHEMA = """
       "components": [
         {{ "id": "main-column", "component": {{ "Column": {{ "children": {{ "explicitList": ["title", "location-map"] }} }} }} }},
         {{ "id": "title","component": {{ "Text": {{ "usageHint": "h2", "text": {{ "literalString": "Location Map" }} }} }} }},
-        {{ "id": "location-map", "component": {{ "MapComponent": {{ "dataPath": {{ "path": "/locations" }} }} }} }}
+        {{ "id": "location-map", "component": {{ "MapComponent": {{
+          "dataPath": "/mapData",
+          "centerLat": 40.7128,
+          "centerLng": -74.0060,
+          "zoom": 10
+        }} }} }}
       ]
     }}
   }},
@@ -17,68 +22,47 @@ WIDGET_SCHEMA = """
       "path": "/",
       "contents": [
         {{
-          "key": "locations",
+          "key": "mapData",
           "valueMap": [
             {{
-              "key": "location-1",
+              "key": "0",
               "valueMap": [
                 {{
                   "key": "name",
-                  "valueString": "Statue of Liberty"
+                  "valueString": "New York"
                 }},
                 {{
-                  "key": "lat",
-                  "valueNumber": 40.6892
+                  "key": "latitude",
+                  "valueNumber": 40.7128
                 }},
                 {{
-                  "key": "lng",
-                  "valueNumber": -74.0445
+                  "key": "longitude",
+                  "valueNumber": -74.0060
                 }},
                 {{
                   "key": "description",
-                  "valueString": "Iconic statue in New York Harbor"
+                  "valueString": "The Big Apple"
                 }}
               ]
             }},
             {{
-              "key": "location-2",
+              "key": "1",
               "valueMap": [
                 {{
                   "key": "name",
-                  "valueString": "Central Park"
+                  "valueString": "Boston"
                 }},
                 {{
-                  "key": "lat",
-                  "valueNumber": 40.7829
+                  "key": "latitude",
+                  "valueNumber": 42.3601
                 }},
                 {{
-                  "key": "lng",
-                  "valueNumber": -73.9654
-                }},
-                {{
-                  "key": "description",
-                  "valueString": "Large urban park in Manhattan"
-                }}
-              ]
-            }},
-            {{
-              "key": "location-3",
-              "valueMap": [
-                {{
-                  "key": "name",
-                  "valueString": "Times Square"
-                }},
-                {{
-                  "key": "lat",
-                  "valueNumber": 40.758
-                }},
-                {{
-                  "key": "lng",
-                  "valueNumber": -73.9851
+                  "key": "longitude",
+                  "valueNumber": -71.0589
                 }},
                 {{
                   "key": "description",
-                  "valueString": "Busy commercial intersection"
+                  "valueString": "Historic city"
                 }}
               ]
             }}
