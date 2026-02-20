@@ -1,14 +1,14 @@
 import json
 import logging
 import os
+import jsonschema
 from langchain.agents import create_agent
 from langchain.messages import HumanMessage, AIMessage
 from langgraph.graph.message import MessagesState
 from typing import List
-import jsonschema
 
 from dynamic_app.configs.gen_ai_provider import GenAIProvider
-from dynamic_app.ui_agents_graph.widget_tools import get_native_component_example, get_native_component_catalog, create_custom_component_tools
+from dynamic_app.ui_agents_graph.widget_tools import get_native_component_example, create_custom_component_tools
 
 logger = logging.getLogger(__name__)
 
@@ -16,17 +16,10 @@ class UIAssemblyAgent:
     """ Agent in charge of generating the ordered UI schemas from ui orchestrator """
 
     #region helpers
-        
     @staticmethod
     def _load_full_a2ui_schema():
         """Load the condensed A2UI schema from file."""
-        schema_path = os.path.join(
-            os.path.dirname(__file__),
-            '..',
-            'configs',
-            'schemas',
-            'a2ui_native_schema.json'
-        )
+        schema_path = os.path.join(os.path.dirname(__file__),'..','configs','schemas','a2ui_native_schema.json')
         try:
             with open(schema_path, 'r', encoding='utf-8') as f:
                 return json.dumps(json.load(f), indent=2)
@@ -178,9 +171,7 @@ MANDATORY TOOLS USAGE:
 
 Generate a complete, valid A2UI message array that uses ONLY the allowed components from the orchestrator selection and follows the EXACT predefined schema structures from the tools. Ignore any irrelevant data.
 """
-    
     #region agent logic
-
     def __init__(self, base_url: str = None, inline_catalog: List[dict] = None):
         self.base_url = base_url or "http://localhost:8000"
         self.inline_catalog = inline_catalog or []
@@ -196,6 +187,14 @@ Generate a complete, valid A2UI message array that uses ONLY the allowed compone
 
         # Schema will be loaded per call with filtering
         self.a2ui_schema_object = None
+
+    def _build_agent(self):
+        return create_agent(
+            model=self._client,
+            tools=[self.get_custom_component_example_tool, get_native_component_example],
+            system_prompt=self.system_prompt,
+            name=self.agent_name
+        )
 
     async def __call__(self, state: MessagesState):
         """Call the UI assembly agent to generate and validate UI from orchestrator data."""
@@ -270,34 +269,24 @@ Only after calling all required tools, generate the final A2UI JSON response."""
             )
 
             messages = {'messages': [HumanMessage(content=current_query_text)]}
-            response = await self.agent.ainvoke(
-                messages
-            )
+            response = await self.agent.ainvoke(messages)
             final_response_content = response['messages'][-1].content
 
             #region a2ui validation
-
-            # Validate the response
             is_valid = False
             error_message = ""
 
-            logger.info(
-                f"--- UIAssemblyAgent: Validating UI response (Attempt {attempt})... ---"
-            )
+            logger.info(f"--- UIAssemblyAgent: Validating UI response (Attempt {attempt})... ---")
             try:
                 if "---a2ui_JSON---" not in final_response_content:
                     raise ValueError("Delimiter '---a2ui_JSON---' not found.")
 
-                text_part, json_string = final_response_content.split(
-                    "---a2ui_JSON---", 1
-                )
+                text_part, json_string = final_response_content.split("---a2ui_JSON---", 1)
 
                 if not json_string.strip():
                     raise ValueError("JSON part is empty.")
 
-                json_string_cleaned = (
-                    json_string.strip().lstrip("```json").rstrip("```").strip()
-                )
+                json_string_cleaned = ( json_string.strip().lstrip("```json").rstrip("```").strip() )
 
                 if not json_string_cleaned:
                     raise ValueError("Cleaned JSON string is empty.")
@@ -306,12 +295,8 @@ Only after calling all required tools, generate the final A2UI JSON response."""
                 parsed_json_data = json.loads(json_string_cleaned)
 
                 # Validate against A2UI_SCHEMA
-                logger.info(
-                    "--- UIAssemblyAgent: Validating against A2UI_SCHEMA... ---"
-                )
-                jsonschema.validate(
-                    instance=parsed_json_data, schema=self.a2ui_schema_object
-                )
+                logger.info("--- UIAssemblyAgent: Validating against A2UI_SCHEMA... ---")
+                jsonschema.validate( instance=parsed_json_data, schema=self.a2ui_schema_object )
 
                 logger.info(
                     f"--- UIAssemblyAgent: UI JSON successfully parsed AND validated against schema. "
@@ -368,14 +353,6 @@ Only after calling all required tools, generate the final A2UI JSON response."""
                 ))
             ]
         }
-    
-    def _build_agent(self):
-        return create_agent(
-            model=self._client,
-            tools=[self.get_custom_component_catalog_tool, self.get_custom_component_example_tool, get_native_component_example, get_native_component_catalog],
-            system_prompt=self.system_prompt,
-            name=self.agent_name
-        )
     
 async def main():
     from langchain.messages import HumanMessage

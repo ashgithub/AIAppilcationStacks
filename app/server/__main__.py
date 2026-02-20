@@ -13,8 +13,8 @@ from starlette.staticfiles import StaticFiles
 from starlette.responses import JSONResponse
 from starlette.requests import Request
 
-# from chat.llm_executor import RestaurantLLMExecutor
-# from chat.oci_llm import OCIRestaurantLLM
+from chat_app.llm_executor import OutageEnergyLLMExecutor
+from chat_app.oci_llm import OCIOutageEnergyLLM
 from dynamic_app.dynamic_agents_graph import DynamicGraph
 from dynamic_app.dynamic_graph_executor import DynamicGraphExecutor
 from dynamic_app.configs.a2a_config_provider import (
@@ -72,33 +72,35 @@ def main(host, port):
         agent_app = agent_server.build()
 
         #region LLM executor setup
-        # llm_base_url = f"{base_url}/llm"
-        # llm_card = AgentCard(
-        #     name="Restaurant LLM Agent",
-        #     description="This LLM agent helps find restaurants based on user criteria.",
-        #     url=llm_base_url,
-        #     version="1.0.0",
-        #     default_input_modes=OCIRestaurantLLM.SUPPORTED_CONTENT_TYPES,
-        #     default_output_modes=OCIRestaurantLLM.SUPPORTED_CONTENT_TYPES,
-        #     capabilities=capabilities,
-        #     skills=[skill],
-        # )
+        llm_base_url = f"{base_url}/llm"
+        llm_capabilities = dynamic_agent_capabilities
+        llm_skills = []
+        llm_card = AgentCard(
+            name="Outage and Energy LLM Agent",
+            description="This LLM agent provides information about power outages, energy statistics, and industry performance.",
+            url=llm_base_url,
+            version="1.0.0",
+            default_input_modes=OCIOutageEnergyLLM.SUPPORTED_CONTENT_TYPES,
+            default_output_modes=OCIOutageEnergyLLM.SUPPORTED_CONTENT_TYPES,
+            capabilities=llm_capabilities,
+            skills=llm_skills,
+        )
 
-        # llm_executor = RestaurantLLMExecutor()
+        llm_executor = OutageEnergyLLMExecutor()
 
-        # llm_push_config_store = InMemoryPushNotificationConfigStore()
-        # llm_push_sender = BasePushNotificationSender(httpx_client=httpx_client,
-        #                 config_store=llm_push_config_store)
-        # llm_request_handler = DefaultRequestHandler(
-        #     agent_executor=llm_executor,
-        #     task_store=InMemoryTaskStore(),
-        #     push_config_store=llm_push_config_store,
-        #     push_sender=llm_push_sender
-        # )
-        # llm_server = A2AStarletteApplication(
-        #     agent_card=llm_card, http_handler=llm_request_handler
-        # )
-        # llm_app = llm_server.build()
+        llm_push_config_store = InMemoryPushNotificationConfigStore()
+        llm_push_sender = BasePushNotificationSender(httpx_client=httpx_client,
+                        config_store=llm_push_config_store)
+        llm_request_handler = DefaultRequestHandler(
+            agent_executor=llm_executor,
+            task_store=InMemoryTaskStore(),
+            push_config_store=llm_push_config_store,
+            push_sender=llm_push_sender
+        )
+        llm_server = A2AStarletteApplication(
+            agent_card=llm_card, http_handler=llm_request_handler
+        )
+        llm_app = llm_server.build()
 
         #region main app setup
         main_app = Starlette()
@@ -138,7 +140,7 @@ def main(host, port):
 
         # main_app.mount("/static", StaticFiles(directory="images"), name="static")
         main_app.mount("/agent", agent_app)
-        # main_app.mount("/llm", llm_app)
+        main_app.mount("/llm", llm_app)
 
         import uvicorn
         uvicorn.run(main_app, host=host, port=port)
