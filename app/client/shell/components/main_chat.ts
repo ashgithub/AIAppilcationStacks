@@ -116,6 +116,40 @@ export class ChatModule extends LitElement {
     }
   }
 
+  //Parse from a list into single suggestions
+  #parseSuggestions(suggestionsText: string): string[] {
+    // Split by newlines first
+    let suggestions = suggestionsText
+      .split(/\n/)
+      .map(s => s.trim())
+      .filter(s => s.length > 0);
+
+    // If only one item, try splitting by commas or semicolons
+    if (suggestions.length === 1) {
+      suggestions = suggestions[0]
+        .split(/[,;]/)
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+    }
+
+    // remove the extra data
+    return suggestions.map(s => s.replace(/^(\d+[\.\)]\s*|[-•]\s*)/, '').trim());
+  }
+
+  // this sends the message to the server
+  async #handleSuggestionClick(suggestion: string) {
+    if (!this.router || !suggestion.trim()) return;
+
+    console.log("Sending suggestion as query:", suggestion);
+    try {
+      // Clear current suggestions when a new query is sent
+      this.suggestions = "";
+      this.router.sendTextMessage(this.defaultServerUrl, suggestion.trim());
+    } catch (error) {
+      console.error("Failed to send suggestion:", error);
+    }
+  }
+
   static styles = css`
     :host {
       border-radius: 1rem;
@@ -188,8 +222,28 @@ export class ChatModule extends LitElement {
       opacity: 0.9;
     }
 
-    .suggestions-content {
-      white-space: pre-wrap;
+    .suggestions-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .suggestion-item {
+      padding: 0.5rem 0.75rem;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 0.375rem;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .suggestion-item:hover {
+      background: rgba(255, 255, 255, 0.25);
+      transform: translateX(4px);
+    }
+
+    .suggestion-item:active {
+      transform: scale(0.98);
     }
 
     .pending {
@@ -254,7 +308,13 @@ export class ChatModule extends LitElement {
       ${this.suggestions ? html`
         <div class="suggestions">
           <div class="suggestions-title">Suggestions:</div>
-          <div class="suggestions-content">${this.suggestions}</div>
+          <div class="suggestions-list">
+            ${this.#parseSuggestions(this.suggestions).map(suggestion => html`
+              <div class="suggestion-item" @click=${() => this.#handleSuggestionClick(suggestion)}>
+                ${suggestion}
+              </div>
+            `)}
+          </div>
         </div>
       ` : ''}
       <div class="status">
