@@ -9,7 +9,7 @@ from langgraph.graph.state import CompiledStateGraph
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
-from app.server.chat_app.data_tools import get_outage_data, get_energy_data, get_industry_data
+from chat_app.data_tools import get_outage_data, get_energy_data, get_industry_data
 
 logger = logging.getLogger(__name__)
 

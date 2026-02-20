@@ -16,7 +16,7 @@ from a2a.utils import (
     new_task,
 )
 from a2a.utils.errors import ServerError
-from app.server.chat_app.main_llm import OCIOutageEnergyLLM
+from chat_app.main_llm import OCIOutageEnergyLLM
 
 logger = logging.getLogger(__name__)
 

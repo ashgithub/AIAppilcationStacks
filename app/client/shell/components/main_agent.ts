@@ -60,7 +60,7 @@ export class DynamicModule extends LitElement {
   accessor response = ""
 
   @state()
-  accessor status: Array<{timestamp: string, message: string, type: string}> = [{timestamp: new Date().toISOString(), message: "Ready", type: "initial"}]
+  accessor status: Array<{timestamp: number, duration: number, message: string, type: string}> = [{timestamp: Date.now(), duration: 0, message: "Ready", type: "initial"}]
 
   @state()
   accessor #requesting = false;
@@ -82,6 +82,9 @@ export class DynamicModule extends LitElement {
 
   @state()
   accessor #currentElapsedTime: number | null = null;
+
+  @state()
+  accessor #totalDuration: number = 0;
 
   #processor = v0_8.Data.createSignalA2uiMessageProcessor();
   #loadingInterval: number | undefined;
@@ -151,10 +154,19 @@ export class DynamicModule extends LitElement {
         border-bottom: 1px solid rgba(255, 255, 255, 0.2);
         font-size: 0.8rem;
         line-height: 1.4;
+        display: flex;
+        gap: 0.5rem;
       }
 
       .status-item:last-child {
         border-bottom: none;
+      }
+
+      .status-item .duration {
+        font-weight: bold;
+        color: var(--p-60, #7c3aed);
+        min-width: 4rem;
+        text-align: right;
       }
 
       .surfaces-container {
@@ -266,6 +278,9 @@ export class DynamicModule extends LitElement {
           this.#startTime = sentEvent.timestamp;
           this.#elapsedTime = null;
           this.#currentElapsedTime = 0;
+          this.#totalDuration = 0;
+          // Reset status with new query start
+          this.status = [{timestamp: Date.now(), duration: 0, message: "Query sent", type: "sent"}];
           this.#startStopwatch();
         }
       });
@@ -330,9 +345,9 @@ export class DynamicModule extends LitElement {
       console.log("server message",serverState);
 
       if (state == 'failed'){
-        this.status = [...this.status, {timestamp: new Date().toISOString(), message: "Task failed - An error occurred", type: event.kind}]
+        this.#addStatusWithDuration("Task failed - An error occurred", event.kind);
       }else {
-        this.status = [...this.status, {timestamp: new Date().toISOString(), message: serverMessage, type: event.kind}];
+        this.#addStatusWithDuration(serverMessage, event.kind);
       }
 
       // Calculate elapsed time when final response is received
@@ -342,13 +357,32 @@ export class DynamicModule extends LitElement {
       }
     }
     else if (event.kind === 'task') {
-      this.status = [...this.status, {timestamp: new Date().toISOString(), message: "Task management event received", type: event.kind}];
+      this.#addStatusWithDuration("Task management event received", event.kind);
     }
     else if (event.kind === 'message') {
-      this.status = [...this.status, {timestamp: new Date().toISOString(), message: "Direct message received", type: event.kind}];
+      this.#addStatusWithDuration("Direct message received", event.kind);
     }
     else {
-      this.status = [...this.status, {timestamp: new Date().toISOString(), message: `Event type: ${event.kind || 'unknown'}`, type: event.kind}];
+      this.#addStatusWithDuration(`Event type: ${event.kind || 'unknown'}`, event.kind);
+    }
+  }
+
+  //calculated with the previ
+  #addStatusWithDuration(message: string, type: string) {
+    const now = Date.now();
+    const lastStatus = this.status[this.status.length - 1];
+    const duration = lastStatus ? (now - lastStatus.timestamp) / 1000 : 0;
+    
+    this.status = [...this.status, {
+      timestamp: now,
+      duration: duration,
+      message,
+      type
+    }];
+    
+    // Update total duration from start
+    if (this.#startTime) {
+      this.#totalDuration = (now - this.#startTime) / 1000;
     }
   }
 
@@ -431,7 +465,7 @@ export class DynamicModule extends LitElement {
       </style>
       <stat-bar
         .title=${this.title}
-        .time=${(this.#elapsedTime !== null || this.#currentElapsedTime !== null) ? `${((this.#elapsedTime || this.#currentElapsedTime || 0) / 1000).toFixed(2)}s` : '0.00s'}
+        .time=${this.#totalDuration > 0 ? `${this.#totalDuration.toFixed(2)}s` : ((this.#currentElapsedTime !== null) ? `${(this.#currentElapsedTime / 1000).toFixed(2)}s` : '0.00s')}
         .tokens=${'12456'}
         .configUrl=${this.config.serverUrl + '/config'}
         .configType=${'agent'}
@@ -561,7 +595,7 @@ export class DynamicModule extends LitElement {
             this.status,
             (item) => item.timestamp,
             (item) => html`<div class="status-item">
-              ${new Date(item.timestamp).toLocaleTimeString()} - ${item.message}
+              <span class="duration">${item.duration.toFixed(2)}s</span> - ${item.message}
             </div>`
           )}
         </div>
