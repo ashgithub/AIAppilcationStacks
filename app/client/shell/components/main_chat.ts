@@ -182,9 +182,10 @@ export class ChatModule extends LitElement {
       color: white;
       display: flex;
       flex-direction: column;
-      flex: 1 1 0;
+      flex: 1 1 auto;
       min-width: 0;
-      overflow: hidden;
+      min-height: 0;
+      overflow-y: auto;
     }
 
 
@@ -196,10 +197,11 @@ export class ChatModule extends LitElement {
     }
 
     .response {
-      flex: 1;
+      flex: 1 1 auto;
+      min-height: 100px;
       font-size: 1rem;
       line-height: 1.6;
-      margin-bottom: 1.5rem;
+      margin-bottom: 0.5rem;
       padding: 1rem;
       background: rgba(0, 0, 0, 0.2);
       border-radius: 0.5rem;
@@ -207,13 +209,15 @@ export class ChatModule extends LitElement {
     }
 
     .status {
+      flex-shrink: 0;
       font-size: 0.875rem;
       padding: 0.5rem;
       display: flex;
       flex-direction: column;
       background: rgba(255, 255, 255, 0.1);
       border-radius: 0.5rem;
-      max-height: 200px;
+      min-height: 80px;
+      max-height: 250px;
       overflow-y: auto;
     }
 
@@ -242,6 +246,7 @@ export class ChatModule extends LitElement {
     }
 
     .suggestions {
+      flex-shrink: 0;
       font-size: 0.875rem;
       padding: 1rem;
       margin-bottom: 0.5rem;

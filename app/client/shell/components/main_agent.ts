@@ -105,9 +105,10 @@ export class DynamicModule extends LitElement {
       :host {
         display: flex;
         flex-direction: column;
-        flex: 1 1 0;
+        flex: 1 1 auto;
         min-width: 0;
-        overflow: hidden;
+        min-height: 0;
+        overflow-y: auto;
         margin: 0;
         padding: 0.5rem;
         color: light-dark(var(--n-10), var(--n-90));
@@ -124,10 +125,11 @@ export class DynamicModule extends LitElement {
       }
 
       .response {
-        flex: 1;
+        flex: 1 1 auto;
+        min-height: 100px;
         font-size: 1rem;
         line-height: 1.6;
-        margin-bottom: 1.5rem;
+        margin-bottom: 0.5rem;
         padding: 1rem;
         background: rgba(0, 0, 0, 0.2);
         border-radius: 0.5rem;
@@ -135,13 +137,15 @@ export class DynamicModule extends LitElement {
       }
 
       .status {
+        flex-shrink: 0;
         font-size: 0.875rem;
         padding: 0.5rem;
         display: flex;
         flex-direction: column;
         background: rgba(255, 255, 255, 0.1);
         border-radius: 0.5rem;
-        max-height: 300px;
+        min-height: 80px;
+        max-height: 250px;
         overflow-y: auto;
       }
 
@@ -172,11 +176,13 @@ export class DynamicModule extends LitElement {
       .surfaces-container {
         display: flex;
         flex-direction: column;
-        height: 100%;
+        flex: 1 1 auto;
+        min-height: 200px;
+        overflow: visible;
       }
 
       .surfaces {
-        flex: 1;
+        flex: 1 1 auto;
         width: 100%;
         max-width: 100svw;
         padding: var(--bb-grid-size-3);
@@ -217,10 +223,13 @@ export class DynamicModule extends LitElement {
       .title-section,
       .status-section {
         flex-shrink: 0;
+        min-height: fit-content;
       }
 
       .response-section {
+        flex: 1 1 auto;
         overflow: visible;
+        min-height: 100px;
       }
 
       .pending {
