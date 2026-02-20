@@ -4,6 +4,7 @@ import { consume } from "@lit/context"
 import { routerContext, A2UIRouter } from "../services/a2ui-router.js"
 import { marked } from "marked"
 import { unsafeHTML } from "lit/directives/unsafe-html.js"
+import { repeat } from "lit/directives/repeat.js"
 import "./stat_bar.js"
 import { chatConfig } from "../configs/chat_config.js"
 
@@ -25,7 +26,10 @@ export class ChatModule extends LitElement {
   accessor response = ""
 
   @state()
-  accessor status = "Ready"
+  accessor status: Array<{timestamp: string, message: string, type: string}> = [{timestamp: new Date().toISOString(), message: "Ready", type: "initial"}]
+
+  @state()
+  accessor suggestions = ""
 
   @state()
   accessor #startTime: number | null = null;
@@ -70,25 +74,30 @@ export class ChatModule extends LitElement {
       const serverState: Array<any> = hasMessage ? event.status.message.parts : [{ "text": "Server did not send any message parts" }];
       const serverMessage = serverState[0].text || "No text content"
 
-      console.log("process status", status);
-      console.log("process final message received", isFinal);
       console.log("process state", state);
       console.log("server message", serverState);
-      console.log("End of message update")
 
       // Extract text parts
       if (hasMessage) {
         for (const part of status.message.parts) {
           if (part.kind === 'text') {
             this.response = isFinal ? serverMessage : "Working on response...";
-            this.status = isFinal ? serverState[1].text : serverMessage;
+            
+            // Get final state message (part 1) or current message
+            const statusMessage = isFinal && serverState[1]?.text ? serverState[1].text : serverMessage;
+            this.status = [...this.status, {timestamp: new Date().toISOString(), message: statusMessage, type: event.kind}];
+            
+            // Get suggestions (part 2) if available
+            if (isFinal && serverState[2]?.text) {
+              this.suggestions = serverState[2].text;
+            }
             break; // Use the first text part
           }
         }
       }
 
       if (state === 'failed') {
-        this.status = "Task failed - An error occurred";
+        this.status = [...this.status, {timestamp: new Date().toISOString(), message: "Task failed - An error occurred", type: "error"}];
       }
 
       // Calculate elapsed time when final response is received
@@ -97,13 +106,13 @@ export class ChatModule extends LitElement {
       }
     }
     else if (event.kind === 'task') {
-      this.status = "Task management event received";
+      this.status = [...this.status, {timestamp: new Date().toISOString(), message: "Task management event received", type: event.kind}];
     }
     else if (event.kind === 'message') {
-      this.status = "Direct message received";
+      this.status = [...this.status, {timestamp: new Date().toISOString(), message: "Direct message received", type: event.kind}];
     }
     else {
-      this.status = `Event type: ${event.kind || 'unknown'}`;
+      this.status = [...this.status, {timestamp: new Date().toISOString(), message: `Event type: ${event.kind || 'unknown'}`, type: event.kind || 'unknown'}];
     }
   }
 
@@ -114,7 +123,9 @@ export class ChatModule extends LitElement {
       color: white;
       display: flex;
       flex-direction: column;
-      flex: 1;
+      flex: 1 1 0;
+      min-width: 0;
+      overflow: hidden;
     }
 
 
@@ -138,16 +149,46 @@ export class ChatModule extends LitElement {
 
     .status {
       font-size: 0.875rem;
-      padding: 1rem;
+      padding: 0.5rem;
+      display: flex;
+      flex-direction: column;
       background: rgba(255, 255, 255, 0.1);
       border-radius: 0.5rem;
+      max-height: 200px;
+      overflow-y: auto;
     }
 
     .status p {
       margin: 0.25rem 0;
     }
 
-    .status-text {
+    .status-item {
+      padding: 0.25rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      font-size: 0.8rem;
+      line-height: 1.4;
+    }
+
+    .status-item:last-child {
+      border-bottom: none;
+    }
+
+    .suggestions {
+      font-size: 0.875rem;
+      padding: 1rem;
+      margin-bottom: 0.5rem;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 0.5rem;
+      border-left: 3px solid var(--p-60, #7c3aed);
+    }
+
+    .suggestions-title {
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      opacity: 0.9;
+    }
+
+    .suggestions-content {
       white-space: pre-wrap;
     }
 
@@ -210,9 +251,20 @@ export class ChatModule extends LitElement {
         .configData=${chatConfig}
       ></stat-bar>
       <div class="response">${unsafeHTML(marked(this.response || "Waiting for query...") as string)}</div>
+      ${this.suggestions ? html`
+        <div class="suggestions">
+          <div class="suggestions-title">Suggestions:</div>
+          <div class="suggestions-content">${this.suggestions}</div>
+        </div>
+      ` : ''}
       <div class="status">
-        <p>Status:</p>
-        <p class="status-text">${this.status}</p>
+        ${repeat(
+          this.status,
+          (item) => item.timestamp,
+          (item) => html`<div class="status-item">
+            ${new Date(item.timestamp).toLocaleTimeString()} - ${item.message}
+          </div>`
+        )}
       </div>
     `;
   }

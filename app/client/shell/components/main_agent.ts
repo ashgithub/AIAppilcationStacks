@@ -102,7 +102,9 @@ export class DynamicModule extends LitElement {
       :host {
         display: flex;
         flex-direction: column;
-        flex: 1;
+        flex: 1 1 0;
+        min-width: 0;
+        overflow: hidden;
         margin: 0;
         padding: 0.5rem;
         color: light-dark(var(--n-10), var(--n-90));

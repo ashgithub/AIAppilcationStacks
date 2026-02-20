@@ -16,7 +16,7 @@ from a2a.utils import (
     new_task,
 )
 from a2a.utils.errors import ServerError
-from chat_app.oci_llm import OCIOutageEnergyLLM
+from app.server.chat_app.main_llm import OCIOutageEnergyLLM
 
 logger = logging.getLogger(__name__)
 
@@ -92,6 +92,9 @@ class OutageEnergyLLMExecutor(AgentExecutor):
 
             final_state = item['final_state']
             final_parts.append(Part(root=TextPart(text=final_state.strip())))
+
+            suggestions = item['suggestions']
+            final_parts.append(Part(root=TextPart(text=suggestions.strip())))
 
             logger.info("--- FINAL PARTS TO BE SENT ---")
             for i, part in enumerate(final_parts):

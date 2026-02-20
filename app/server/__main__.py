@@ -14,7 +14,7 @@ from starlette.responses import JSONResponse
 from starlette.requests import Request
 
 from chat_app.llm_executor import OutageEnergyLLMExecutor
-from chat_app.oci_llm import OCIOutageEnergyLLM
+from app.server.chat_app.main_llm import OCIOutageEnergyLLM
 from dynamic_app.dynamic_agents_graph import DynamicGraph
 from dynamic_app.dynamic_graph_executor import DynamicGraphExecutor
 from dynamic_app.configs.a2a_config_provider import (

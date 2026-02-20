@@ -7,10 +7,15 @@ from langchain_oci import ChatOCIGenAI
 from langchain.messages import HumanMessage, AIMessage, AnyMessage, ToolMessage
 from langgraph.graph.state import CompiledStateGraph
 from langchain_core.runnables import RunnableConfig
+from pydantic import BaseModel, Field
 
-from chat_app.langchain_tools import get_outage_data, get_energy_data, get_industry_data
+from app.server.chat_app.data_tools import get_outage_data, get_energy_data, get_industry_data
 
 logger = logging.getLogger(__name__)
+
+class SuggestedQuestions(BaseModel):
+    """ Structured output to capture suggested questions based on LLM response """
+    suggested_questions: list[str] = Field(description="List of suggested questions based on context")
 
 class OCIOutageEnergyLLM:
     """ Agent using OCI libraries to provide outage and energy information """
@@ -20,6 +25,8 @@ class OCIOutageEnergyLLM:
     def __init__(self):
         self._agent = self._build_agent()
         self._user_id = "remote_llm"
+        self._suggestion_out = self._build_suggestion_model()
+        self._out_query = "Based on the given context, generate a list of at least 1-3 suggested follow up questions that the user might want to ask next. These should be relevant to the information provided and help the user explore the topic further. Always provide suggestions, even if the information is limited."
 
     def _build_agent(self) -> CompiledStateGraph:
         """Builds the LLM agent for the outage and energy agent."""
@@ -38,12 +45,21 @@ class OCIOutageEnergyLLM:
             name="outage_energy_llm"
         )
     
+    def _build_suggestion_model(self):
+        suggestions_llm = ChatOCIGenAI(
+            model_id="xai.grok-4-fast-non-reasoning",
+            service_endpoint=os.getenv("SERVICE_ENDPOINT"),
+            compartment_id=os.getenv("COMPARTMENT_ID"),
+            model_kwargs={"temperature":0.7},
+            auth_profile=os.getenv("AUTH_PROFILE"),
+        )
+
+        return suggestions_llm.with_structured_output(SuggestedQuestions)
+    
     async def oci_stream(self, query, session_id) -> AsyncIterable[dict[str, Any]]:
         """ Function to call agent and stream responses """
         
         current_message = {"messages":[HumanMessage(query)]}
-        print("="*50)
-        print(current_message)
         config:RunnableConfig = {"run_id":str(session_id)}
         final_response_content = None
         final_model_state = None
@@ -87,9 +103,12 @@ class OCIOutageEnergyLLM:
                 "is_task_complete": False,
                 "updates": latest_update
             }
+
+        suggestions = await self._suggestion_out.ainvoke(self._out_query+f"\n\nContext for question generation:\n{final_response_content}")
         
         yield {
             "is_task_complete": True,
             "content": f"{final_response_content}",
-            "final_state": f"{str(final_response_content)[:100]}\n{final_model_state}"
+            "final_state": f"{str(final_response_content)[:100]}\n{final_model_state}",
+            "suggestions": suggestions.model_dump_json()
         }

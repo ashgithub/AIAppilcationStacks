@@ -8,7 +8,9 @@ export class StaticModule extends LitElement {
   static styles = css`
     :host {
       display: block;
-      flex: 1;
+      flex: 1 1 0;
+      min-width: 0;
+      overflow: hidden;
       background: linear-gradient(135deg, #308792 0%, #0b788b 100%);
       border-radius: 1rem;
       padding: 0.5rem;

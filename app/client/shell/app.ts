@@ -63,10 +63,17 @@ export class AppContainer extends LitElement {
 
     .modules {
       display: flex;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       gap: 1.5rem;
       flex: 1;
       width: 100%;
+      min-height: 0;
+    }
+
+    .modules > * {
+      flex: 1 1 0;
+      min-width: 0;
+      overflow: hidden;
     }
   `
 
