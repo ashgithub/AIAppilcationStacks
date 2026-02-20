@@ -13,7 +13,7 @@ export class AppContainer extends LitElement {
   accessor router = a2uiRouter;
 
   @state()
-  accessor showingTraditional = true;
+  accessor showingTraditional = false;
 
   @state()
   accessor showingChat = true;
@@ -23,8 +23,7 @@ export class AppContainer extends LitElement {
       display: flex;
       flex-direction: column;
       width: 100%;
-      height: 100%;
-      overflow: auto;
+      min-height: 100vh;
       background: #1a2332;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
@@ -32,7 +31,7 @@ export class AppContainer extends LitElement {
     .container {
       display: flex;
       flex-direction: column;
-      height: 100%;
+      min-height: 100vh;
       padding: 0.5rem;
       gap: 0.5rem;
     }

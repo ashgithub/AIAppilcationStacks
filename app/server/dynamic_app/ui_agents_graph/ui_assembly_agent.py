@@ -103,6 +103,7 @@ COMPONENT USAGE RULES:
 - For native components: Use EXACTLY the structure from get_native_component_example()
 - Data paths must match the examples exactly (e.g., "/chartData", "/chartLabels")
 - Component property names must match examples exactly
+- Prioritize vertical layout for complex widget groups (columns, vertical).
 - If an example uses {{"path": "/data"}}, you MUST use {{"path": "/data"}} - do not change to "/data"
 
 EXAMPLE A2UI MESSAGE STRUCTURE:

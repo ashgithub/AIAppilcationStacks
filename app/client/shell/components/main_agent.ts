@@ -107,7 +107,6 @@ export class DynamicModule extends LitElement {
         flex-direction: column;
         flex: 1 1 auto;
         min-width: 0;
-        min-height: 0;
         overflow-y: auto;
         margin: 0;
         padding: 0.5rem;
@@ -166,12 +165,12 @@ export class DynamicModule extends LitElement {
         border-bottom: none;
       }
 
-      .status-item .duration {
-        font-weight: bold;
-        color: var(--p-60, #7c3aed);
-        min-width: 4rem;
-        text-align: right;
-      }
+    .status-item .duration {
+      font-weight: bold;
+      color: white;
+      min-width: 4rem;
+      text-align: right;
+    }
 
       .surfaces-container {
         display: flex;

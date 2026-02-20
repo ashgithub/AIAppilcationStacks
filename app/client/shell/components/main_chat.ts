@@ -184,7 +184,6 @@ export class ChatModule extends LitElement {
       flex-direction: column;
       flex: 1 1 auto;
       min-width: 0;
-      min-height: 0;
       overflow-y: auto;
     }
 
@@ -240,7 +239,7 @@ export class ChatModule extends LitElement {
 
     .status-item .duration {
       font-weight: bold;
-      color: var(--p-60, #7c3aed);
+      color: white;
       min-width: 4rem;
       text-align: right;
     }
@@ -252,7 +251,7 @@ export class ChatModule extends LitElement {
       margin-bottom: 0.5rem;
       background: rgba(255, 255, 255, 0.15);
       border-radius: 0.5rem;
-      border-left: 3px solid var(--p-60, #7c3aed);
+      border-left: 3px solid var(--p-60, #ffffff);
     }
 
     .suggestions-title {
