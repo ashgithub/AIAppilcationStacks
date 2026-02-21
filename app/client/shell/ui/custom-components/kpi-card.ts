@@ -12,7 +12,6 @@ interface KpiData {
   color?: string;
 }
 
-// Preset color themes for KPI cards
 const KPI_THEMES: Record<string, { primary: string; bg: string }> = {
   cyan: { primary: '#00D4FF', bg: 'rgba(0, 212, 255, 0.1)' },
   coral: { primary: '#FF6B6B', bg: 'rgba(255, 107, 107, 0.1)' },

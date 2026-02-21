@@ -7,12 +7,12 @@ import { OutageTable } from "./outage-table.js";
 import { KpiCard, KpiCardGroup } from "./kpi-card.js";
 
 export function registerShellComponents() {
-  // Register BarGraph
   componentRegistry.register("BarGraph", BarGraph, "bar-graph", {
     type: "object",
     properties: {
       dataPath: { type: "string" },
       labelPath: { type: "string" },
+      title: { type: "string", description: "Chart title text" },
       orientation: { type: "string", enum: ["vertical", "horizontal"] },
       barWidth: { type: "number" },
       gap: { type: "number" },
@@ -20,13 +20,13 @@ export function registerShellComponents() {
     required: ["dataPath", "labelPath"],
   });
 
-  // Register LineGraph
   componentRegistry.register("LineGraph", LineGraph, "line-graph", {
     type: "object",
     properties: {
       dataPath: { type: "string", description: "Path to single series data (for backward compatibility)" },
       labelPath: { type: "string", description: "Path to x-axis labels array" },
       seriesPath: { type: "string", description: "Path to array of series objects [{name, values, color}]" },
+      title: { type: "string", description: "Chart title text" },
       showPoints: { type: "boolean", description: "Show data points on the line" },
       showArea: { type: "boolean", description: "Fill area under the line" },
       strokeWidth: { type: "number", description: "Line stroke width" },
@@ -35,7 +35,6 @@ export function registerShellComponents() {
     required: ["labelPath"],
   });
 
-  // Register MapComponent
   componentRegistry.register("MapComponent", MapComponent, "map-component", {
     type: "object",
     properties: {
@@ -47,7 +46,6 @@ export function registerShellComponents() {
     required: [],
   });
 
-  // Register TimelineComponent
   componentRegistry.register("TimelineComponent", TimelineComponent, "timeline-component", {
     type: "object",
     properties: {
@@ -56,7 +54,6 @@ export function registerShellComponents() {
     required: [],
   });
 
-  // Register OutageTable
   componentRegistry.register("OutageTable", OutageTable, "outage-table", {
     type: "object",
     properties: {
@@ -68,7 +65,6 @@ export function registerShellComponents() {
     required: ["dataPath"],
   });
 
-  // Register KpiCard
   componentRegistry.register("KpiCard", KpiCard, "kpi-card", {
     type: "object",
     properties: {
@@ -85,7 +81,6 @@ export function registerShellComponents() {
     required: [],
   });
 
-  // Register KpiCardGroup
   componentRegistry.register("KpiCardGroup", KpiCardGroup, "kpi-card-group", {
     type: "object",
     properties: {
@@ -95,6 +90,4 @@ export function registerShellComponents() {
     },
     required: ["dataPath"],
   });
-
-  console.log("Registered Shell Custom Components");
 }

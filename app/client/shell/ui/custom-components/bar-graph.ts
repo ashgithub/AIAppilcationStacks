@@ -12,6 +12,7 @@ interface BarData {
 export class BarGraph extends Root {
   @property({ attribute: false }) accessor dataPath: any = "";
   @property({ attribute: false }) accessor labelPath: any = "";
+  @property({ attribute: false }) accessor title: string = "Data Comparison";
   @property({ attribute: false }) accessor orientation: string = 'vertical';
   @property({ attribute: false }) accessor barWidth: number = 0.2;
   @property({ attribute: false }) accessor gap: number = 0.1;
@@ -153,7 +154,7 @@ export class BarGraph extends Root {
           barData = labels.map((label: any, i: number) => ({
             category: String(label),
             value: typeof values[i] === 'number' ? values[i] : parseFloat(values[i]) || 0,
-            color: '#4CAF50' // Default color, could be extended to support custom colors
+            color: '#4CAF50' // TODO: support custom colors
           }));
         }
       }
@@ -171,7 +172,7 @@ export class BarGraph extends Root {
 
     return html`
       <div class="bar-chart">
-        <div class="chart-title">Data Comparison</div>
+        <div class="chart-title">${this.title}</div>
         <div class="bar-container" style="gap: 10px;">
           ${barData.map((item) => this.renderBar(item, maxValue))}
         </div>

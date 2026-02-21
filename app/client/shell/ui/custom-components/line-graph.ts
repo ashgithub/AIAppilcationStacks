@@ -15,7 +15,6 @@ interface ChartPoint {
   label: string;
 }
 
-// Vibrant color palette for multiple series
 const SERIES_COLORS = [
   '#00D4FF', // Cyan
   '#FF6B6B', // Coral
@@ -32,6 +31,7 @@ export class LineGraph extends Root {
   @property({ attribute: false }) accessor dataPath: any = "";
   @property({ attribute: false }) accessor labelPath: any = "";
   @property({ attribute: false }) accessor seriesPath: any = "";
+  @property({ attribute: false }) accessor title: string = "Trend Analysis";
   @property({ attribute: false }) accessor showPoints: boolean = true;
   @property({ attribute: false }) accessor showArea: boolean = false;
   @property({ attribute: false }) accessor strokeWidth: number = 2;
@@ -284,7 +284,6 @@ export class LineGraph extends Root {
               
               // Handle nested valueMap structure
               if (Array.isArray(s)) {
-                // It's an array of key-value pairs
                 for (const kv of s) {
                   if (kv.key === 'name') name = kv.valueString || name;
                   if (kv.key === 'color') color = kv.valueString || color;
@@ -293,7 +292,6 @@ export class LineGraph extends Root {
                   }
                 }
               } else if (s.valueMap) {
-                // It's a valueMap object
                 for (const kv of s.valueMap) {
                   if (kv.key === 'name') name = kv.valueString || name;
                   if (kv.key === 'color') color = kv.valueString || color;
@@ -373,7 +371,7 @@ export class LineGraph extends Root {
 
     return html`
       <div class="line-chart">
-        <div class="chart-title">Trend Analysis</div>
+        <div class="chart-title">${this.title}</div>
         <div class="chart-wrapper">
           <div class="y-axis-labels">
             ${yLabels.map(v => html`<span class="y-label">${this.formatValue(v)}</span>`)}
@@ -420,7 +418,6 @@ export class LineGraph extends Root {
   private renderSeries(series: SeriesData, points: ChartPoint[], chartHeight: number, _minValue: number, _range: number, seriesIdx: number) {
     if (points.length === 0) return '';
 
-    // Create smooth path using bezier curves
     const linePath = this.createSmoothPath(points);
     
     // Create area path

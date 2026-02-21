@@ -22,6 +22,13 @@ from core.dynamic_app.a2a_config_provider import (
     get_widget_catalog,
     get_widget_schema
 )
+from traditional_app.data_provider import (
+    get_traditional_outage_messages,
+    get_traditional_energy_messages,
+    get_traditional_energy_trends_messages,
+    get_traditional_timeline_messages,
+    get_traditional_industry_messages
+)
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -132,11 +139,57 @@ def main(host, port):
         async def delete_config(request: Request):
             agent_executor.reset_config()
             return JSONResponse({"status": "success", "message": "Configuration reset to default"})
-        
+
+        #region traditional endpoints
+        async def get_traditional_outage(request: Request):
+            try:
+                messages = await get_traditional_outage_messages()
+                return JSONResponse(messages)
+            except Exception as e:
+                logger.error(f"Error getting traditional outage data: {e}")
+                return JSONResponse({"error": "Failed to retrieve outage data"}, status_code=500)
+
+        async def get_traditional_energy(request: Request):
+            try:
+                messages = await get_traditional_energy_messages()
+                return JSONResponse(messages)
+            except Exception as e:
+                logger.error(f"Error getting traditional energy data: {e}")
+                return JSONResponse({"error": "Failed to retrieve energy data"}, status_code=500)
+
+        async def get_traditional_industry(request: Request):
+            try:
+                messages = await get_traditional_industry_messages()
+                return JSONResponse(messages)
+            except Exception as e:
+                logger.error(f"Error getting traditional industry data: {e}")
+                return JSONResponse({"error": "Failed to retrieve industry data"}, status_code=500)
+
+        async def get_traditional_energy_trends(request: Request):
+            try:
+                messages = await get_traditional_energy_trends_messages()
+                return JSONResponse(messages)
+            except Exception as e:
+                logger.error(f"Error getting traditional energy trends data: {e}")
+                return JSONResponse({"error": "Failed to retrieve energy trends data"}, status_code=500)
+
+        async def get_traditional_timeline(request: Request):
+            try:
+                messages = await get_traditional_timeline_messages()
+                return JSONResponse(messages)
+            except Exception as e:
+                logger.error(f"Error getting traditional timeline data: {e}")
+                return JSONResponse({"error": "Failed to retrieve timeline data"}, status_code=500)
+
         #region app mount
         main_app.add_route("/agent/config", get_config, methods=["GET"])
         main_app.add_route("/agent/config", post_config, methods=["POST"])
         main_app.add_route("/agent/config", delete_config, methods=["DELETE"])
+        main_app.add_route("/traditional", get_traditional_outage, methods=["GET"])
+        main_app.add_route("/traditional/energy", get_traditional_energy, methods=["GET"])
+        main_app.add_route("/traditional/trends", get_traditional_energy_trends, methods=["GET"])
+        main_app.add_route("/traditional/timeline", get_traditional_timeline, methods=["GET"])
+        main_app.add_route("/traditional/industry", get_traditional_industry, methods=["GET"])
 
         # main_app.mount("/static", StaticFiles(directory="images"), name="static")
         main_app.mount("/agent", agent_app)

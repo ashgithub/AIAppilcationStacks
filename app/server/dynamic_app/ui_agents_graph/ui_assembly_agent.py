@@ -19,7 +19,7 @@ class UIAssemblyAgent:
     @staticmethod
     def _load_full_a2ui_schema():
         """Load the condensed A2UI schema from file."""
-        schema_path = os.path.join(os.path.dirname(__file__),'..','configs','schemas','a2ui_native_schema.json')
+        schema_path = os.path.join(os.path.dirname(__file__),'..','..','core','dynamic_app','schemas','a2ui_native_schema.json')
         try:
             with open(schema_path, 'r', encoding='utf-8') as f:
                 return json.dumps(json.load(f), indent=2)
@@ -201,13 +201,10 @@ Generate a complete, valid A2UI message array that uses ONLY the allowed compone
         """Call the UI assembly agent to generate and validate UI from orchestrator data."""
         orchestrator_data = state['messages'][-1].content
 
-        # Parse the orchestrator output to extract allowed components
         allowed_components = self._extract_allowed_components(orchestrator_data)
 
-        # Extract data from message history
         data_context = state['messages'][-2].content
 
-        # Load schema with filtering for allowed components
         self.A2UI_SCHEMA = self._inject_custom_schemas_into_schema(
             self._load_full_a2ui_schema(),
             self.inline_catalog,
@@ -223,11 +220,9 @@ Generate a complete, valid A2UI message array that uses ONLY the allowed compone
             logger.error(f"CRITICAL: Failed to parse A2UI_SCHEMA: {e}")
             self.a2ui_schema_object = None
 
-        # Set up agent with restrictions
         self.allowed_components = allowed_components
         self.system_prompt = self._get_agent_instructions(allowed_components, data_context)
 
-        # Create custom tools with restrictions
         self.get_custom_component_catalog_tool, self.get_custom_component_example_tool = create_custom_component_tools(
             self.inline_catalog, allowed_components
         )

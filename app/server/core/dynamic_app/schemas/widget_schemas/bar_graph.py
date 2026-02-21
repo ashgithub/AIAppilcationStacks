@@ -6,11 +6,11 @@ WIDGET_SCHEMA = """
   {{ "surfaceUpdate": {{
     "surfaceId": "bar-chart-view",
       "components": [
-        {{ "id": "main-container", "component": {{ "Column": {{ "children": {{ "explicitList": ["title", "bar-chart"] }} }} }} }},
-        {{ "id": "title","component": {{ "Text": {{ "usageHint": "h2", "text": {{ "literalString": "Data Comparison Bar Chart" }} }} }} }},
+        {{ "id": "main-container", "component": {{ "Column": {{ "children": {{ "explicitList": ["bar-chart"] }} }} }} }},
         {{ "id": "bar-chart", "component": {{ "BarGraph": {{
           "dataPath": "/chartData",
-          "labelPath": "/chartLabels"
+          "labelPath": "/chartLabels",
+          "title": "Outages comparison by regions"
         }} }} }}
       ]
     }}

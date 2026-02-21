@@ -15,6 +15,7 @@ from core.dynamic_app.dynamic_struct import AgentGraphException
 from core.dynamic_app.dynamic_struct import AgentConfig
 from core.dynamic_app.dynamic_struct import DynamicGraphState
 from core.common_struct import SuggestedQuestions
+from core.common_struct import SuggestionModel
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -31,6 +32,8 @@ class DynamicGraph:
         self._ui_orchestrator = UIOrchestrator()
         self._suggestions_llm = SuggestionsReponseLLM()
         self._ui_assembly = UIAssemblyAgent(base_url, self._inline_catalog)
+        # TODO: temp solution to graph state
+        self._out_query = "Based on the given context, generate a list of at least 1-3 suggested follow up questions that the user might want to ask next. These should be relevant to the information provided and help the user explore the topic further. Always provide suggestions, even if the information is limited. Consider questions will be shown in UI, in buttons, so build them short or clean to show good on UI. Do not make questions related to UI, or the structure, just the raw data that is presented."
 
     @property
     def inline_catalog(self):
@@ -132,7 +135,6 @@ class DynamicGraph:
         node_name = "START"
         suggestions = ""
 
-        # Stream graph execution
         async for chunk in self._dynamic_ui_graph.astream(
             input=current_message,
             config=config,
@@ -144,7 +146,6 @@ class DynamicGraph:
                 suggestions = chunk[1]['suggestions']
             final_response_content = latest_message.content
 
-            # Format the message based on its type
             if hasattr(latest_message, 'tool_calls') and latest_message.tool_calls:
                 timeline_message, detailed_message = self._format_tool_call_message(latest_message)
             elif isinstance(latest_message, ToolMessage):
@@ -178,7 +179,11 @@ class DynamicGraph:
         else:
             final_content = final_response_content or "No response generated"
 
-        if not suggestions: suggestions = SuggestedQuestions(suggested_questions=["Tell me more details about first data", "Make a summary of data given"]).model_dump_json()
+        # TODO: temp fix for state on graph
+        fall_back_suggestions_model = SuggestionModel().build_suggestion_model()
+        raw_suggestions = await fall_back_suggestions_model.ainvoke(self._out_query+f"\n\nContext for question generation:\n{final_response_content}")
+        suggestions = raw_suggestions.model_dump_json()
+        if not suggestions: suggestions = SuggestedQuestions(suggested_questions=["Tell me more details about first data", "Make a summary of data given"])
 
         yield {
             "is_task_complete": True,

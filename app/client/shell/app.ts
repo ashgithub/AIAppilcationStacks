@@ -13,7 +13,7 @@ export class AppContainer extends LitElement {
   accessor router = a2uiRouter;
 
   @state()
-  accessor showingTraditional = false;
+  accessor showingTraditional = true;
 
   @state()
   accessor showingChat = true;

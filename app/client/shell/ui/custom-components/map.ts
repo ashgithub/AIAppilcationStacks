@@ -214,7 +214,7 @@ export class MapComponent extends Root {
         },
       });
 
-      // Popup on click
+      // Popup on click TODO: fix
       this.map.on("click", "markers-layer", (e) => {
         const coordinates = (e.features?.[0].geometry as GeoJSON.Point).coordinates.slice() as [number, number];
         const name = e.features?.[0].properties?.name;

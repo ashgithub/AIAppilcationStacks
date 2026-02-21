@@ -14,5 +14,8 @@
     "concurrently": "9.2.1",
     "shx": "^0.4.0",
     "maplibre-gl": "^5.18.0"
+  },
+  "resolutions": {
+    "minimatch": "^10.2.1"
   }
 }

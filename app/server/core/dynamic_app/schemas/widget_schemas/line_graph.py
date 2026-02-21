@@ -6,11 +6,11 @@ WIDGET_SCHEMA = """
   {{ "surfaceUpdate": {{
     "surfaceId": "line-chart-view",
       "components": [
-        {{ "id": "main-container", "component": {{ "Column": {{ "children": {{ "explicitList": ["title", "line-chart"] }} }} }} }},
-        {{ "id": "title","component": {{ "Text": {{ "usageHint": "h2", "text": {{ "literalString": "Trend Analysis" }} }} }} }},
+        {{ "id": "main-container", "component": {{ "Column": {{ "children": {{ "explicitList": ["line-chart"] }} }} }} }},
         {{ "id": "line-chart", "component": {{ "LineGraph": {{
           "labelPath": "/lineLabels",
           "seriesPath": "/lineSeries",
+          "title": "Outage Trends Over Time",
           "showPoints": true,
           "showArea": true,
           "animated": true

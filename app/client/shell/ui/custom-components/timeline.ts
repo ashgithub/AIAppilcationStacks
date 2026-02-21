@@ -179,7 +179,6 @@ export class TimelineComponent extends Root {
       }
     }
 
-    // Sort events by date
     events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     return events;
@@ -204,7 +203,7 @@ export class TimelineComponent extends Root {
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) {
-        return dateString; // Return as-is if invalid
+        return dateString;
       }
 
       const options: Intl.DateTimeFormatOptions = {
