@@ -2,6 +2,7 @@
 from typing import TypedDict, List, Optional
 from pydantic import BaseModel, Field
 from dataclasses import dataclass
+from langgraph.graph import MessagesState
 
 class Skill(TypedDict):
     """A skill that can be progressively disclosed to the agent."""
@@ -12,6 +13,10 @@ class Skill(TypedDict):
 class UIOrchestratorOutput(BaseModel):
     """Output from UI Orchestrator containing selected widgets."""
     widgets: List[Skill] = Field(description="List of selected UI widgets (1-3 max)")
+
+class DynamicGraphState(MessagesState):
+    """ Class that holds the dynamic graph state """
+    suggestions: str
 
 # Data class for better json handling
 @dataclass

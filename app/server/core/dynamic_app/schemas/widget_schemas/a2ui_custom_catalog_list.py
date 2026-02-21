@@ -16,7 +16,7 @@ def _get_widget_modules():
 def _load_widget(module_name):
     """Load a widget module and return its definition."""
     try:
-        module = importlib.import_module(f"dynamic_app.configs.schemas.widget_schemas.{module_name}")
+        module = importlib.import_module(f"core.dynamic_app.schemas.widget_schemas.{module_name}")
         return {
             "widget-name": module.WIDGET_NAME,
             "description": module.WIDGET_DESCRIPTION,

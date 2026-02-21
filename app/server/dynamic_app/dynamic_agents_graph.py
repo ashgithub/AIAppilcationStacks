@@ -2,16 +2,19 @@
 
 from collections.abc import AsyncIterable
 from typing import Any
-from langgraph.graph import StateGraph, START, END, MessagesState
+from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import InMemorySaver
 from langchain.messages import HumanMessage, AIMessage, AnyMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 
 from dynamic_app.ui_agents_graph.ui_orchestrator_agent import UIOrchestrator
+from dynamic_app.ui_agents_graph.ui_orchestrator_agent import SuggestionsReponseLLM
 from dynamic_app.ui_agents_graph.ui_assembly_agent import UIAssemblyAgent
 from dynamic_app.back_agents_graph.backend_orchestrator_agent import BackendOrchestratorAgent
-from dynamic_app.configs.common_struct import AgentGraphException
-from dynamic_app.configs.common_struct import AgentConfig
+from core.dynamic_app.dynamic_struct import AgentGraphException
+from core.dynamic_app.dynamic_struct import AgentConfig
+from core.dynamic_app.dynamic_struct import DynamicGraphState
+from core.common_struct import SuggestedQuestions
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -26,6 +29,7 @@ class DynamicGraph:
         self._inline_catalog = inline_catalog or []
         self._backend_orchestrator = BackendOrchestratorAgent()
         self._ui_orchestrator = UIOrchestrator()
+        self._suggestions_llm = SuggestionsReponseLLM()
         self._ui_assembly = UIAssemblyAgent(base_url, self._inline_catalog)
 
     @property
@@ -39,10 +43,18 @@ class DynamicGraph:
         if hasattr(self, '_ui_assembly'):
             self._ui_assembly.inline_catalog = self._inline_catalog
 
+    async def aggregator(self,state:DynamicGraphState):
+        """ Combines the outputs """
+
+        return {
+            'messages': state['messages'],
+            'suggestions': state['suggestions']
+        }
+
     async def build_graph(self):
         checkpointer = InMemorySaver()
 
-        graph_builder = StateGraph(MessagesState)
+        graph_builder = StateGraph(DynamicGraphState)
 
         # Add backend orchestrator (supervisor)
         graph_builder.add_node("backend_orchestrator", self._backend_orchestrator)
@@ -51,11 +63,18 @@ class DynamicGraph:
         graph_builder.add_node("ui_orchestrator", self._ui_orchestrator)
         graph_builder.add_node("ui_assembly", self._ui_assembly)
 
+        # Helper nodes
+        graph_builder.add_node("suggestions", self._suggestions_llm)
+        graph_builder.add_node("aggregator", self.aggregator)
+
         # Define edges: START -> backend_orchestrator -> ui_orchestrator -> ui_assembly -> END
         graph_builder.add_edge(START, "backend_orchestrator")
         graph_builder.add_edge("backend_orchestrator", "ui_orchestrator")
         graph_builder.add_edge("ui_orchestrator", "ui_assembly")
-        graph_builder.add_edge("ui_assembly", END)
+        graph_builder.add_edge("ui_orchestrator", "suggestions")
+        graph_builder.add_edge("ui_assembly", "aggregator")
+        graph_builder.add_edge("suggestions", "aggregator")
+        graph_builder.add_edge("aggregator", END)
 
         self._dynamic_ui_graph = graph_builder.compile(checkpointer=checkpointer)
 
@@ -111,6 +130,7 @@ class DynamicGraph:
         final_response_content = None
         model_token_count = 0
         node_name = "START"
+        suggestions = ""
 
         # Stream graph execution
         async for chunk in self._dynamic_ui_graph.astream(
@@ -120,6 +140,8 @@ class DynamicGraph:
             subgraphs=True
         ):
             latest_message: AnyMessage = chunk[1]['messages'][-1]
+            if hasattr(chunk[1], 'suggestions'):
+                suggestions = chunk[1]['suggestions']
             final_response_content = latest_message.content
 
             # Format the message based on its type
@@ -156,11 +178,14 @@ class DynamicGraph:
         else:
             final_content = final_response_content or "No response generated"
 
+        if not suggestions: suggestions = SuggestedQuestions(suggested_questions=["Tell me more details about first data", "Make a summary of data given"]).model_dump_json()
+
         yield {
             "is_task_complete": True,
             "content": final_content,
             "detailed_updates": detailed_message,
-            "token_count": str(model_token_count)
+            "token_count": str(model_token_count),
+            "suggestions": suggestions
         }
 
 #region Testing

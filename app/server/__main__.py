@@ -5,11 +5,11 @@ import click
 from a2a.server.apps import A2AStarletteApplication
 from a2a.server.request_handlers import DefaultRequestHandler
 from a2a.server.tasks import InMemoryTaskStore, BasePushNotificationSender, InMemoryPushNotificationConfigStore
-from a2a.types import AgentCapabilities, AgentCard, AgentSkill
-from a2ui.extension.a2ui_extension import get_a2ui_agent_extension
+from a2a.types import AgentCard
+# from a2ui.extension.a2ui_extension import get_a2ui_agent_extension
 from starlette.applications import Starlette
 from starlette.middleware.cors import CORSMiddleware
-from starlette.staticfiles import StaticFiles
+# from starlette.staticfiles import StaticFiles
 from starlette.responses import JSONResponse
 from starlette.requests import Request
 
@@ -17,7 +17,7 @@ from chat_app.llm_executor import OutageEnergyLLMExecutor
 from chat_app.main_llm import OCIOutageEnergyLLM
 from dynamic_app.dynamic_agents_graph import DynamicGraph
 from dynamic_app.dynamic_graph_executor import DynamicGraphExecutor
-from dynamic_app.configs.a2a_config_provider import (
+from core.dynamic_app.a2a_config_provider import (
     dynamic_agent_capabilities,
     get_widget_catalog,
     get_widget_schema

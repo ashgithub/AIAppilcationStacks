@@ -16,7 +16,7 @@ def _get_native_example_modules():
 def _load_native_example(module_name):
     """Load a native component example module and return its definition."""
     try:
-        module = importlib.import_module(f"dynamic_app.configs.schemas.native_examples.{module_name}")
+        module = importlib.import_module(f"core.dynamic_app.schemas.native_examples.{module_name}")
         return {
             "component-name": module.COMPONENT_NAME,
             "description": module.COMPONENT_DESCRIPTION,

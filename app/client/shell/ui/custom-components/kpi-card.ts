@@ -24,10 +24,7 @@ const KPI_THEMES: Record<string, { primary: string; bg: string }> = {
   orange: { primary: '#F38181', bg: 'rgba(243, 129, 129, 0.1)' },
 };
 
-/**
- * Single KPI Card component
- * Can be used standalone or within a KpiCardGroup
- */
+// single KPI card to include on the set
 @customElement('kpi-card')
 export class KpiCard extends Root {
   @property({ attribute: false }) accessor dataPath: any = "";
@@ -49,7 +46,7 @@ export class KpiCard extends Root {
         min-width: 180px;
         max-width: 280px;
         box-sizing: border-box;
-        padding: 12px;
+        padding: 0.5rem;
       }
 
       .kpi-card {
@@ -70,7 +67,7 @@ export class KpiCard extends Root {
       }
 
       .kpi-card.compact {
-        padding: 16px;
+        padding: 8px;
       }
 
       .kpi-header {
@@ -220,7 +217,7 @@ export class KpiCard extends Root {
           <span class="kpi-label">${kpiData.label}</span>
           ${kpiData.icon ? html`
             <div class="kpi-icon" style="background: ${themeColors.bg}; color: ${themeColors.primary};">
-              ${kpiData.icon}
+              ${this.getIconSymbol(kpiData.icon)}
             </div>
           ` : ''}
         </div>
@@ -303,12 +300,49 @@ export class KpiCard extends Root {
     if (change < 0) return '▼';
     return '●';
   }
+
+  private getIconSymbol(icon: string): string {
+    const iconMap: Record<string, string> = {
+      'bolt': '⚡',
+      'lightning': '⚡',
+      'electricity': '⚡',
+      'power': '⚡',
+      'energy': '⚡',
+      'dollar': '💰',
+      'money': '💰',
+      'revenue': '💰',
+      'cost': '💰',
+      'users': '👥',
+      'people': '👥',
+      'customers': '👥',
+      'percent': '📈',
+      'percentage': '📈',
+      'growth': '📈',
+      'trend': '📈',
+      'temperature': '🌡️',
+      'temp': '🌡️',
+      'heat': '🌡️',
+      'clock': '🕐',
+      'time': '🕐',
+      'duration': '🕐',
+      'speed': '💨',
+      'velocity': '💨',
+      'fast': '💨',
+      'car': '🚗',
+      'vehicle': '🚗',
+      'transport': '🚗',
+      'home': '🏠',
+      'house': '🏠',
+      'building': '🏢',
+      'factory': '🏭',
+      'industry': '🏭',
+      'production': '🏭'
+    };
+    return iconMap[icon.toLowerCase()] || '📊';
+  }
 }
 
-/**
- * KPI Card Group - renders multiple KPI cards in a flexible row
- * Use native A2UI Row/Column components for more complex layouts
- */
+// A group of cards to render together
 @customElement('kpi-card-group')
 export class KpiCardGroup extends Root {
   @property({ attribute: false }) accessor dataPath: any = "";
@@ -320,7 +354,7 @@ export class KpiCardGroup extends Root {
     css`
       :host {
         display: block;
-        padding: 16px 8px;
+        padding: 12px 6px;
         box-sizing: border-box;
       }
 
@@ -338,9 +372,9 @@ export class KpiCardGroup extends Root {
 
       .kpi-group-container {
         display: flex;
-        gap: 8px;
+        gap: 2px;
         flex-wrap: wrap;
-        padding: 4px;
+        padding: 2px;
       }
 
       .kpi-group-container > * {

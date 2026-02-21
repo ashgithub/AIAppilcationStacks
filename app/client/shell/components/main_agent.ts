@@ -54,13 +54,16 @@ export class DynamicModule extends LitElement {
   accessor color = "#334155"
 
   @property({ type: Object })
-  accessor config: AppConfig = restaurantConfig; 
+  accessor config: AppConfig = restaurantConfig;
 
   @state()
   accessor response = ""
 
   @state()
-  accessor status: Array<{timestamp: number, duration: number, message: string, type: string}> = [{timestamp: Date.now(), duration: 0, message: "Ready", type: "initial"}]
+  accessor status: Array<{ timestamp: number, duration: number, message: string, type: string }> = [{ timestamp: Date.now(), duration: 0, message: "Ready", type: "initial" }]
+
+  @state()
+  accessor suggestions = ""
 
   @state()
   accessor #requesting = false;
@@ -114,8 +117,6 @@ export class DynamicModule extends LitElement {
         font-family: var(--font-family);
         border-radius: 1rem;
       }
-
-
 
       .subtitle {
         font-size: 1rem;
@@ -225,6 +226,38 @@ export class DynamicModule extends LitElement {
         min-height: fit-content;
       }
 
+      .suggestions {
+      flex-shrink: 0;
+      font-size: 0.875rem;
+      padding: 1rem;
+      margin-bottom: 0.5rem;
+      background: none;
+    }
+
+    .suggestions-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .suggestion-item {
+      padding: 0.5rem 0.75rem;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 0.375rem;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .suggestion-item:hover {
+      background: rgba(255, 255, 255, 0.25);
+      transform: translateX(4px);
+    }
+
+    .suggestion-item:active {
+      transform: scale(0.98);
+    }
+
       .response-section {
         flex: 1 1 auto;
         overflow: visible;
@@ -288,7 +321,7 @@ export class DynamicModule extends LitElement {
           this.#currentElapsedTime = 0;
           this.#totalDuration = 0;
           // Reset status with new query start
-          this.status = [{timestamp: Date.now(), duration: 0, message: "Query sent", type: "sent"}];
+          this.status = [{ timestamp: Date.now(), duration: 0, message: "Query sent", type: "sent" }];
           this.#startStopwatch();
         }
       });
@@ -347,14 +380,19 @@ export class DynamicModule extends LitElement {
       const hasMessage = status?.message?.parts?.length > 0;
 
       // Actual part with status of server
-      const serverState:Array<any> = hasMessage? event.status.message.parts : [{"text":"Server did not send any message parts"}];
+      const serverState: Array<any> = hasMessage ? event.status.message.parts : [{ "text": "Server did not send any message parts" }];
       const serverMessage = serverState[0].text || "No text content"
 
-      console.log("server message",serverState);
+      console.log("server message", serverState);
 
-      if (state == 'failed'){
+      // Get suggestions (part 2) if available
+      if (isFinal && serverState[6]?.text) {
+        this.suggestions = serverState[6].text;
+      }
+
+      if (state == 'failed') {
         this.#addStatusWithDuration("Task failed - An error occurred", event.kind);
-      }else {
+      } else {
         this.#addStatusWithDuration(serverMessage, event.kind);
       }
 
@@ -380,17 +418,59 @@ export class DynamicModule extends LitElement {
     const now = Date.now();
     const lastStatus = this.status[this.status.length - 1];
     const duration = lastStatus ? (now - lastStatus.timestamp) / 1000 : 0;
-    
+
     this.status = [...this.status, {
       timestamp: now,
       duration: duration,
       message,
       type
     }];
-    
+
     // Update total duration from start
     if (this.#startTime) {
       this.#totalDuration = (now - this.#startTime) / 1000;
+    }
+  }
+
+  //Parse from a list into single suggestions
+  #parseSuggestions(suggestionsText: string): string[] {
+    // First, try to parse as JSON and extract suggested_questions
+    try {
+      const parsed = JSON.parse(suggestionsText);
+      if (parsed && Array.isArray(parsed.suggested_questions)) {
+        return parsed.suggested_questions;
+      }
+    } catch (e) {
+      // Split by newlines
+      let suggestions = suggestionsText
+        .split(/\n/)
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+
+      // Split by comas
+      if (suggestions.length === 1) {
+        suggestions = suggestions[0]
+          .split(/[,;]/)
+          .map(s => s.trim())
+          .filter(s => s.length > 0);
+      }
+
+      // try to reduce other symbols
+      return suggestions.map(s => s.replace(/^(\d+[\.\)]\s*|[-•]\s*)/, '').trim());
+    }
+  }
+
+  // this sends the message to the server
+  async #handleSuggestionClick(suggestion: string) {
+    if (!this.router || !suggestion.trim()) return;
+
+    console.log("Sending suggestion as query:", suggestion);
+    try {
+      // Clear current suggestions when a new query is sent
+      this.suggestions = "";
+      this.router.sendTextMessage(this.config.serverUrl, suggestion.trim());
+    } catch (error) {
+      console.error("Failed to send suggestion:", error);
     }
   }
 
@@ -481,6 +561,17 @@ export class DynamicModule extends LitElement {
       ></stat-bar>
       ${this.#maybeRenderError()}
       ${this.#maybeRenderData()}
+      ${this.suggestions ? html`
+        <div class="suggestions">
+          <div class="suggestions-list">
+            ${this.#parseSuggestions(this.suggestions).map(suggestion => html`
+              <div class="suggestion-item" @click=${() => this.#handleSuggestionClick(suggestion)}>
+                ${suggestion}
+              </div>
+            `)}
+          </div>
+        </div>
+      ` : ''}
       ${this.#renderStatusWindow()}
     `;
   }
@@ -523,75 +614,75 @@ export class DynamicModule extends LitElement {
     return html`<div class="surfaces-container">
       <section class="surfaces">
         ${repeat(
-        this.#processor.getSurfaces(),
-        ([surfaceId]) => surfaceId,
-        ([surfaceId, surface]) => {
-          return html`<a2ui-surface
+      this.#processor.getSurfaces(),
+      ([surfaceId]) => surfaceId,
+      ([surfaceId, surface]) => {
+        return html`<a2ui-surface
                 @a2uiaction=${async (
-            evt: v0_8.Events.StateEvent<"a2ui.action">
-          ) => {
-              const [target] = evt.composedPath();
-              if (!(target instanceof HTMLElement)) {
-                return;
-              }
+          evt: v0_8.Events.StateEvent<"a2ui.action">
+        ) => {
+            const [target] = evt.composedPath();
+            if (!(target instanceof HTMLElement)) {
+              return;
+            }
 
-              const context: v0_8.Types.A2UIClientEventMessage["userAction"]["context"] =
-                {};
-              if (evt.detail.action.context) {
-                const srcContext = evt.detail.action.context;
-                for (const item of srcContext) {
-                  if (item.value.literalBoolean) {
-                    context[item.key] = item.value.literalBoolean;
-                  } else if (item.value.literalNumber) {
-                    context[item.key] = item.value.literalNumber;
-                  } else if (item.value.literalString) {
-                    context[item.key] = item.value.literalString;
-                  } else if (item.value.path) {
-                    const path = this.#processor.resolvePath(
-                      item.value.path,
-                      evt.detail.dataContextPath
-                    );
-                    const value = this.#processor.getData(
-                      evt.detail.sourceComponent,
-                      path,
-                      surfaceId
-                    );
-                    context[item.key] = value;
-                  }
+            const context: v0_8.Types.A2UIClientEventMessage["userAction"]["context"] =
+              {};
+            if (evt.detail.action.context) {
+              const srcContext = evt.detail.action.context;
+              for (const item of srcContext) {
+                if (item.value.literalBoolean) {
+                  context[item.key] = item.value.literalBoolean;
+                } else if (item.value.literalNumber) {
+                  context[item.key] = item.value.literalNumber;
+                } else if (item.value.literalString) {
+                  context[item.key] = item.value.literalString;
+                } else if (item.value.path) {
+                  const path = this.#processor.resolvePath(
+                    item.value.path,
+                    evt.detail.dataContextPath
+                  );
+                  const value = this.#processor.getData(
+                    evt.detail.sourceComponent,
+                    path,
+                    surfaceId
+                  );
+                  context[item.key] = value;
                 }
               }
+            }
 
-              const message: v0_8.Types.A2UIClientEventMessage = {
-                userAction: {
-                  name: evt.detail.action.name,
-                  surfaceId,
-                  sourceComponentId: target.id,
-                  timestamp: new Date().toISOString(),
-                  context,
-                },
-              };
+            const message: v0_8.Types.A2UIClientEventMessage = {
+              userAction: {
+                name: evt.detail.action.name,
+                surfaceId,
+                sourceComponentId: target.id,
+                timestamp: new Date().toISOString(),
+                context,
+              },
+            };
 
-              // Send action back via router
-              if (this.router) {
-                this.#requesting = true;
-                this.#startLoadingAnimation();
-                try {
-                  await this.router.sendA2UIMessage(this.config.serverUrl || "http://localhost:10002", message);
-                } catch (err) {
-                  this.snackbar(err as string, SnackType.ERROR);
-                } finally {
-                  this.#requesting = false;
-                  this.#stopLoadingAnimation();
-                }
+            // Send action back via router
+            if (this.router) {
+              this.#requesting = true;
+              this.#startLoadingAnimation();
+              try {
+                await this.router.sendA2UIMessage(this.config.serverUrl || "http://localhost:10002", message);
+              } catch (err) {
+                this.snackbar(err as string, SnackType.ERROR);
+              } finally {
+                this.#requesting = false;
+                this.#stopLoadingAnimation();
               }
-            }}
+            }
+          }}
                 .surfaceId=${surfaceId}
                 .surface=${surface}
                 .processor=${this.#processor}
                 .enableCustomElements=${true}
               ></a2-uisurface>`;
-        }
-      )}
+      }
+    )}
       </section>
     </div>`;
   }
@@ -600,12 +691,12 @@ export class DynamicModule extends LitElement {
     return html`<div class="status-section">
         <div class="status">
           ${repeat(
-            this.status,
-            (item) => item.timestamp,
-            (item) => html`<div class="status-item">
+      this.status,
+      (item) => item.timestamp,
+      (item) => html`<div class="status-item">
               <span class="duration">${item.duration.toFixed(2)}s</span> - ${item.message}
             </div>`
-          )}
+    )}
         </div>
       </div>`;
   }

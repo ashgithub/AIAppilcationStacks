@@ -1,0 +1,1 @@
+""" this file is for giving the client side the information about outages """

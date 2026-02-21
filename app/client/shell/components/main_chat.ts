@@ -143,22 +143,30 @@ export class ChatModule extends LitElement {
 
   //Parse from a list into single suggestions
   #parseSuggestions(suggestionsText: string): string[] {
-    // Split by newlines first
-    let suggestions = suggestionsText
-      .split(/\n/)
-      .map(s => s.trim())
-      .filter(s => s.length > 0);
-
-    // If only one item, try splitting by commas or semicolons
-    if (suggestions.length === 1) {
-      suggestions = suggestions[0]
-        .split(/[,;]/)
+    // First, try to parse as JSON and extract suggested_questions
+    try {
+      const parsed = JSON.parse(suggestionsText);
+      if (parsed && Array.isArray(parsed.suggested_questions)) {
+        return parsed.suggested_questions;
+      }
+    } catch (e) {
+      // Split by newlines
+      let suggestions = suggestionsText
+        .split(/\n/)
         .map(s => s.trim())
         .filter(s => s.length > 0);
+  
+      // Split by comas
+      if (suggestions.length === 1) {
+        suggestions = suggestions[0]
+          .split(/[,;]/)
+          .map(s => s.trim())
+          .filter(s => s.length > 0);
+      }
+  
+      // try to reduce other symbols
+      return suggestions.map(s => s.replace(/^(\d+[\.\)]\s*|[-•]\s*)/, '').trim());
     }
-
-    // remove the extra data
-    return suggestions.map(s => s.replace(/^(\d+[\.\)]\s*|[-•]\s*)/, '').trim());
   }
 
   // this sends the message to the server
@@ -249,15 +257,7 @@ export class ChatModule extends LitElement {
       font-size: 0.875rem;
       padding: 1rem;
       margin-bottom: 0.5rem;
-      background: rgba(255, 255, 255, 0.15);
-      border-radius: 0.5rem;
-      border-left: 3px solid var(--p-60, #ffffff);
-    }
-
-    .suggestions-title {
-      font-weight: bold;
-      margin-bottom: 0.5rem;
-      opacity: 0.9;
+      background: none;
     }
 
     .suggestions-list {
@@ -342,10 +342,9 @@ export class ChatModule extends LitElement {
         .configType=${'llm'}
         .configData=${chatConfig}
       ></stat-bar>
-      <div class="response">${unsafeHTML(marked(this.response || "Waiting for query...") as string)}</div>
+      <div class="response">${unsafeHTML(marked(this.response || "Waiting for query...") as string)}
       ${this.suggestions ? html`
         <div class="suggestions">
-          <div class="suggestions-title">Suggestions:</div>
           <div class="suggestions-list">
             ${this.#parseSuggestions(this.suggestions).map(suggestion => html`
               <div class="suggestion-item" @click=${() => this.#handleSuggestionClick(suggestion)}>
@@ -355,6 +354,7 @@ export class ChatModule extends LitElement {
           </div>
         </div>
       ` : ''}
+      </div>
       <div class="status">
         ${repeat(
           this.status,

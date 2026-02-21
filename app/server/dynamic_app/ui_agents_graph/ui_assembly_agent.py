@@ -4,11 +4,11 @@ import os
 import jsonschema
 from langchain.agents import create_agent
 from langchain.messages import HumanMessage, AIMessage
-from langgraph.graph.message import MessagesState
 from typing import List
 
-from dynamic_app.configs.gen_ai_provider import GenAIProvider
 from dynamic_app.ui_agents_graph.widget_tools import get_native_component_example, create_custom_component_tools
+from core.gen_ai_provider import GenAIProvider
+from core.dynamic_app.dynamic_struct import DynamicGraphState
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +63,7 @@ class UIAssemblyAgent:
         self.allowed_str = ", ".join(allowed_components) if allowed_components else "any available"
 
         # Identify which components are custom (have schemas in CUSTOM_CATALOG)
-        from dynamic_app.configs.schemas.widget_schemas.a2ui_custom_catalog_list import CUSTOM_CATALOG
+        from core.dynamic_app.schemas.widget_schemas.a2ui_custom_catalog_list import CUSTOM_CATALOG
         custom_components = [comp for comp in allowed_components
                            if any(cat["widget-name"].lower() == comp.lower() for cat in CUSTOM_CATALOG)]
 
@@ -197,7 +197,7 @@ Generate a complete, valid A2UI message array that uses ONLY the allowed compone
             name=self.agent_name
         )
 
-    async def __call__(self, state: MessagesState):
+    async def __call__(self, state: DynamicGraphState):
         """Call the UI assembly agent to generate and validate UI from orchestrator data."""
         orchestrator_data = state['messages'][-1].content
 
@@ -375,7 +375,7 @@ async def main():
         }
     ]
     orchestrator = UIAssemblyAgent(inline_catalog=inline_catalog)
-    messages:MessagesState = {'messages':[HumanMessage("AIMessage(content='[bar-graph]'")]}
+    messages:DynamicGraphState = {'messages':[HumanMessage("AIMessage(content='[bar-graph]'")]}
     response = await orchestrator(messages)
     print(response)
 

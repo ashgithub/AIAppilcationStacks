@@ -1,7 +1,7 @@
 import json
 from langchain.tools import tool
-from dynamic_app.configs.schemas.widget_schemas.a2ui_custom_catalog_list import CUSTOM_CATALOG
-from dynamic_app.configs.schemas.native_examples.catalog import NATIVE_EXAMPLES_CATALOG
+from core.dynamic_app.schemas.widget_schemas.a2ui_custom_catalog_list import CUSTOM_CATALOG
+from core.dynamic_app.schemas.native_examples.catalog import NATIVE_EXAMPLES_CATALOG
 
 @tool()
 async def get_widget_schema(widget_name: str) -> str:

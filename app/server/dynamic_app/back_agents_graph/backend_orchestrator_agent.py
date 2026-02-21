@@ -1,11 +1,10 @@
 from langchain.agents import create_agent
-from langchain.messages import AIMessage
-from langgraph.graph.message import MessagesState
 
-from dynamic_app.configs.gen_ai_provider import GenAIProvider
 from dynamic_app.back_agents_graph.outage_agent import get_outage_data
 from dynamic_app.back_agents_graph.energy_agent import get_energy_data
 from dynamic_app.back_agents_graph.industry_agent import get_industry_data
+from core.gen_ai_provider import GenAIProvider
+from core.dynamic_app.dynamic_struct import DynamicGraphState
 
 
 class BackendOrchestratorAgent:
@@ -42,7 +41,7 @@ class BackendOrchestratorAgent:
         self.system_prompt = self.AGENT_INSTRUCTIONS
         self.agent = self._build_agent()
 
-    async def __call__(self, state: MessagesState):
+    async def __call__(self, state: DynamicGraphState):
         """Orchestrate data collection and return consolidated results."""
         return await self.agent.ainvoke(state)
 

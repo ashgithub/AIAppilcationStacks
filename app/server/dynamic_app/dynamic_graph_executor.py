@@ -24,7 +24,7 @@ from a2a.utils import (
 from a2a.utils.errors import ServerError
 from a2ui.extension.a2ui_extension import create_a2ui_part, try_activate_a2ui_extension
 from dynamic_app.dynamic_agents_graph import DynamicGraph
-from dynamic_app.configs.common_struct import AgentConfig, CONFIG_SCHEMA, DEFAULT_CONFIG
+from core.dynamic_app.dynamic_struct import AgentConfig, CONFIG_SCHEMA, DEFAULT_CONFIG
 
 logger = logging.getLogger(__name__)
 
@@ -191,6 +191,7 @@ class DynamicGraphExecutor(AgentExecutor):
 
             final_parts.append(Part(root=TextPart(text=item['detailed_updates'])))
             final_parts.append(Part(root=TextPart(text=item['token_count'])))
+            final_parts.append(Part(root=TextPart(text=item['suggestions'])))
 
             logger.info("--- FINAL PARTS TO BE SENT ---")
             for i, part in enumerate(final_parts):
