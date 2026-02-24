@@ -51,6 +51,7 @@ export class A2UIRouter extends EventTarget {
     this.dispatchEvent(new CustomEvent('message-sent', {
       detail: {
         serverUrl,
+        message: text,
         timestamp: Date.now()
       },
       bubbles: true,

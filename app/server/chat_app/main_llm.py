@@ -7,9 +7,10 @@ from langchain_oci import ChatOCIGenAI
 from langchain.messages import HumanMessage, AIMessage, AnyMessage, ToolMessage
 from langgraph.graph.state import CompiledStateGraph
 from langchain_core.runnables import RunnableConfig
+from langgraph.checkpoint.memory import InMemorySaver
+
 from core.common_struct import SuggestionModel
 from core.common_struct import SuggestedQuestions
-
 from chat_app.data_tools import get_outage_data, get_energy_data, get_industry_data
 
 logger = logging.getLogger(__name__)
@@ -39,14 +40,15 @@ class OCIOutageEnergyLLM:
             model=oci_llm,
             tools=[get_outage_data, get_energy_data, get_industry_data],
             system_prompt="You are an outage and energy assistant that helps users get information about power outages, energy statistics, and industry performance. You MUST use the available tools to retrieve data before providing any answers. Always call the relevant tools first: get_outage_data for outage information, get_energy_data for energy statistics, and get_industry_data for industry performance data. Do not ask the user questions or seek clarification - instead, use the tools to gather all necessary information. Present your findings in well-formatted markdown responses. Never respond without first using the appropriate tools to fetch current data.",
-            name="outage_energy_llm"
+            name="outage_energy_llm",
+            checkpointer= InMemorySaver()
         )
     
     async def oci_stream(self, query, session_id) -> AsyncIterable[dict[str, Any]]:
         """ Function to call agent and stream responses """
         
         current_message = {"messages":[HumanMessage(query)]}
-        config:RunnableConfig = {"run_id":str(session_id)}
+        config:RunnableConfig = {"run_id":str(session_id), "configurable": {"thread_id": "chat_llm_thread"}}
         final_response_content = None
         final_model_state = None
         model_token_count = 0

@@ -23,13 +23,16 @@ export class ChatModule extends LitElement {
   accessor color = "#334155"
 
   @state()
-  accessor response = ""
+  accessor messages: Array<{role: 'user' | 'agent', content: string, timestamp: number}> = []
 
   @state()
   accessor status: Array<{timestamp: number, duration: number, message: string, type: string}> = [{timestamp: Date.now(), duration: 0, message: "Ready", type: "initial"}]
 
   @state()
   accessor suggestions = ""
+
+  @state()
+  accessor #pendingResponse = false
 
   @state()
   accessor #totalDuration: number = 0;
@@ -59,6 +62,13 @@ export class ChatModule extends LitElement {
           this.#startTime = sentEvent.timestamp;
           this.#elapsedTime = null;
           this.#totalDuration = 0;
+          // Add user message to conversation
+          this.messages = [...this.messages, {
+            role: 'user',
+            content: sentEvent.message || 'User query',
+            timestamp: Date.now()
+          }];
+          this.#pendingResponse = true;
           // Reset status with new query start
           this.status = [{timestamp: Date.now(), duration: 0, message: "Query sent", type: "sent"}];
         }
@@ -87,7 +97,17 @@ export class ChatModule extends LitElement {
       if (hasMessage) {
         for (const part of status.message.parts) {
           if (part.kind === 'text') {
-            this.response = isFinal ? serverMessage : "Working on response...";
+            // Add agent response to conversation when final
+            if (isFinal && this.#pendingResponse) {
+              this.messages = [...this.messages, {
+                role: 'agent',
+                content: serverMessage,
+                timestamp: Date.now()
+              }];
+              this.#pendingResponse = false;
+              // Scroll to bottom after adding message
+              this.updateComplete.then(() => this.#scrollToBottom());
+            }
             
             // Get final state message (part 1) or current message
             const statusMessage = isFinal && serverState[1]?.text ? serverState[1].text : serverMessage;
@@ -169,6 +189,13 @@ export class ChatModule extends LitElement {
     }
   }
 
+  #scrollToBottom() {
+    const chatContainer = this.shadowRoot?.querySelector('.chat-messages');
+    if (chatContainer) {
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+  }
+
   // this sends the message to the server
   async #handleSuggestionClick(suggestion: string) {
     if (!this.router || !suggestion.trim()) return;
@@ -203,7 +230,7 @@ export class ChatModule extends LitElement {
       opacity: 0.9;
     }
 
-    .response {
+    .chat-messages {
       flex: 1 1 auto;
       min-height: 100px;
       font-size: 1rem;
@@ -213,6 +240,87 @@ export class ChatModule extends LitElement {
       background: rgba(0, 0, 0, 0.2);
       border-radius: 0.5rem;
       overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .message {
+      padding: 0.75rem 1rem;
+      border-radius: 0.75rem;
+      max-width: 85%;
+    }
+
+    .message.user {
+      align-self: flex-end;
+      background: rgba(59, 130, 246, 0.5);
+      border-bottom-right-radius: 0.25rem;
+    }
+
+    .message.agent {
+      align-self: flex-start;
+      background: rgba(255, 255, 255, 0.15);
+      border-bottom-left-radius: 0.25rem;
+    }
+
+    .message-role {
+      font-size: 0.75rem;
+      opacity: 0.7;
+      margin-bottom: 0.25rem;
+      text-transform: uppercase;
+    }
+
+    .message-content {
+      word-wrap: break-word;
+    }
+
+    .message-content p {
+      margin: 0 0 0.5rem 0;
+    }
+
+    .message-content p:last-child {
+      margin-bottom: 0;
+    }
+
+    .pending-indicator {
+      align-self: flex-start;
+      padding: 0.75rem 1rem;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .typing-dots {
+      display: flex;
+      gap: 0.25rem;
+    }
+
+    .typing-dots span {
+      width: 6px;
+      height: 6px;
+      background: white;
+      border-radius: 50%;
+      animation: bounce 1.4s ease-in-out infinite;
+    }
+
+    .typing-dots span:nth-child(1) { animation-delay: 0s; }
+    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-6px); }
+    }
+
+    .empty-chat {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.6;
+      font-style: italic;
     }
 
     .status {
@@ -342,7 +450,29 @@ export class ChatModule extends LitElement {
         .configType=${'llm'}
         .configData=${chatConfig}
       ></stat-bar>
-      <div class="response">${unsafeHTML(marked(this.response || "Waiting for query...") as string)}
+      <div class="chat-messages">
+        ${this.messages.length === 0 ? html`
+          <div class="empty-chat">Start a conversation by typing a message below...</div>
+        ` : ''}
+        ${repeat(
+          this.messages,
+          (msg) => msg.timestamp,
+          (msg) => html`
+            <div class="message ${msg.role}">
+              <div class="message-role">${msg.role === 'user' ? 'You' : 'Assistant'}</div>
+              <div class="message-content">${unsafeHTML(marked(msg.content) as string)}</div>
+            </div>
+          `
+        )}
+        ${this.#pendingResponse ? html`
+          <div class="pending-indicator">
+            <div class="typing-dots">
+              <span></span><span></span><span></span>
+            </div>
+            <span>Thinking...</span>
+          </div>
+        ` : ''}
+      </div>
       ${this.suggestions ? html`
         <div class="suggestions">
           <div class="suggestions-list">
@@ -354,7 +484,6 @@ export class ChatModule extends LitElement {
           </div>
         </div>
       ` : ''}
-      </div>
       <div class="status">
         ${repeat(
           this.status,

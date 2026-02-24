@@ -66,6 +66,9 @@ export class DynamicModule extends LitElement {
   accessor suggestions = ""
 
   @state()
+  accessor #lastUserQuestion: string = "";
+
+  @state()
   accessor #requesting = false;
 
   @state()
@@ -172,6 +175,26 @@ export class DynamicModule extends LitElement {
       min-width: 4rem;
       text-align: right;
     }
+
+      .user-question {
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.5rem;
+        background: rgba(59, 130, 246, 0.4);
+        border-radius: 0.75rem;
+        border-left: 3px solid rgba(59, 130, 246, 0.8);
+      }
+
+      .user-question-label {
+        font-size: 0.75rem;
+        opacity: 0.7;
+        text-transform: uppercase;
+        margin-bottom: 0.25rem;
+      }
+
+      .user-question-text {
+        font-size: 1rem;
+        line-height: 1.4;
+      }
 
       .surfaces-container {
         display: flex;
@@ -320,6 +343,8 @@ export class DynamicModule extends LitElement {
           this.#elapsedTime = null;
           this.#currentElapsedTime = 0;
           this.#totalDuration = 0;
+          // Capture the last user question
+          this.#lastUserQuestion = sentEvent.message || '';
           // Reset status with new query start
           this.status = [{ timestamp: Date.now(), duration: 0, message: "Query sent", type: "sent" }];
           this.#startStopwatch();
@@ -559,6 +584,12 @@ export class DynamicModule extends LitElement {
         .configType=${'agent'}
         .configData=${agentConfig}
       ></stat-bar>
+      ${this.#lastUserQuestion ? html`
+        <div class="user-question">
+          <div class="user-question-label">Your Question</div>
+          <div class="user-question-text">${this.#lastUserQuestion}</div>
+        </div>
+      ` : ''}
       ${this.#maybeRenderError()}
       ${this.#maybeRenderData()}
       ${this.suggestions ? html`
