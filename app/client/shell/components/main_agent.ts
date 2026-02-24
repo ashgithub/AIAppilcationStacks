@@ -78,6 +78,9 @@ export class DynamicModule extends LitElement {
   accessor #lastMessages: v0_8.Types.ServerToClientMessage[] = [];
 
   @state()
+  accessor #processingSurfaces = false;
+
+  @state()
   accessor #loadingTextIndex = 0;
 
   @state()
@@ -130,6 +133,7 @@ export class DynamicModule extends LitElement {
       .response {
         flex: 1 1 auto;
         min-height: 100px;
+        max-height: 400px;
         font-size: 1rem;
         line-height: 1.6;
         margin-bottom: 0.5rem;
@@ -208,6 +212,7 @@ export class DynamicModule extends LitElement {
         flex: 1 1 auto;
         width: 100%;
         max-width: 100svw;
+        max-height: 1000px;
         padding: var(--bb-grid-size-3);
         padding-bottom: 32px;
         animation: fadeIn 1s cubic-bezier(0, 0, 0.3, 1) 0.3s backwards;
@@ -520,9 +525,13 @@ export class DynamicModule extends LitElement {
       }
       // Replace with latest messages, not accumulate
       if (newMessages.length > 0) {
+        this.#processingSurfaces = true;
+        this.#startLoadingAnimation();
         this.#lastMessages = newMessages;
         this.#processor.clearSurfaces();
         this.#processor.processMessages(this.#lastMessages);
+        this.#stopLoadingAnimation();
+        this.#processingSurfaces = false;
       }
     }
   }
@@ -630,6 +639,27 @@ export class DynamicModule extends LitElement {
         <div class="pending">
           <div class="spinner"></div>
           <div class="loading-text">${text}</div>
+        </div>
+      `;
+    }
+
+    // Show loading when processing new surfaces
+    if (this.#processingSurfaces) {
+      let text = "Updating interface...";
+      if (this.config.loadingText) {
+        if (Array.isArray(this.config.loadingText)) {
+          text = this.config.loadingText[this.#loadingTextIndex];
+        } else {
+          text = this.config.loadingText;
+        }
+      }
+
+      return html`
+        <div class="surfaces-container">
+          <div class="pending">
+            <div class="spinner"></div>
+            <div class="loading-text">${text}</div>
+          </div>
         </div>
       `;
     }

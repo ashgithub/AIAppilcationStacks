@@ -18,6 +18,9 @@ export class AppContainer extends LitElement {
   @state()
   accessor showingChat = true;
 
+  @state()
+  accessor showingAgent = true;
+
   static styles = css`
     :host {
       display: flex;
@@ -98,6 +101,14 @@ export class AppContainer extends LitElement {
               />
               Chat
             </label>
+            <label class="control">
+              <input
+                type="checkbox"
+                .checked=${this.showingAgent}
+                @change=${(e: Event) => this.showingAgent = (e.target as HTMLInputElement).checked}
+              />
+              Agent
+            </label>
           </div>
         </div>
         <div class="modules">
@@ -107,11 +118,13 @@ export class AppContainer extends LitElement {
             subtitle="App using LLM to chat, chatbot-UI"
             color="#717af8">
           </chat-module>` : ''}
-          <dynamic-module
-            title="Dynamic agent"
-            subtitle="App using agent cluster and A2UI events for dynamic UI"
-            color="#3c5d8b">
-          </dynamic-module>
+          ${this.showingAgent ? html`
+            <dynamic-module
+              title="Dynamic agent"
+              subtitle="App using agent cluster and A2UI events for dynamic UI"
+              color="#3c5d8b">
+            </dynamic-module>
+            ` : ''}
         </div>
         <chat-input></chat-input>
       </div>

@@ -233,6 +233,7 @@ export class ChatModule extends LitElement {
     .chat-messages {
       flex: 1 1 auto;
       min-height: 100px;
+      max-height: 1050px;
       font-size: 1rem;
       line-height: 1.6;
       margin-bottom: 0.5rem;
