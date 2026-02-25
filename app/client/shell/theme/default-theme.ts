@@ -15,6 +15,7 @@
  */
 
 import { v0_8 } from "@a2ui/lit";
+import { colors, radius } from "./design-tokens.js";
 
 /** Elements */
 
@@ -163,33 +164,30 @@ export const theme: v0_8.Types.Theme = {
     Button: {
       "--n-35": "var(--n-100)",
       "--n-10": "var(--n-0)",
-      background:
-        "linear-gradient(135deg, light-dark(#818cf8, #06b6d4) 0%, light-dark(#a78bfa, #3b82f6) 100%)",
-      boxShadow: "0 4px 15px rgba(102, 126, 234, 0.4)",
+      background: `linear-gradient(135deg, ${colors.oracle.primary} 0%, ${colors.chat.bgSecondary} 100%)`,
+      boxShadow: "0 4px 15px rgba(136, 194, 255, 0.3)",
       padding: "12px 28px",
       textTransform: "uppercase",
+      borderRadius: radius.xl,
     },
     Text: {
       h1: {
         color: "transparent",
-        background:
-          "linear-gradient(135deg, light-dark(#818cf8, #06b6d4) 0%, light-dark(#a78bfa, #3b82f6) 100%)",
+        background: `linear-gradient(135deg, ${colors.oracle.primary} 0%, ${colors.oracle.accent} 100%)`,
         "-webkit-background-clip": "text",
         "background-clip": "text",
         "-webkit-text-fill-color": "transparent",
       },
       h2: {
         color: "transparent",
-        background:
-          "linear-gradient(135deg, light-dark(#818cf8, #06b6d4) 0%, light-dark(#a78bfa, #3b82f6) 100%)",
+        background: `linear-gradient(135deg, ${colors.oracle.primary} 0%, ${colors.oracle.accent} 100%)`,
         "-webkit-background-clip": "text",
         "background-clip": "text",
         "-webkit-text-fill-color": "transparent",
       },
       h3: {
         color: "transparent",
-        background:
-          "linear-gradient(135deg, light-dark(#818cf8, #06b6d4) 0%, light-dark(#a78bfa, #3b82f6) 100%)",
+        background: `linear-gradient(135deg, ${colors.oracle.primary} 0%, ${colors.oracle.accent} 100%)`,
         "-webkit-background-clip": "text",
         "background-clip": "text",
         "-webkit-text-fill-color": "transparent",
@@ -200,11 +198,13 @@ export const theme: v0_8.Types.Theme = {
       caption: {},
     },
     Card: {
-      background:
-        "radial-gradient(circle at top left, light-dark(transparent, rgba(6, 182, 212, 0.15)), transparent 40%), radial-gradient(circle at bottom right, light-dark(transparent, rgba(139, 92, 246, 0.15)), transparent 40%), linear-gradient(135deg, light-dark(rgba(255, 255, 255, 0.7), rgba(30, 41, 59, 0.7)), light-dark(rgba(255, 255, 255, 0.7), rgba(15, 23, 42, 0.8)))",
+      background: `radial-gradient(circle at top left, rgba(136, 194, 255, 0.15), transparent 40%), 
+                   radial-gradient(circle at bottom right, rgba(209, 101, 86, 0.15), transparent 40%), 
+                   linear-gradient(135deg, ${colors.agent.bgSecondary}cc, ${colors.agent.bg}e6)`,
+      borderRadius: radius.xl,
     },
     TextField: {
-      "--p-0": "light-dark(var(--n-0), #1e293b)",
+      "--p-0": `light-dark(var(--n-0), ${colors.agent.bgSecondary})`,
     },
   },
   components: {

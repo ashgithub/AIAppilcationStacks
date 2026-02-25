@@ -1,6 +1,7 @@
 import { LitElement, html, css } from "lit"
 import { customElement, property, state } from "lit/decorators.js"
 import { AppConfigType, ConfigData, AgentAppConfig, LLMConfig, TraditionalConfig, EnhancedAgentAppConfig, ToolAssignments } from "../configs/types.js"
+import { designTokensCSS, colors, radius, spacing } from "../theme/design-tokens.js"
 
 @customElement("agent-config-canvas")
 export class AgentConfigCanvas extends LitElement {
@@ -52,27 +53,29 @@ export class AgentConfigCanvas extends LitElement {
   }
 
   static styles = css`
+    ${designTokensCSS}
+
     :host {
       display: block;
-      font-family: 'Inter;
-      margin-top: 1rem;
+      font-family: var(--font-family);
+      margin-top: var(--space-md);
     }
 
     button {
-      padding: 0.5rem;
-      border: 1px solid #334155;
-      border-radius: 0.25rem;
-      background: #1a2332;
-      color: white;
-      font-size: 0.875rem;
-      font-weight: 500;
+      padding: var(--space-sm);
+      border: 1px solid var(--agent-bg-secondary);
+      border-radius: var(--radius-sm);
+      background: var(--agent-bg);
+      color: var(--text-primary);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all var(--transition-normal);
     }
 
     button:hover {
-      background: #64748b;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      background: var(--neutral-500);
+      box-shadow: var(--shadow-sm);
     }
 
     dialog {
@@ -85,12 +88,12 @@ export class AgentConfigCanvas extends LitElement {
       max-height: 80vh;
       overflow-y: auto;
       z-index: 1000;
-      background: #c1d3ed;
+      background: var(--chat-surface);
       border: none;
-      border-radius: 0.5rem;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-      padding: 2rem;
-      color: #1e293b;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      padding: var(--space-xl);
+      color: var(--neutral-800);
     }
 
     dialog::backdrop {
@@ -99,39 +102,39 @@ export class AgentConfigCanvas extends LitElement {
 
     dialog h2 {
       margin-top: 0;
-      color: #1e293b;
+      color: var(--neutral-800);
     }
 
     dialog h3 {
-      color: #1e293b;
-      margin-bottom: 1rem;
+      color: var(--neutral-800);
+      margin-bottom: var(--space-md);
     }
 
     .form-group {
-      margin-bottom: 1.5rem;
+      margin-bottom: var(--space-lg);
     }
 
     label {
       display: block;
-      margin-bottom: 0.5rem;
-      font-weight: bold;
-      color: #374151;
+      margin-bottom: var(--space-sm);
+      font-weight: var(--font-weight-bold);
+      color: var(--neutral-700);
     }
 
     select, input, textarea {
       width: 100%;
-      padding: 0.75rem;
-      border: 1px solid #d1d5db;
-      border-radius: 0.5rem;
-      background: white;
-      color: #1f2937;
-      font-size: 1rem;
+      padding: var(--space-sm);
+      border: 1px solid var(--neutral-300);
+      border-radius: var(--radius-md);
+      background: var(--neutral-white);
+      color: var(--neutral-800);
+      font-size: var(--font-size-base);
       box-sizing: border-box;
     }
 
     select:focus, input:focus, textarea:focus {
       outline: none;
-      border-color: #3b82f6;
+      border-color: var(--color-info);
       box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     }
 
@@ -148,7 +151,7 @@ export class AgentConfigCanvas extends LitElement {
     .checkbox-group {
       display: flex;
       flex-wrap: wrap;
-      gap: 1rem;
+      gap: var(--space-md);
     }
 
     .checkbox-item {
@@ -157,95 +160,95 @@ export class AgentConfigCanvas extends LitElement {
     }
 
     .checkbox-item input[type="checkbox"] {
-      margin-right: 0.5rem;
-      accent-color: #3b82f6;
+      margin-right: var(--space-sm);
+      accent-color: var(--color-info);
     }
 
     .checkbox-item label {
-      font-weight: normal;
-      color: #374151;
+      font-weight: var(--font-weight-normal);
+      color: var(--neutral-700);
     }
 
     .dialog-buttons {
       display: flex;
-      gap: 1rem;
+      gap: var(--space-md);
       justify-content: flex-end;
-      margin-top: 2rem;
+      margin-top: var(--space-xl);
     }
 
     .dialog-buttons button {
-      padding: 0.75rem 1.5rem;
+      padding: var(--space-sm) var(--space-lg);
       border: none;
-      border-radius: 0.5rem;
-      font-size: 1rem;
+      border-radius: var(--radius-md);
+      font-size: var(--font-size-base);
       cursor: pointer;
-      transition: background 0.2s;
+      transition: background var(--transition-normal);
     }
 
     .send-btn {
-      background: #10b981;
-      color: white;
+      background: var(--color-success);
+      color: var(--neutral-white);
     }
 
     .send-btn:hover {
-      background: #059669;
+      background: var(--color-success-dark);
     }
 
     .close-btn {
-      background: #6b7280;
-      color: white;
+      background: var(--neutral-500);
+      color: var(--neutral-white);
     }
 
     .close-btn:hover {
-      background: #4b5563;
+      background: var(--neutral-600);
     }
 
     .response {
-      margin-top: 2rem;
-      padding: 1rem;
-      border-radius: 0.5rem;
-      background: #f9fafb;
+      margin-top: var(--space-xl);
+      padding: var(--space-md);
+      border-radius: var(--radius-md);
+      background: var(--neutral-50);
       border-left: 4px solid transparent;
     }
 
     .success {
-      border-left-color: #10b981;
+      border-left-color: var(--color-success);
     }
 
     .error {
-      border-left-color: #ef4444;
-      color: #dc2626;
+      border-left-color: var(--color-error);
+      color: var(--color-error-dark);
     }
 
     /* Tab Styles */
     .tabs {
       display: flex;
-      border-bottom: 2px solid #e2e8f0;
-      margin-bottom: 1.5rem;
+      border-bottom: 2px solid var(--neutral-200);
+      margin-bottom: var(--space-lg);
     }
 
     .tab-button {
-      padding: 0.75rem 1rem;
+      padding: var(--space-sm) var(--space-md);
       border: none;
       background: none;
-      color: #64748b;
-      font-size: 0.875rem;
-      font-weight: 500;
+      color: var(--neutral-500);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
       cursor: pointer;
       border-bottom: 2px solid transparent;
-      transition: all 0.2s;
+      transition: all var(--transition-normal);
       text-transform: capitalize;
     }
 
     .tab-button:hover {
-      color: #334155;
-      background: #f8fafc;
+      color: var(--neutral-700);
+      background: var(--neutral-50);
     }
 
     .tab-button.active {
-      color: #3b82f6;
-      border-bottom-color: #3b82f6;
-      background: #eff6ff;
+      color: var(--color-info);
+      border-bottom-color: var(--color-info);
+      background: rgba(59, 130, 246, 0.1);
     }
 
     .tab-content {

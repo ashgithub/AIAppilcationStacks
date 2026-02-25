@@ -2,6 +2,7 @@ import { LitElement, html, css } from "lit"
 import { customElement, state } from "lit/decorators.js"
 import { provide } from "@lit/context"
 import { a2uiRouter, routerContext } from "./services/a2ui-router.js"
+import { designTokensCSS, colors, radius, spacing } from "./theme/design-tokens.js"
 import "./components/main_traditional"
 import "./components/chatTextArea"
 import "./components/main_agent"
@@ -22,51 +23,53 @@ export class AppContainer extends LitElement {
   accessor showingAgent = true;
 
   static styles = css`
+    ${designTokensCSS}
+
     :host {
       display: flex;
       flex-direction: column;
       width: 100%;
       min-height: 100vh;
-      background: #1a2332;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--agent-bg);
+      font-family: var(--font-family);
     }
 
     .container {
       display: flex;
       flex-direction: column;
       min-height: 100vh;
-      padding: 0.5rem;
-      gap: 0.5rem;
+      padding: var(--space-sm);
+      gap: var(--space-sm);
     }
 
     .header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      color: white;
-      font-size: 1rem;
-      font-weight: 300;
-      margin-bottom: 0rem;
+      color: var(--text-primary);
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-normal);
+      margin-bottom: 0;
     }
 
     .controls {
       display: flex;
-      gap: 1rem;
+      gap: var(--space-md);
       align-items: center;
     }
 
     .control {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      color: white;
-      font-size: 1rem;
+      gap: var(--space-sm);
+      color: var(--text-primary);
+      font-size: var(--font-size-base);
     }
 
     .modules {
       display: flex;
       flex-wrap: nowrap;
-      gap: 1.5rem;
+      gap: var(--space-lg);
       flex: 1;
       width: 100%;
       min-height: 0;
@@ -130,14 +133,12 @@ export class AppContainer extends LitElement {
           ${this.showingTraditional ? html`<static-module></static-module>` : ''}
           ${this.showingChat ? html`<chat-module
             title="Chatbot LLM"
-            subtitle="App using LLM to chat, chatbot-UI"
-            color="#717af8">
+            subtitle="App using LLM to chat, chatbot-UI">
           </chat-module>` : ''}
           ${this.showingAgent ? html`
             <dynamic-module
               title="Dynamic agent"
-              subtitle="App using agent cluster and A2UI events for dynamic UI"
-              color="#3c5d8b">
+              subtitle="App using agent cluster and A2UI events for dynamic UI">
             </dynamic-module>
             ` : ''}
         </div>

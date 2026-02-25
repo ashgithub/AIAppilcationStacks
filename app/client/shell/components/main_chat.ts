@@ -7,6 +7,7 @@ import { unsafeHTML } from "lit/directives/unsafe-html.js"
 import { repeat } from "lit/directives/repeat.js"
 import "./stat_bar.js"
 import { chatConfig } from "../configs/chat_config.js"
+import { designTokensCSS, colors, radius } from "../theme/design-tokens.js"
 
 @customElement("chat-module")
 export class ChatModule extends LitElement {
@@ -211,22 +212,25 @@ export class ChatModule extends LitElement {
   }
 
   static styles = css`
+    ${designTokensCSS}
+
     :host {
-      border-radius: 1rem;
-      padding: 0.5rem;
-      color: white;
+      border-radius: var(--radius-xl);
+      padding: var(--space-sm);
+      color: var(--text-primary);
       display: flex;
       flex-direction: column;
       flex: 1 1 auto;
       min-width: 0;
       overflow-y: auto;
+      background: var(--module-chat-bg);
     }
 
 
 
     .subtitle {
-      font-size: 1rem;
-      margin-bottom: 1.5rem;
+      font-size: var(--font-size-base);
+      margin-bottom: var(--space-lg);
       opacity: 0.9;
     }
 
@@ -234,40 +238,41 @@ export class ChatModule extends LitElement {
       flex: 1 1 auto;
       min-height: 100px;
       max-height: 1050px;
-      font-size: 1rem;
+      font-size: var(--font-size-base);
       line-height: 1.6;
-      margin-bottom: 0.5rem;
-      padding: 1rem;
+      margin-bottom: var(--space-sm);
+      padding: var(--space-md);
       background: rgba(0, 0, 0, 0.2);
-      border-radius: 0.5rem;
+      border-radius: var(--radius-md);
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: var(--space-md);
     }
 
     .message {
-      padding: 0.75rem 1rem;
-      border-radius: 0.75rem;
+      padding: var(--space-sm) var(--space-md);
+      border-radius: var(--radius-lg);
       max-width: 85%;
     }
 
     .message.user {
       align-self: flex-end;
-      background: rgba(59, 130, 246, 0.5);
-      border-bottom-right-radius: 0.25rem;
+      background: var(--module-chat-active);
+      border: 1px solid var(--oracle-primary);
+      border-bottom-right-radius: var(--radius-sm);
     }
 
     .message.agent {
       align-self: flex-start;
-      background: rgba(255, 255, 255, 0.15);
-      border-bottom-left-radius: 0.25rem;
+      background: var(--surface-secondary);
+      border-bottom-left-radius: var(--radius-sm);
     }
 
     .message-role {
-      font-size: 0.75rem;
+      font-size: var(--font-size-xs);
       opacity: 0.7;
-      margin-bottom: 0.25rem;
+      margin-bottom: var(--space-xs);
       text-transform: uppercase;
     }
 
@@ -276,7 +281,7 @@ export class ChatModule extends LitElement {
     }
 
     .message-content p {
-      margin: 0 0 0.5rem 0;
+      margin: 0 0 var(--space-sm) 0;
     }
 
     .message-content p:last-child {
@@ -285,24 +290,24 @@ export class ChatModule extends LitElement {
 
     .pending-indicator {
       align-self: flex-start;
-      padding: 0.75rem 1rem;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 0.75rem;
+      padding: var(--space-sm) var(--space-md);
+      background: var(--surface-secondary);
+      border-radius: var(--radius-lg);
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: var(--space-sm);
     }
 
     .typing-dots {
       display: flex;
-      gap: 0.25rem;
+      gap: var(--space-xs);
     }
 
     .typing-dots span {
       width: 6px;
       height: 6px;
-      background: white;
-      border-radius: 50%;
+      background: var(--oracle-primary);
+      border-radius: var(--radius-full);
       animation: bounce 1.4s ease-in-out infinite;
     }
 
@@ -326,28 +331,28 @@ export class ChatModule extends LitElement {
 
     .status {
       flex-shrink: 0;
-      font-size: 0.875rem;
-      padding: 0.5rem;
+      font-size: var(--font-size-sm);
+      padding: var(--space-sm);
       display: flex;
       flex-direction: column;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 0.5rem;
+      background: var(--surface-secondary);
+      border-radius: var(--radius-md);
       min-height: 80px;
       max-height: 250px;
       overflow-y: auto;
     }
 
     .status p {
-      margin: 0.25rem 0;
+      margin: var(--space-xs) 0;
     }
 
     .status-item {
-      padding: 0.25rem 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-      font-size: 0.8rem;
+      padding: var(--space-xs) 0;
+      border-bottom: 1px solid var(--border-secondary);
+      font-size: var(--font-size-xs);
       line-height: 1.4;
       display: flex;
-      gap: 0.5rem;
+      gap: var(--space-sm);
     }
 
     .status-item:last-child {
@@ -355,37 +360,38 @@ export class ChatModule extends LitElement {
     }
 
     .status-item .duration {
-      font-weight: bold;
-      color: white;
+      font-weight: var(--font-weight-bold);
+      color: var(--text-primary);
       min-width: 4rem;
       text-align: right;
     }
 
     .suggestions {
       flex-shrink: 0;
-      font-size: 0.875rem;
-      padding: 1rem;
-      margin-bottom: 0.5rem;
+      font-size: var(--font-size-sm);
+      padding: var(--space-md);
+      margin-bottom: var(--space-sm);
       background: none;
     }
 
     .suggestions-list {
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
+      gap: var(--space-sm);
     }
 
     .suggestion-item {
-      padding: 0.5rem 0.75rem;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 0.375rem;
+      padding: var(--space-sm) var(--space-md);
+      background: var(--module-chat-active);
+      border-radius: var(--radius-md);
       cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: background var(--transition-normal), transform var(--transition-fast), border-color var(--transition-normal);
+      border: 1px solid transparent;
     }
 
     .suggestion-item:hover {
-      background: rgba(255, 255, 255, 0.25);
+      background: rgba(136, 194, 255, 0.35);
+      border-color: var(--oracle-primary);
       transform: translateX(4px);
     }
 
@@ -408,7 +414,7 @@ export class ChatModule extends LitElement {
       width: 48px;
       height: 48px;
       border: 4px solid rgba(255, 255, 255, 0.1);
-      border-left-color: var(--p-60);
+      border-left-color: var(--oracle-primary);
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
@@ -438,11 +444,6 @@ export class ChatModule extends LitElement {
 
   #mainDynamicRegion() {
     return html`
-      <style>
-        :host {
-          background: ${this.color};
-        }
-      </style>
       <stat-bar
         .title=${this.title}
         .time=${this.#totalDuration > 0 ? `${this.#totalDuration.toFixed(2)}s` : '0.00s'}

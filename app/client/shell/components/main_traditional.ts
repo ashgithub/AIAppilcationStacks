@@ -4,6 +4,7 @@ import { v0_8 } from "@a2ui/lit";
 import "./stat_bar.js"
 import { registerShellComponents } from "../ui/custom-components/register-components.js";
 import { outageConfig } from "../configs/outage_config.js"
+import { designTokensCSS, colors, radius } from "../theme/design-tokens.js"
 
 registerShellComponents();
 
@@ -181,127 +182,132 @@ export class StaticModule extends LitElement {
     this.processor.processMessages(messages);
   }
   static styles = css`
+    ${designTokensCSS}
+
     :host {
       display: block;
       flex: 1 1 0;
       min-width: 0;
       overflow: hidden;
-      background: linear-gradient(135deg, #308792 0%, #0b788b 100%);
-      border-radius: 1rem;
-      padding: 0.5rem;
-      color: white;
+      background: var(--module-traditional-bg);
+      border-radius: var(--radius-xl);
+      padding: var(--space-sm);
+      color: var(--text-primary);
     }
 
     .tabs {
       display: flex;
-      margin-bottom: 1rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      margin-bottom: var(--space-md);
+      border-bottom: 1px solid var(--border-secondary);
     }
 
     .tab {
-      padding: 0.75rem 1rem;
+      padding: var(--space-sm) var(--space-md);
       background: none;
       border: none;
-      color: rgba(255, 255, 255, 0.7);
-      font-size: 1rem;
-      font-weight: 500;
+      color: var(--text-secondary);
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-medium);
       cursor: pointer;
-      transition: all 0.3s;
+      transition: all var(--transition-slow);
       border-bottom: 2px solid transparent;
     }
 
     .tab.active {
-      color: white;
-      border-bottom-color: white;
+      color: var(--oracle-secondary);
+      border-bottom-color: var(--oracle-secondary);
     }
 
     .tab:hover {
-      color: white;
-      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-primary);
+      background: var(--module-traditional-active);
     }
 
     .tab-content {
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: var(--space-md);
     }
 
     .chart-section {
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 0.5rem;
-      padding: 1rem;
+      background: var(--surface-secondary);
+      border-radius: var(--radius-md);
+      padding: var(--space-md);
     }
 
     .table-section {
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 0.5rem;
-      padding: 1rem;
+      background: var(--surface-secondary);
+      border-radius: var(--radius-md);
+      padding: var(--space-md);
       overflow-x: auto;
     }
 
     .timeline-section {
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 0.5rem;
-      padding: 1rem;
+      background: var(--surface-secondary);
+      border-radius: var(--radius-md);
+      padding: var(--space-md);
     }
 
     .map-section {
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 0.5rem;
-      padding: 1rem;
+      background: var(--surface-secondary);
+      border-radius: var(--radius-md);
+      padding: var(--space-md);
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: var(--space-md);
     }
 
     .map-description {
-      font-size: 0.9rem;
-      line-height: 1.5;
-      color: rgba(255, 255, 255, 0.9);
+      font-size: var(--font-size-sm);
+      line-height: var(--line-height-normal);
+      color: var(--text-secondary);
     }
 
     .section-title {
-      font-size: 1.2rem;
-      font-weight: bold;
-      margin-bottom: 1rem;
-      color: white;
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-bold);
+      margin-bottom: var(--space-md);
+      color: var(--text-primary);
     }
 
     .action-buttons {
       display: flex;
-      gap: 1rem;
-      margin: 1rem 0;
+      gap: var(--space-md);
+      margin: var(--space-md) 0;
       justify-content: center;
       flex-wrap: wrap;
     }
 
     .action-btn {
-      padding: 0.75rem 1.5rem;
+      padding: var(--space-sm) var(--space-lg);
       border: none;
-      border-radius: 0.5rem;
-      font-size: 1rem;
-      font-weight: 500;
+      border-radius: var(--radius-md);
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-medium);
       cursor: pointer;
-      transition: all 0.3s;
-      color: white;
+      transition: all var(--transition-slow);
+      color: var(--neutral-white);
     }
 
     .energy-btn {
-      background: #4CAF50;
+      background: var(--oracle-secondary);
     }
 
     .energy-btn:hover {
-      background: #45a049;
+      background: #b8524a;
       transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(209, 101, 86, 0.4);
     }
 
     .industry-btn {
-      background: #2196F3;
+      background: var(--oracle-primary);
+      color: var(--neutral-900);
     }
 
     .industry-btn:hover {
-      background: #1976D2;
+      background: #6ab0f5;
       transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(136, 194, 255, 0.4);
     }
   `
 

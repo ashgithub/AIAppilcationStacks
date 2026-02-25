@@ -10,6 +10,7 @@ import {
 } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { theme as uiTheme } from "../theme/default-theme.js";
+import { designTokensCSS, colors, radius, spacing } from "../theme/design-tokens.js";
 import { A2UIRouter, routerContext } from "../services/a2ui-router.js";
 import {
   SnackbarAction,
@@ -107,6 +108,8 @@ export class DynamicModule extends LitElement {
   static styles = [
     unsafeCSS(v0_8.Styles.structuralStyles),
     css`
+      ${designTokensCSS}
+
       * {
         box-sizing: border-box;
       }
@@ -118,15 +121,16 @@ export class DynamicModule extends LitElement {
         min-width: 0;
         overflow-y: auto;
         margin: 0;
-        padding: 0.5rem;
-        color: light-dark(var(--n-10), var(--n-90));
+        padding: var(--space-sm);
+        color: var(--text-primary);
         font-family: var(--font-family);
-        border-radius: 1rem;
+        border-radius: var(--radius-xl);
+        background: var(--module-agent-bg);
       }
 
       .subtitle {
-        font-size: 1rem;
-        margin-bottom: 1.5rem;
+        font-size: var(--font-size-base);
+        margin-bottom: var(--space-lg);
         opacity: 0.9;
       }
 
@@ -134,39 +138,39 @@ export class DynamicModule extends LitElement {
         flex: 1 1 auto;
         min-height: 100px;
         max-height: 400px;
-        font-size: 1rem;
+        font-size: var(--font-size-base);
         line-height: 1.6;
-        margin-bottom: 0.5rem;
-        padding: 1rem;
+        margin-bottom: var(--space-sm);
+        padding: var(--space-md);
         background: rgba(0, 0, 0, 0.2);
-        border-radius: 0.5rem;
+        border-radius: var(--radius-md);
         overflow-y: auto;
       }
 
       .status {
         flex-shrink: 0;
-        font-size: 0.875rem;
-        padding: 0.5rem;
+        font-size: var(--font-size-sm);
+        padding: var(--space-sm);
         display: flex;
         flex-direction: column;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 0.5rem;
+        background: var(--surface-secondary);
+        border-radius: var(--radius-md);
         min-height: 80px;
         max-height: 250px;
         overflow-y: auto;
       }
 
       .status p {
-        margin: 0.25rem 0;
+        margin: var(--space-xs) 0;
       }
 
       .status-item {
-        padding: 0.25rem 0;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-        font-size: 0.8rem;
+        padding: var(--space-xs) 0;
+        border-bottom: 1px solid var(--border-secondary);
+        font-size: var(--font-size-xs);
         line-height: 1.4;
         display: flex;
-        gap: 0.5rem;
+        gap: var(--space-sm);
       }
 
       .status-item:last-child {
@@ -174,29 +178,29 @@ export class DynamicModule extends LitElement {
       }
 
     .status-item .duration {
-      font-weight: bold;
-      color: white;
+      font-weight: var(--font-weight-bold);
+      color: var(--text-primary);
       min-width: 4rem;
       text-align: right;
     }
 
       .user-question {
-        padding: 0.75rem 1rem;
-        margin-bottom: 0.5rem;
-        background: rgba(59, 130, 246, 0.4);
-        border-radius: 0.75rem;
-        border-left: 3px solid rgba(59, 130, 246, 0.8);
+        padding: var(--space-sm) var(--space-md);
+        margin-bottom: var(--space-sm);
+        background: var(--module-agent-active);
+        border-radius: var(--radius-lg);
+        border-left: 3px solid var(--oracle-accent);
       }
 
       .user-question-label {
-        font-size: 0.75rem;
+        font-size: var(--font-size-xs);
         opacity: 0.7;
         text-transform: uppercase;
-        margin-bottom: 0.25rem;
+        margin-bottom: var(--space-xs);
       }
 
       .user-question-text {
-        font-size: 1rem;
+        font-size: var(--font-size-base);
         line-height: 1.4;
       }
 
@@ -234,7 +238,7 @@ export class DynamicModule extends LitElement {
         width: 48px;
         height: 48px;
         border: 4px solid rgba(255, 255, 255, 0.1);
-        border-left-color: var(--p-60);
+        border-left-color: var(--oracle-accent);
         border-radius: 50%;
         animation: spin 1s linear infinite;
       }
@@ -256,29 +260,30 @@ export class DynamicModule extends LitElement {
 
       .suggestions {
       flex-shrink: 0;
-      font-size: 0.875rem;
-      padding: 1rem;
-      margin-bottom: 0.5rem;
+      font-size: var(--font-size-sm);
+      padding: var(--space-md);
+      margin-bottom: var(--space-sm);
       background: none;
     }
 
     .suggestions-list {
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
+      gap: var(--space-sm);
     }
 
     .suggestion-item {
-      padding: 0.5rem 0.75rem;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 0.375rem;
+      padding: var(--space-sm) var(--space-md);
+      background: var(--module-agent-active);
+      border-radius: var(--radius-md);
       cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: background var(--transition-normal), transform var(--transition-fast), border-color var(--transition-normal);
+      border: 1px solid transparent;
     }
 
     .suggestion-item:hover {
-      background: rgba(255, 255, 255, 0.25);
+      background: rgba(240, 204, 113, 0.35);
+      border-color: var(--oracle-accent);
       transform: translateX(4px);
     }
 
@@ -580,11 +585,6 @@ export class DynamicModule extends LitElement {
 
   render() {
     return html`
-      <style>
-        :host {
-          background: ${this.color};
-        }
-      </style>
       <stat-bar
         .title=${this.title}
         .time=${this.#totalDuration > 0 ? `${this.#totalDuration.toFixed(2)}s` : ((this.#currentElapsedTime !== null) ? `${(this.#currentElapsedTime / 1000).toFixed(2)}s` : '0.00s')}

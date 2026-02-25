@@ -1,6 +1,7 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { AppConfigType, ConfigData } from "../configs/types.js";
+import { designTokensCSS } from "../theme/design-tokens.js";
 
 // Import the config canvas component
 import "./config_canvas.js";
@@ -26,40 +27,42 @@ export class StatBar extends LitElement {
   accessor configData: ConfigData = {};
 
   static styles = css`
+    ${designTokensCSS}
+
     :host {
       display: block;
-      margin: 0.5rem;
+      margin: var(--space-sm);
     }
 
     .stat-bar {
       display: flex;
       flex-direction: row;
-      gap: 0.2rem;
+      gap: var(--space-xs);
       align-items: center;
     }
 
     .title {
-      font-size: 1.25rem;
-      font-weight: 600;
+      font-size: var(--font-size-xl);
+      font-weight: var(--font-weight-semibold);
       margin: 0;
     }
 
     .time {
-      font-size: 0.875rem;
-      font-weight: 500;
-      padding: 0.5rem;
-      background: #1a2332;
-      border-radius: 0.25rem;
-      color: white;
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      padding: var(--space-sm);
+      background: var(--agent-bg);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
     }
 
     .tokens {
-      font-size: 0.875rem;
-      font-weight: 500;
-      padding: 0.5rem;
-      background: #1a2332;
-      border-radius: 0.25rem;
-      color: white;
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      padding: var(--space-sm);
+      background: var(--agent-bg);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
     }
 
     .config {

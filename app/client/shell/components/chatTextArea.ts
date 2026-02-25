@@ -2,6 +2,7 @@ import { LitElement, html, css } from "lit"
 import { customElement, state } from "lit/decorators.js"
 import { consume } from "@lit/context"
 import { routerContext, A2UIRouter } from "../services/a2ui-router.js"
+import { designTokensCSS } from "../theme/design-tokens.js"
 
 @customElement("chat-input")
 export class ChatInput extends LitElement {
@@ -16,6 +17,8 @@ export class ChatInput extends LitElement {
   private agentDefaultServer = "http://localhost:10002/agent";
 
   static styles = css`
+    ${designTokensCSS}
+
     :host {
       display: block;
       width: 100%;
@@ -24,55 +27,86 @@ export class ChatInput extends LitElement {
     .input-container {
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: var(--space-md);
       align-items: center;
     }
 
     input {
       flex: 1;
-      padding: 1rem 1.5rem;
-      font-size: 1rem;
+      padding: var(--space-md) var(--space-lg);
+      font-size: var(--font-size-base);
       border: none;
-      border-radius: 2rem;
-      background: #334155;
-      color: white;
+      border-radius: var(--radius-full);
+      background: var(--agent-bg-secondary);
+      color: var(--text-primary);
       outline: none;
-      font-family: 'Inter', sans-serif;
+      font-family: var(--font-family);
       width: 100%;
     }
 
     input::placeholder {
-      color: rgba(255, 255, 255, 0.5);
+      color: var(--text-muted);
     }
 
     button {
       width: 100%;
       height: 3.5rem;
-      border-radius: 0.5rem;
-      background: #334155;
+      border-radius: var(--radius-md);
+      background: var(--agent-bg-secondary);
       border: none;
-      color: white;
-      font-size: 1.25rem;
+      color: var(--text-primary);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: background 0.2s;
+      transition: all var(--transition-normal);
     }
 
     button:hover {
-      background: rgba(255, 255, 255, 0.5);
+      transform: translateY(-2px);
     }
 
     button:active {
-      transform: scale(0.95);
+      transform: scale(0.98);
     }
 
-    .send-buttons{
+    .btn-chat {
+      background: var(--chat-bg);
+      border: 1px solid var(--oracle-primary);
+    }
+
+    .btn-chat:hover {
+      background: var(--chat-bg-secondary);
+      box-shadow: 0 4px 12px rgba(136, 194, 255, 0.3);
+    }
+
+    .btn-agent {
+      background: var(--agent-bg-secondary);
+      border: 1px solid var(--oracle-accent);
+    }
+
+    .btn-agent:hover {
+      background: var(--agent-border);
+      box-shadow: 0 4px 12px rgba(240, 204, 113, 0.3);
+    }
+
+    .btn-both {
+      background: var(--oracle-bg-dark);
+      border: 1px solid var(--oracle-secondary);
+    }
+
+    .btn-both:hover {
+      background: #3d4249;
+      box-shadow: 0 4px 12px rgba(209, 101, 86, 0.3);
+    }
+
+    .send-buttons {
       width: 100%;
-      display:flex;
+      display: flex;
       flex-direction: row;
-      gap: 0.5rem;
+      gap: var(--space-sm);
       align-items: center;
     }
   `
@@ -131,14 +165,14 @@ export class ChatInput extends LitElement {
           placeholder="Top 5 Chinese restaurants in New York"
         />
         <div class="send-buttons">
-          <button @click=${this.handleSubmitLLM}>
-            Message to chat application ▶
+          <button class="btn-chat" @click=${this.handleSubmitLLM}>
+            Message to Chat ▶
           </button>
-          <button @click=${this.handleSubmitAgent}>
-            Message to agent application ▶
+          <button class="btn-agent" @click=${this.handleSubmitAgent}>
+            Message to Agent ▶
           </button>
-          <button @click=${this.handleSubmit}>
-            Messages to both applications ▶
+          <button class="btn-both" @click=${this.handleSubmit}>
+            Send to Both ▶
           </button>
         </div>
       </div>
