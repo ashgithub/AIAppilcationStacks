@@ -85,30 +85,45 @@ export class AppContainer extends LitElement {
         <div class="header">
           A2UI
           <div class="controls">
-            <label class="control">
-              <input
-                type="checkbox"
-                .checked=${this.showingTraditional}
-                @change=${(e: Event) => this.showingTraditional = (e.target as HTMLInputElement).checked}
-              />
-              Traditional
-            </label>
-            <label class="control">
-              <input
-                type="checkbox"
-                .checked=${this.showingChat}
-                @change=${(e: Event) => this.showingChat = (e.target as HTMLInputElement).checked}
-              />
-              Chat
-            </label>
-            <label class="control">
-              <input
-                type="checkbox"
-                .checked=${this.showingAgent}
-                @change=${(e: Event) => this.showingAgent = (e.target as HTMLInputElement).checked}
-              />
-              Agent
-            </label>
+    <label class="control">
+      <input
+        type="checkbox"
+        .checked=${this.showingTraditional}
+        @change=${(e: Event) => {
+          this.showingTraditional = (e.target as HTMLInputElement).checked;
+          if (this.showingTraditional) {
+            this.router.resetSession("http://localhost:10002/traditional");
+          }
+        }}
+      />
+      Traditional
+    </label>
+    <label class="control">
+      <input
+        type="checkbox"
+        .checked=${this.showingChat}
+        @change=${(e: Event) => {
+          this.showingChat = (e.target as HTMLInputElement).checked;
+          if (this.showingChat) {
+            this.router.resetSession("http://localhost:10002/llm");
+          }
+        }}
+      />
+      Chat
+    </label>
+    <label class="control">
+      <input
+        type="checkbox"
+        .checked=${this.showingAgent}
+        @change=${(e: Event) => {
+          this.showingAgent = (e.target as HTMLInputElement).checked;
+          if (this.showingAgent) {
+            this.router.resetSession("http://localhost:10002");
+          }
+        }}
+      />
+      Agent
+    </label>
           </div>
         </div>
         <div class="modules">

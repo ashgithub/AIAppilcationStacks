@@ -42,6 +42,7 @@ class OutageEnergyLLMExecutor(AgentExecutor):
         # Determine which agent to use based on whether the a2ui extension is active.
         agent = self.oci_text_agent
 
+        session_id = None
         if context.message and context.message.parts:
             logger.info(
                 f"--- AGENT_EXECUTOR: Processing {len(context.message.parts)} message parts ---"
@@ -54,6 +55,10 @@ class OutageEnergyLLMExecutor(AgentExecutor):
                     elif "request" in part.root.data:
                         logger.info(f"  Part {i}: Found request in DataPart.")
                         query = part.root.data["request"]
+                        # Extract session ID from metadata
+                        if "metadata" in part.root.data and "sessionId" in part.root.data["metadata"]:
+                            session_id = part.root.data["metadata"]["sessionId"]
+                            logger.info(f"  Part {i}: Found sessionId in metadata: {session_id}")
                     else:
                         logger.info(f"  Part {i}: DataPart (data: {part.root.data})")
                 elif isinstance(part.root, TextPart):
@@ -76,8 +81,10 @@ class OutageEnergyLLMExecutor(AgentExecutor):
             await event_queue.enqueue_event(task)
         updater = TaskUpdater(event_queue, task.id, task.context_id)
 
-        # async for item in agent.stream(query, task.context_id):
-        async for item in agent.oci_stream(query, task.context_id):
+        memory_id = session_id if session_id else task.context_id
+        logger.info(f"--- AGENT_EXECUTOR: Using memory ID: {memory_id} ---")
+
+        async for item in agent.oci_stream(query, memory_id):
             is_task_complete = item["is_task_complete"]
             if not is_task_complete:
                 await updater.update_status(

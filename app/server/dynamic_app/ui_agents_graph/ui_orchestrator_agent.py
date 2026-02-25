@@ -6,6 +6,7 @@ from dynamic_app.ui_agents_graph.widget_tools import get_widget_catalog, get_nat
 from core.gen_ai_provider import GenAIProvider
 from core.dynamic_app.dynamic_struct import UIOrchestratorOutput
 from core.dynamic_app.dynamic_struct import DynamicGraphState
+from core.dynamic_app.prompts import UI_ORCHESTRATOR_INSTRUCTIONS
 
 class SuggestedQuestions(BaseModel):
     """ Structured output to capture suggested questions based on LLM response """
@@ -41,25 +42,6 @@ class SuggestionsReponseLLM:
 class UIOrchestrator:
     """ Orchestrator that receives the user query, the summary of data found and widget skills to select the suitable ones """
 
-    AGENT_INSTRUCTIONS = """
-    You are an orchestrator agent that selects suitable UI components for data visualization.
-
-    TASK:
-    - Analyze the user query and available data
-    - Select 1-3 most appropriate UI components from the available catalogs
-    - ALWAYS use 'get_widget_catalog' for custom visualization components (charts, tables, etc.)
-    - Optionally use 'get_native_component_catalog' for basic UI components (Text, Button, etc.) if needed for layout
-    - Return ONLY a simple list of component names in this format:
-
-    COMPONENTS: component1, component2, component3
-
-    EXAMPLE OUTPUT (confirm components available with the tools):
-    COMPONENTS: bar-graph, table, text
-
-    Do not include any other text or explanation. Just the component list.
-    Focus on selecting the main visualization components, native components are supplementary.
-    """
-
     def __init__(self):
         self.gen_ai_provider = GenAIProvider()
         self._client = self.gen_ai_provider.build_oci_client(model_id="openai.gpt-4.1",model_kwargs={"temperature":0.7})
@@ -83,7 +65,7 @@ class UIOrchestrator:
     def _build_agent(self):
         return create_agent(
             model=self._client,
-            system_prompt=self.AGENT_INSTRUCTIONS,
+            system_prompt=UI_ORCHESTRATOR_INSTRUCTIONS,
             tools=[get_widget_catalog, get_native_component_catalog],
             name=self.agent_name
         )

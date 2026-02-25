@@ -71,6 +71,7 @@ class DynamicGraphExecutor(AgentExecutor):
             await agent.build_graph()
             logger.info("--- AGENT_EXECUTOR: A2UI extension is not active. Using text agent. ---")
 
+        session_id = None
         if context.message and context.message.parts:
             logger.info(
                 f"--- AGENT_EXECUTOR: Processing {len(context.message.parts)} message parts ---"
@@ -88,6 +89,11 @@ class DynamicGraphExecutor(AgentExecutor):
                         if "metadata" in part.root.data and "inlineCatalogs" in part.root.data["metadata"]:
                              logger.info(f"  Part {i}: Found 'inlineCatalogs' in DataPart.")
                              inline_catalog = part.root.data["metadata"]["inlineCatalogs"]
+
+                        # Extract session ID from metadata
+                        if "metadata" in part.root.data and "sessionId" in part.root.data["metadata"]:
+                            session_id = part.root.data["metadata"]["sessionId"]
+                            logger.info(f"  Part {i}: Found sessionId in metadata: {session_id}")
                     else:
                         logger.info(f"  Part {i}: DataPart (data: {part.root.data})")
                 elif isinstance(part.root, TextPart):
@@ -141,8 +147,11 @@ class DynamicGraphExecutor(AgentExecutor):
             await event_queue.enqueue_event(task)
         updater = TaskUpdater(event_queue, task.id, task.context_id)
 
+        memory_id = session_id if session_id else task.context_id
+        logger.info(f"--- AGENT_EXECUTOR: Using memory ID: {memory_id} ---")
+
         # MAIN execution method
-        async for item in agent.call_dynamic_ui_graph(query, task.context_id):
+        async for item in agent.call_dynamic_ui_graph(query, memory_id):
             is_task_complete = item["is_task_complete"]
             if not is_task_complete:
                 update_parts = []

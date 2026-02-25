@@ -48,7 +48,7 @@ class OCIOutageEnergyLLM:
         """ Function to call agent and stream responses """
         
         current_message = {"messages":[HumanMessage(query)]}
-        config:RunnableConfig = {"run_id":str(session_id), "configurable": {"thread_id": "chat_llm_thread"}}
+        config:RunnableConfig = {"run_id":str(session_id), "configurable": {"thread_id": str(session_id)}}
         final_response_content = None
         final_model_state = None
         model_token_count = 0

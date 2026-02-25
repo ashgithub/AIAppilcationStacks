@@ -56,7 +56,8 @@ export class A2UIClient extends EventTarget {
   }
 
   async send(
-    message: v0_8.Types.A2UIClientEventMessage | string
+    message: v0_8.Types.A2UIClientEventMessage | string,
+    sessionId?: string
   ): Promise<v0_8.Types.ServerToClientMessage[]> {
     const client = await this.#getClient();
     const catalog = componentRegistry.getInlineCatalog();
@@ -74,11 +75,11 @@ export class A2UIClient extends EventTarget {
       clientMessage = message;
     }
 
-    // Add inline catalog metadata
     const finalClientMessage = {
       ...clientMessage,
       metadata: {
         inlineCatalogs: [catalog],
+        ...(sessionId && { sessionId }),
       },
     };
 

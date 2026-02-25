@@ -4,6 +4,7 @@ import { createContext } from "@lit/context";
 
 export class A2UIRouter extends EventTarget {
   private clients = new Map<string, A2UIClient>();
+  private sessions = new Map<string, string>(); // serverUrl -> sessionId
 
   // Get or create an A2UIClient for the given server URL
   private getClient(serverUrl: string): A2UIClient {
@@ -32,13 +33,16 @@ export class A2UIRouter extends EventTarget {
    * Send a message to the server
    * @param serverUrl The server URL to send to
    * @param message The message to send (string for text, A2UI object for structured)
+   * @param useSession Whether to include session ID for memory persistence
    */
   async sendMessage(
     serverUrl: string,
-    message: v0_8.Types.A2UIClientEventMessage | string
+    message: v0_8.Types.A2UIClientEventMessage | string,
+    useSession: boolean = true
   ): Promise<v0_8.Types.ServerToClientMessage[]> {
     const client = this.getClient(serverUrl);
-    return client.send(message);
+    const sessionId = useSession ? this.getSessionId(serverUrl) : undefined;
+    return client.send(message, sessionId);
   }
 
   /**
@@ -88,6 +92,23 @@ export class A2UIRouter extends EventTarget {
     return Array.from(this.clients.keys());
   }
 
+  getSessionId(serverUrl: string): string {
+    if (!this.sessions.has(serverUrl)) {
+      this.sessions.set(serverUrl, crypto.randomUUID());
+    }
+    return this.sessions.get(serverUrl)!;
+  }
+
+  resetSession(serverUrl: string): string {
+    const newSessionId = crypto.randomUUID();
+    this.sessions.set(serverUrl, newSessionId);
+    return newSessionId;
+  }
+
+  resetAllSessions(): void {
+    this.sessions.clear();
+  }
+
   // This function is in case the client needs to close SSe
   cleanup(serverUrl: string): void {
     const client = this.clients.get(serverUrl);
@@ -97,6 +118,7 @@ export class A2UIRouter extends EventTarget {
       // Missing to add the logic to close server
       this.clients.delete(serverUrl);
     }
+    this.sessions.delete(serverUrl);
   }
 }
 
