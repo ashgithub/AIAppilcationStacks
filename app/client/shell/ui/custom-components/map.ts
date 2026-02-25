@@ -3,6 +3,7 @@ import { property, customElement } from "lit/decorators.js";
 import { Root } from "@a2ui/lit/ui";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { colors } from "../../theme/design-tokens.js";
 
 interface MapMarker {
   name: string;
@@ -30,11 +31,11 @@ export class MapComponent extends Root {
         height: 400px;
         width: 100%;
         max-width: 600px;
-        border-radius: 8px;
+        border-radius: var(--radius-lg);
         overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        margin: 8px;
-        background: #1a1a1a;
+        box-shadow: var(--shadow-lg);
+        margin: var(--space-xs);
+        background: var(--surface-primary);
       }
 
       .map-container {
@@ -49,7 +50,7 @@ export class MapComponent extends Root {
         align-items: center;
         justify-content: center;
         height: 100%;
-        color: #cccccc;
+        color: var(--text-muted);
         font-style: italic;
       }
     `,

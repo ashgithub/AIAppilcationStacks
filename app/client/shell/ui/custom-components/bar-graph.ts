@@ -1,6 +1,7 @@
 import { html, css } from "lit";
 import { property, customElement } from "lit/decorators.js";
 import { Root } from "@a2ui/lit/ui";
+import { colors } from "../../theme/design-tokens.js";
 
 interface BarData {
   category: string;
@@ -22,25 +23,25 @@ export class BarGraph extends Root {
     css`
       :host {
         display: block;
-        background: #1a1a1a;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        padding: 16px;
-        margin: 8px;
+        background: var(--surface-primary);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        padding: var(--space-md);
+        margin: var(--space-xs);
         overflow-x: auto;
       }
 
       .bar-chart {
         width: 100%;
-        font-family: Arial, sans-serif;
+        font-family: var(--font-family);
       }
 
       .chart-title {
         text-align: center;
         margin-bottom: 20px;
         font-size: 18px;
-        font-weight: 600;
-        color: #ffffff;
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-primary);
       }
 
       .bar-container {
@@ -60,7 +61,7 @@ export class BarGraph extends Root {
 
       .bar {
         width: 100%;
-        border-radius: 4px 4px 0 0;
+        border-radius: var(--radius-sm) var(--radius-sm) 0 0;
         transition: height 0.3s ease;
         position: absolute;
         bottom: 0;
@@ -73,8 +74,8 @@ export class BarGraph extends Root {
         transform: translateX(-50%);
         text-align: center;
         font-size: 12px;
-        font-weight: 500;
-        color: #cccccc;
+        font-weight: var(--font-weight-medium);
+        color: var(--text-secondary);
         max-width: 80px;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -87,18 +88,18 @@ export class BarGraph extends Root {
         left: 50%;
         transform: translateX(-50%);
         font-size: 12px;
-        font-weight: 600;
-        color: #ffffff;
-        background: rgba(0, 0, 0, 0.8);
+        font-weight: var(--font-weight-bold);
+        color: var(--text-primary);
+        background: var(--surface-secondary);
         padding: 2px 4px;
-        border-radius: 3px;
+        border-radius: var(--radius-sm);
         white-space: nowrap;
       }
 
       .empty-state {
         text-align: center;
-        color: #cccccc;
-        padding: 20px;
+        color: var(--text-muted);
+        padding: var(--space-md);
         font-style: italic;
       }
 
@@ -107,7 +108,7 @@ export class BarGraph extends Root {
         justify-content: center;
         flex-wrap: nowrap;
         gap: 15px;
-        margin-top: 20px;
+        margin-top: var(--space-md);
       }
 
       .legend-item {
@@ -115,13 +116,13 @@ export class BarGraph extends Root {
         align-items: center;
         gap: 5px;
         font-size: 12px;
-        color: #cccccc;
+        color: var(--text-secondary);
       }
 
       .legend-color {
         width: 12px;
         height: 12px;
-        border-radius: 2px;
+        border-radius: var(--radius-sm);
       }
     `,
   ];
@@ -154,7 +155,7 @@ export class BarGraph extends Root {
           barData = labels.map((label: any, i: number) => ({
             category: String(label),
             value: typeof values[i] === 'number' ? values[i] : parseFloat(values[i]) || 0,
-            color: '#4CAF50' // TODO: support custom colors
+            color: colors.oracle.primary
           }));
         }
       }

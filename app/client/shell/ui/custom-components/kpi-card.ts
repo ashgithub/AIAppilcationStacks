@@ -1,6 +1,7 @@
 import { html, css } from "lit";
 import { property, customElement } from "lit/decorators.js";
 import { Root } from "@a2ui/lit/ui";
+import { colors } from "../../theme/design-tokens.js";
 
 interface KpiData {
   label: string;
@@ -13,14 +14,14 @@ interface KpiData {
 }
 
 const KPI_THEMES: Record<string, { primary: string; bg: string }> = {
-  cyan: { primary: '#00D4FF', bg: 'rgba(0, 212, 255, 0.1)' },
-  coral: { primary: '#FF6B6B', bg: 'rgba(255, 107, 107, 0.1)' },
-  teal: { primary: '#4ECDC4', bg: 'rgba(78, 205, 196, 0.1)' },
-  yellow: { primary: '#FFE66D', bg: 'rgba(255, 230, 109, 0.1)' },
-  purple: { primary: '#AA96DA', bg: 'rgba(170, 150, 218, 0.1)' },
-  green: { primary: '#95E1D3', bg: 'rgba(149, 225, 211, 0.1)' },
-  pink: { primary: '#FCBAD3', bg: 'rgba(252, 186, 211, 0.1)' },
-  orange: { primary: '#F38181', bg: 'rgba(243, 129, 129, 0.1)' },
+  cyan: { primary: colors.oracle.primary, bg: `rgba(136, 194, 255, 0.1)` },
+  coral: { primary: colors.oracle.secondary, bg: `rgba(209, 101, 86, 0.1)` },
+  teal: { primary: colors.semantic.success, bg: `rgba(16, 185, 129, 0.1)` },
+  yellow: { primary: colors.oracle.accent, bg: `rgba(240, 204, 113, 0.1)` },
+  purple: { primary: colors.chat.bgSecondary, bg: `rgba(126, 138, 164, 0.1)` },
+  green: { primary: colors.semantic.successDark, bg: `rgba(5, 150, 105, 0.1)` },
+  pink: { primary: colors.semantic.error, bg: `rgba(239, 68, 68, 0.1)` },
+  orange: { primary: colors.semantic.warning, bg: `rgba(245, 158, 11, 0.1)` },
 };
 
 // single KPI card to include on the set
@@ -45,41 +46,41 @@ export class KpiCard extends Root {
         min-width: 180px;
         max-width: 280px;
         box-sizing: border-box;
-        padding: 0.5rem;
+        padding: var(--space-xs);
       }
 
       .kpi-card {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        border-radius: 12px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-        padding: 20px;
+        background: var(--module-agent-bg);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        padding: var(--space-lg);
         min-height: 140px;
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        transition: transform var(--transition-normal), box-shadow var(--transition-normal);
       }
 
       .kpi-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 25px rgba(0, 0, 0, 0.5);
+        box-shadow: var(--shadow-glow);
       }
 
       .kpi-card.compact {
-        padding: 8px;
+        padding: var(--space-sm);
       }
 
       .kpi-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 12px;
+        margin-bottom: var(--space-sm);
       }
 
       .kpi-icon {
         width: 40px;
         height: 40px;
-        border-radius: 10px;
+        border-radius: var(--radius-md);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -89,14 +90,14 @@ export class KpiCard extends Root {
       .kpi-card.compact .kpi-icon {
         width: 32px;
         height: 32px;
-        border-radius: 8px;
+        border-radius: var(--radius-sm);
         font-size: 16px;
       }
 
       .kpi-label {
         font-size: 13px;
-        font-weight: 500;
-        color: #8892b0;
+        font-weight: var(--font-weight-medium);
+        color: var(--text-secondary);
         text-transform: uppercase;
         letter-spacing: 0.5px;
         flex: 1;
@@ -107,13 +108,13 @@ export class KpiCard extends Root {
       }
 
       .kpi-value-container {
-        margin-bottom: 8px;
+        margin-bottom: var(--space-sm);
       }
 
       .kpi-value {
         font-size: 32px;
-        font-weight: 700;
-        color: #ffffff;
+        font-weight: var(--font-weight-bold);
+        color: var(--text-primary);
         line-height: 1.2;
         display: flex;
         align-items: baseline;
@@ -126,8 +127,8 @@ export class KpiCard extends Root {
 
       .kpi-unit {
         font-size: 16px;
-        font-weight: 500;
-        color: #8892b0;
+        font-weight: var(--font-weight-medium);
+        color: var(--text-secondary);
       }
 
       .kpi-card.compact .kpi-unit {
@@ -139,7 +140,7 @@ export class KpiCard extends Root {
         align-items: center;
         gap: 6px;
         font-size: 13px;
-        font-weight: 500;
+        font-weight: var(--font-weight-medium);
         margin-top: auto;
       }
 
@@ -148,15 +149,15 @@ export class KpiCard extends Root {
       }
 
       .kpi-change-positive {
-        color: #4ECDC4;
+        color: var(--color-success);
       }
 
       .kpi-change-negative {
-        color: #FF6B6B;
+        color: var(--color-error);
       }
 
       .kpi-change-neutral {
-        color: #8892b0;
+        color: var(--text-secondary);
       }
 
       .kpi-change-icon {
@@ -164,14 +165,14 @@ export class KpiCard extends Root {
       }
 
       .kpi-change-label {
-        color: #8892b0;
-        font-weight: 400;
+        color: var(--text-secondary);
+        font-weight: var(--font-weight-normal);
       }
 
       .empty-state {
         text-align: center;
-        color: #8892b0;
-        padding: 20px;
+        color: var(--text-muted);
+        padding: var(--space-lg);
         font-style: italic;
         font-size: 12px;
       }
@@ -353,19 +354,19 @@ export class KpiCardGroup extends Root {
     css`
       :host {
         display: block;
-        padding: 12px 6px;
+        padding: var(--space-sm) var(--space-xs);
         box-sizing: border-box;
       }
 
       .kpi-group {
-        font-family: 'Segoe UI', Arial, sans-serif;
+        font-family: var(--font-family);
       }
 
       .kpi-group-title {
         font-size: 20px;
-        font-weight: 600;
-        color: #ffffff;
-        margin-bottom: 16px;
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-primary);
+        margin-bottom: var(--space-md);
         letter-spacing: 0.5px;
       }
 
@@ -382,11 +383,11 @@ export class KpiCardGroup extends Root {
 
       .empty-state {
         text-align: center;
-        color: #8892b0;
-        padding: 40px 20px;
+        color: var(--text-muted);
+        padding: 40px var(--space-lg);
         font-style: italic;
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        border-radius: 12px;
+        background: var(--module-agent-bg);
+        border-radius: var(--radius-lg);
       }
     `,
   ];

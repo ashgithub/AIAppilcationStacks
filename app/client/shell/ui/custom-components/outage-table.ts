@@ -1,6 +1,7 @@
 import { html, css } from "lit";
 import { property, customElement } from "lit/decorators.js";
 import { Root } from "@a2ui/lit/ui";
+import { colors } from "../../theme/design-tokens.js";
 
 interface OutageRecord {
   id: string;
@@ -24,25 +25,25 @@ export class OutageTable extends Root {
     css`
       :host {
         display: block;
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        border-radius: 12px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-        padding: 24px;
-        margin: 8px;
+        background: var(--module-agent-bg);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        padding: var(--space-xl);
+        margin: var(--space-xs);
         overflow: hidden;
       }
 
       .table-container {
         width: 100%;
-        font-family: 'Segoe UI', Arial, sans-serif;
+        font-family: var(--font-family);
       }
 
       .table-title {
         text-align: left;
-        margin-bottom: 20px;
+        margin-bottom: var(--space-lg);
         font-size: 20px;
-        font-weight: 600;
-        color: #ffffff;
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-primary);
         letter-spacing: 0.5px;
       }
 
@@ -57,34 +58,34 @@ export class OutageTable extends Root {
       }
 
       thead {
-        background: rgba(255, 255, 255, 0.05);
+        background: var(--surface-secondary);
       }
 
       th {
-        padding: 14px 16px;
+        padding: 14px var(--space-md);
         text-align: left;
-        font-weight: 600;
-        color: #8892b0;
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-secondary);
         text-transform: uppercase;
         font-size: 11px;
         letter-spacing: 0.5px;
-        border-bottom: 1px solid #3d4f6f;
+        border-bottom: 1px solid var(--border-primary);
         white-space: nowrap;
       }
 
       td {
-        padding: 14px 16px;
-        color: #ccd6f6;
-        border-bottom: 1px solid #2a3a5a;
+        padding: 14px var(--space-md);
+        color: var(--text-secondary);
+        border-bottom: 1px solid var(--border-subtle);
         vertical-align: middle;
       }
 
       tbody tr {
-        transition: background 0.2s ease;
+        transition: background var(--transition-normal);
       }
 
       tbody tr:hover {
-        background: rgba(255, 255, 255, 0.03);
+        background: var(--hover-overlay);
       }
 
       tbody tr:last-child td {
@@ -95,31 +96,31 @@ export class OutageTable extends Root {
         display: inline-flex;
         align-items: center;
         padding: 4px 10px;
-        border-radius: 12px;
+        border-radius: var(--radius-xl);
         font-size: 11px;
-        font-weight: 600;
+        font-weight: var(--font-weight-semibold);
         text-transform: uppercase;
         letter-spacing: 0.3px;
       }
 
       .status-active {
-        background: rgba(255, 107, 107, 0.15);
-        color: #FF6B6B;
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--color-error);
       }
 
       .status-investigating {
-        background: rgba(255, 230, 109, 0.15);
-        color: #FFE66D;
+        background: rgba(245, 158, 11, 0.15);
+        color: var(--color-warning);
       }
 
       .status-resolved {
-        background: rgba(78, 205, 196, 0.15);
-        color: #4ECDC4;
+        background: rgba(16, 185, 129, 0.15);
+        color: var(--color-success);
       }
 
       .status-scheduled {
-        background: rgba(0, 212, 255, 0.15);
-        color: #00D4FF;
+        background: rgba(136, 194, 255, 0.15);
+        color: var(--oracle-primary);
       }
 
       .severity-badge {
@@ -127,7 +128,7 @@ export class OutageTable extends Root {
         align-items: center;
         gap: 6px;
         font-size: 12px;
-        font-weight: 500;
+        font-weight: var(--font-weight-medium);
       }
 
       .severity-dot {
@@ -137,46 +138,46 @@ export class OutageTable extends Root {
       }
 
       .severity-critical .severity-dot {
-        background: #FF6B6B;
+        background: var(--color-error);
       }
 
       .severity-high .severity-dot {
-        background: #F38181;
+        background: var(--color-error);
       }
 
       .severity-medium .severity-dot {
-        background: #FFE66D;
+        background: var(--color-warning);
       }
 
       .severity-low .severity-dot {
-        background: #4ECDC4;
+        background: var(--color-success);
       }
 
       .customer-count {
-        font-weight: 600;
-        color: #00D4FF;
+        font-weight: var(--font-weight-semibold);
+        color: var(--oracle-primary);
       }
 
       .outage-id {
-        font-family: 'Consolas', monospace;
+        font-family: var(--font-family-mono);
         font-size: 12px;
-        color: #8892b0;
+        color: var(--text-secondary);
       }
 
       .time-cell {
         font-size: 12px;
-        color: #8892b0;
+        color: var(--text-secondary);
       }
 
       .time-cell .date {
-        color: #ccd6f6;
-        font-weight: 500;
+        color: var(--text-primary);
+        font-weight: var(--font-weight-medium);
       }
 
       .empty-state {
         text-align: center;
-        color: #8892b0;
-        padding: 40px 20px;
+        color: var(--text-muted);
+        padding: 40px var(--space-lg);
         font-style: italic;
       }
 
@@ -184,34 +185,34 @@ export class OutageTable extends Root {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-top: 16px;
-        padding-top: 16px;
-        border-top: 1px solid #2a3a5a;
+        margin-top: var(--space-md);
+        padding-top: var(--space-md);
+        border-top: 1px solid var(--border-primary);
       }
 
       .record-count {
         font-size: 12px;
-        color: #8892b0;
+        color: var(--text-secondary);
       }
 
       .pagination {
         display: flex;
-        gap: 8px;
+        gap: var(--space-sm);
       }
 
       .pagination button {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid #3d4f6f;
-        color: #ccd6f6;
+        background: var(--surface-secondary);
+        border: 1px solid var(--border-primary);
+        color: var(--text-secondary);
         padding: 6px 12px;
-        border-radius: 6px;
+        border-radius: var(--radius-sm);
         font-size: 12px;
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all var(--transition-normal);
       }
 
       .pagination button:hover {
-        background: rgba(255, 255, 255, 0.1);
+        background: var(--surface-elevated);
       }
 
       .pagination button:disabled {

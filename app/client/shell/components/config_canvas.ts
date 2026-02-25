@@ -400,7 +400,6 @@ export class AgentConfigCanvas extends LitElement {
         const enhancedConfig = this.configData as EnhancedAgentAppConfig;
         const agentNames = Object.keys(enhancedConfig.agents);
 
-        // Set default active tab
         if (!this.activeTab && agentNames.length > 0) {
           this.activeTab = agentNames[0];
         }

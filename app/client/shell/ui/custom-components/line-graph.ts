@@ -1,6 +1,7 @@
 import { html, css, svg } from "lit";
 import { property, customElement } from "lit/decorators.js";
 import { Root } from "@a2ui/lit/ui";
+import { colors } from "../../theme/design-tokens.js";
 
 interface SeriesData {
   name: string;
@@ -16,14 +17,14 @@ interface ChartPoint {
 }
 
 const SERIES_COLORS = [
-  '#00D4FF', // Cyan
-  '#FF6B6B', // Coral
-  '#4ECDC4', // Teal
-  '#FFE66D', // Yellow
-  '#95E1D3', // Mint
-  '#F38181', // Salmon
-  '#AA96DA', // Lavender
-  '#FCBAD3', // Pink
+  colors.oracle.primary,
+  colors.oracle.secondary,
+  colors.semantic.success, 
+  colors.oracle.accent, 
+  colors.chat.bgSecondary,    
+  colors.semantic.warning,    
+  colors.chat.bg,             
+  colors.semantic.error,     
 ];
 
 @customElement('line-graph')
@@ -42,25 +43,25 @@ export class LineGraph extends Root {
     css`
       :host {
         display: block;
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        border-radius: 12px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-        padding: 24px;
-        margin: 8px;
+        background: var(--module-agent-bg);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        padding: var(--space-xl);
+        margin: var(--space-xs);
         overflow: hidden;
       }
 
       .line-chart {
         width: 100%;
-        font-family: 'Segoe UI', Arial, sans-serif;
+        font-family: var(--font-family);
       }
 
       .chart-title {
         text-align: center;
-        margin-bottom: 24px;
+        margin-bottom: var(--space-xl);
         font-size: 20px;
-        font-weight: 600;
-        color: #ffffff;
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-primary);
         letter-spacing: 0.5px;
       }
 
@@ -81,7 +82,7 @@ export class LineGraph extends Root {
 
       .y-label {
         font-size: 11px;
-        color: #8892b0;
+        color: var(--text-secondary);
         text-align: right;
         min-width: 35px;
       }
@@ -96,8 +97,8 @@ export class LineGraph extends Root {
         position: relative;
         width: 100%;
         height: 260px;
-        border-left: 1px solid #3d4f6f;
-        border-bottom: 1px solid #3d4f6f;
+        border-left: 1px solid var(--border-primary);
+        border-bottom: 1px solid var(--border-primary);
       }
 
       .chart-svg {
@@ -107,7 +108,7 @@ export class LineGraph extends Root {
       }
 
       .grid-line {
-        stroke: #2a3a5a;
+        stroke: var(--border-secondary);
         stroke-width: 1;
         stroke-dasharray: 3, 6;
       }
@@ -147,7 +148,7 @@ export class LineGraph extends Root {
 
       .data-point {
         cursor: pointer;
-        transition: transform 0.2s ease;
+        transition: transform var(--transition-normal);
       }
 
       .data-point:hover {
@@ -168,22 +169,22 @@ export class LineGraph extends Root {
       .x-axis-labels {
         display: flex;
         justify-content: space-between;
-        padding-top: 8px;
+        padding-top: var(--space-sm);
         padding-left: 0;
         padding-right: 0;
       }
 
       .x-label {
         font-size: 11px;
-        color: #8892b0;
+        color: var(--text-secondary);
         text-align: center;
         flex: 1;
       }
 
       .empty-state {
         text-align: center;
-        color: #8892b0;
-        padding: 40px 20px;
+        color: var(--text-muted);
+        padding: 40px var(--space-lg);
         font-style: italic;
       }
 
@@ -191,27 +192,27 @@ export class LineGraph extends Root {
         display: flex;
         justify-content: center;
         flex-wrap: wrap;
-        gap: 20px;
-        margin-top: 24px;
-        padding-top: 16px;
-        border-top: 1px solid #2a3a5a;
+        gap: var(--space-lg);
+        margin-top: var(--space-xl);
+        padding-top: var(--space-md);
+        border-top: 1px solid var(--border-primary);
       }
 
       .legend-item {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: var(--space-sm);
         font-size: 13px;
-        color: #ccd6f6;
+        color: var(--text-secondary);
         cursor: pointer;
         padding: 6px 12px;
-        border-radius: 20px;
-        background: rgba(255, 255, 255, 0.05);
-        transition: all 0.2s ease;
+        border-radius: var(--radius-xl);
+        background: var(--surface-secondary);
+        transition: all var(--transition-normal);
       }
 
       .legend-item:hover {
-        background: rgba(255, 255, 255, 0.1);
+        background: var(--surface-elevated);
         transform: translateY(-2px);
       }
 
@@ -224,7 +225,7 @@ export class LineGraph extends Root {
       .legend-line {
         width: 24px;
         height: 3px;
-        border-radius: 2px;
+        border-radius: var(--radius-sm);
       }
     `,
   ];

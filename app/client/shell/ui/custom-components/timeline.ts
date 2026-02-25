@@ -1,6 +1,7 @@
 import { html, css } from "lit";
 import { property, customElement } from "lit/decorators.js";
 import { Root } from "@a2ui/lit/ui";
+import { colors } from "../../theme/design-tokens.js";
 
 interface TimelineEvent {
   date: string;
@@ -19,11 +20,11 @@ export class TimelineComponent extends Root {
     css`
       :host {
         display: block;
-        background: #1a1a1a;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        padding: 16px;
-        margin: 8px;
+        background: var(--surface-primary);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        padding: var(--space-md);
+        margin: var(--space-xs);
         overflow-y: auto;
         max-height: 600px;
       }
@@ -40,7 +41,7 @@ export class TimelineComponent extends Root {
         top: 0;
         bottom: 0;
         width: 2px;
-        background: #444;
+        background: var(--border-secondary);
       }
 
       .timeline-item {
@@ -57,58 +58,58 @@ export class TimelineComponent extends Root {
         width: 12px;
         height: 12px;
         border-radius: 50%;
-        background: #4CAF50;
-        border: 2px solid #1a1a1a;
-        box-shadow: 0 0 0 2px #444;
+        background: var(--color-success);
+        border: 2px solid var(--surface-primary);
+        box-shadow: 0 0 0 2px var(--border-secondary);
       }
 
       .timeline-content {
-        background: #2a2a2a;
-        border-radius: 6px;
-        padding: 12px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        background: var(--surface-secondary);
+        border-radius: var(--radius-sm);
+        padding: var(--space-sm);
+        box-shadow: var(--shadow-sm);
       }
 
       .timeline-date {
         font-size: 12px;
-        color: #cccccc;
+        color: var(--text-secondary);
         margin-bottom: 4px;
-        font-weight: 500;
+        font-weight: var(--font-weight-medium);
       }
 
       .timeline-title {
         font-size: 16px;
-        font-weight: 600;
-        color: #ffffff;
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-primary);
         margin-bottom: 4px;
       }
 
       .timeline-description {
         font-size: 14px;
-        color: #cccccc;
+        color: var(--text-secondary);
         line-height: 1.4;
       }
 
       .timeline-category {
         display: inline-block;
         padding: 2px 8px;
-        border-radius: 12px;
+        border-radius: var(--radius-xl);
         font-size: 11px;
-        font-weight: 500;
+        font-weight: var(--font-weight-medium);
         margin-top: 8px;
-        background: #333;
-        color: #cccccc;
+        background: var(--surface-primary);
+        color: var(--text-secondary);
       }
 
       .empty-state {
         text-align: center;
-        color: #cccccc;
+        color: var(--text-muted);
         padding: 40px;
         font-style: italic;
       }
 
       .timeline-item.custom-color::before {
-        background: var(--event-color, #4CAF50);
+        background: var(--event-color, var(--color-success));
       }
     `,
   ];
@@ -170,7 +171,7 @@ export class TimelineComponent extends Root {
                 title: eventData.title || 'Event',
                 description: eventData.description || '',
                 category: eventData.category || 'Event',
-                color: '#4CAF50'
+                color: colors.semantic.success
               };
             }
             return null;

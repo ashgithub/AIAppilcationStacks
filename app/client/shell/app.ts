@@ -32,6 +32,8 @@ export class AppContainer extends LitElement {
       min-height: 100vh;
       background: var(--agent-bg);
       font-family: var(--font-family);
+      overflow-x: hidden;
+      box-sizing: border-box;
     }
 
     .container {
@@ -40,6 +42,27 @@ export class AppContainer extends LitElement {
       min-height: 100vh;
       padding: var(--space-sm);
       gap: var(--space-sm);
+      box-sizing: border-box;
+    }
+
+    @media (max-width: 1200px) {
+      .container {
+        padding: var(--space-xs);
+      }
+
+      .modules {
+        gap: var(--space-md);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 2px;
+      }
+
+      .modules {
+        gap: var(--space-sm);
+      }
     }
 
     .header {

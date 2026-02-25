@@ -327,7 +327,6 @@ export class DynamicModule extends LitElement {
   connectedCallback() {
     super.connectedCallback();
 
-    // Apply the theme directly, which will use the Lit context.
     if (this.config.theme) {
       this.theme = this.config.theme;
     }
@@ -448,7 +447,7 @@ export class DynamicModule extends LitElement {
     }
   }
 
-  //calculated with the previ
+  //calculated with the previous duration
   #addStatusWithDuration(message: string, type: string) {
     const now = Date.now();
     const lastStatus = this.status[this.status.length - 1];
@@ -467,7 +466,7 @@ export class DynamicModule extends LitElement {
     }
   }
 
-  //Parse from a list into single suggestions
+  //Parse from a list into single suggestions (TODO: create interface for suggestions)
   #parseSuggestions(suggestionsText: string): string[] {
     // First, try to parse as JSON and extract suggested_questions
     try {
@@ -495,7 +494,7 @@ export class DynamicModule extends LitElement {
     }
   }
 
-  // this sends the message to the server
+  // this sends the message to the server (TODO: change and put on text area if possible)
   async #handleSuggestionClick(suggestion: string) {
     if (!this.router || !suggestion.trim()) return;
 
@@ -643,7 +642,7 @@ export class DynamicModule extends LitElement {
       `;
     }
 
-    // Show loading when processing new surfaces
+    // Show loading when processing new surfaces (TODO: fix styles since loader is not showing)
     if (this.#processingSurfaces) {
       let text = "Updating interface...";
       if (this.config.loadingText) {
