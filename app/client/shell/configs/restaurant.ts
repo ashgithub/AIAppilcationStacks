@@ -4,7 +4,7 @@ import { AppConfig } from "./types.js";
 
 export const config: AppConfig = {
   key: "restaurant",
-  title: "Sample application for A2UI",
+  title: "EDGE",
   heroImage: "/hero.png",
   heroImageDark: "/hero-dark.png",
   background: `radial-gradient(

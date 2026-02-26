@@ -31,7 +31,7 @@ export class StatBar extends LitElement {
 
     :host {
       display: block;
-      margin: var(--space-sm);
+      margin: var(--space-none);
     }
 
     .stat-bar {
@@ -41,8 +41,15 @@ export class StatBar extends LitElement {
       align-items: center;
     }
 
+    .status-data{
+      display: flex;
+      flex-direction: row;
+      gap: var(--space-xs);
+      align-items: center;
+    }
+
     .title {
-      font-size: var(--font-size-xl);
+      font-size: var(--font-size-base);
       font-weight: var(--font-weight-semibold);
       margin: 0;
     }
@@ -66,17 +73,22 @@ export class StatBar extends LitElement {
     }
 
     .config {
-      /* Additional styling if needed */
+      font-size: var(--font-size-sm);
+      padding: var(--space-none);
+      background: var(--agent-bg);
+      border-radius: var(--radius-sm);
     }
   `;
 
   render() {
     return html`
       <div class="stat-bar">
-        ${this.time ? html`<div class="time">${this.time}</div>` : ''}
-        ${this.tokens ? html`<div class="tokens">TC: ${this.tokens}</div>` : ''}
+      <div class="title">${this.title}</div>
+      <div class="status-data">
+        ${this.time ? html`<div class="time">🕐 ${this.time}</div>` : ''}
+        ${this.tokens ? html`<div class="tokens">🎟️ ${this.tokens} tokens</div>` : ''}
         ${this.configUrl ? html`<div class="config"><agent-config-canvas .serverURL=${this.configUrl} .configType=${this.configType} .configData=${this.configData}></agent-config-canvas></div>` : ''}
-        <div class="title">${this.title}</div>
+      </div>
       </div>
     `;
   }

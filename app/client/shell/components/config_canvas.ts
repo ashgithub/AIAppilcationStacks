@@ -679,9 +679,9 @@ export class AgentConfigCanvas extends LitElement {
     }
 
     return html`
-      <button @click=${() => { this.open = true; this.shadowRoot?.querySelector('dialog')?.showModal(); }}>Cfg</button>
+      <button @click=${() => { this.open = true; this.shadowRoot?.querySelector('dialog')?.showModal(); }}>⚙️</button>
       <dialog ?open=${this.open} @close=${() => this.open = false}>
-        <h2>${title}</h2>
+        <h3>${title}</h3>
         ${content}
         <div class="dialog-buttons">
           <button class="send-btn" @click=${this.send}>Send Configuration</button>

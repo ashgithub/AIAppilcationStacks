@@ -216,7 +216,6 @@ export class DynamicModule extends LitElement {
         flex: 1 1 auto;
         width: 100%;
         max-width: 100svw;
-        max-height: 1000px;
         padding: var(--bb-grid-size-3);
         padding-bottom: 32px;
         animation: fadeIn 1s cubic-bezier(0, 0, 0.3, 1) 0.3s backwards;

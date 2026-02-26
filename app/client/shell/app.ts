@@ -2,7 +2,7 @@ import { LitElement, html, css } from "lit"
 import { customElement, state } from "lit/decorators.js"
 import { provide } from "@lit/context"
 import { a2uiRouter, routerContext } from "./services/a2ui-router.js"
-import { designTokensCSS, colors, radius, spacing } from "./theme/design-tokens.js"
+import { designTokensCSS, buttonStyles, colors, radius, spacing } from "./theme/design-tokens.js"
 import "./components/main_traditional"
 import "./components/chatTextArea"
 import "./components/main_agent"
@@ -24,6 +24,7 @@ export class AppContainer extends LitElement {
 
   static styles = css`
     ${designTokensCSS}
+    ${buttonStyles}
 
     :host {
       display: flex;
@@ -75,6 +76,25 @@ export class AppContainer extends LitElement {
       margin-bottom: 0;
     }
 
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--text-primary);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-normal);
+      padding: var(--space-xs) 0;
+    }
+
+    .header h3 {
+      color: var(--text-primary);
+    }
+
+    .oracle-text {
+      color: var(--color-error);
+      letter-spacing: 0.2em;
+    }
+
     .controls {
       display: flex;
       gap: var(--space-md);
@@ -109,47 +129,51 @@ export class AppContainer extends LitElement {
     return html`
       <div class="container">
         <div class="header">
-          A2UI
+          <h3><span class="oracle-text">ORACLE</span> Innovation Lab</h3>
           <div class="controls">
-    <label class="control">
-      <input
-        type="checkbox"
-        .checked=${this.showingTraditional}
-        @change=${(e: Event) => {
-          this.showingTraditional = (e.target as HTMLInputElement).checked;
-          if (this.showingTraditional) {
-            this.router.resetSession("http://localhost:10002/traditional");
-          }
-        }}
-      />
-      Traditional
-    </label>
-    <label class="control">
-      <input
-        type="checkbox"
-        .checked=${this.showingChat}
-        @change=${(e: Event) => {
-          this.showingChat = (e.target as HTMLInputElement).checked;
-          if (this.showingChat) {
-            this.router.resetSession("http://localhost:10002/llm");
-          }
-        }}
-      />
-      Chat
-    </label>
-    <label class="control">
-      <input
-        type="checkbox"
-        .checked=${this.showingAgent}
-        @change=${(e: Event) => {
-          this.showingAgent = (e.target as HTMLInputElement).checked;
-          if (this.showingAgent) {
-            this.router.resetSession("http://localhost:10002");
-          }
-        }}
-      />
-      Agent
-    </label>
+            <label class="control">
+              <input
+                type="checkbox"
+                .checked=${this.showingTraditional}
+                @change=${(e: Event) => {
+                  this.showingTraditional = (e.target as HTMLInputElement).checked;
+                  if (this.showingTraditional) {
+                    this.router.resetSession("http://localhost:10002/traditional");
+                  }
+                }}
+              />
+              Traditional
+            </label>
+            <label class="control">
+              <input
+                type="checkbox"
+                .checked=${this.showingChat}
+                @change=${(e: Event) => {
+                  this.showingChat = (e.target as HTMLInputElement).checked;
+                  if (this.showingChat) {
+                    this.router.resetSession("http://localhost:10002/llm");
+                  }
+                }}
+              />
+              Chat
+            </label>
+            <label class="control">
+              <input
+                type="checkbox"
+                .checked=${this.showingAgent}
+                @change=${(e: Event) => {
+                  this.showingAgent = (e.target as HTMLInputElement).checked;
+                  if (this.showingAgent) {
+                    this.router.resetSession("http://localhost:10002");
+                  }
+                }}
+              />
+              Agent
+            </label>
+          </div>
+          <div class="extra-data">
+            <button class="btn btn-secondary">Feedback</button>
+            <button class="btn btn-secondary">View Comparison</button>
           </div>
         </div>
         <div class="modules">
