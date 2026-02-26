@@ -39,6 +39,7 @@ export class StatBar extends LitElement {
       flex-direction: row;
       gap: var(--space-xs);
       align-items: center;
+      justify-content: space-between;
       padding: var(--space-xs) var(--space-sm);
       border-radius: var(--radius-sm);
     }
@@ -60,7 +61,7 @@ export class StatBar extends LitElement {
       font-size: var(--font-size-sm);
       font-weight: var(--font-weight-medium);
       padding: var(--space-sm);
-      background: var(--agent-bg);
+      background: transparent;
       border-radius: var(--radius-sm);
       color: var(--text-primary);
     }
@@ -69,14 +70,14 @@ export class StatBar extends LitElement {
       font-size: var(--font-size-sm);
       font-weight: var(--font-weight-medium);
       padding: var(--space-sm);
-      background: var(--agent-bg);
+      background: transparent;
       border-radius: var(--radius-sm);
       color: var(--text-primary);
-    }
-
-    .config {
-      display: flex;
-      align-items: center;
+      }
+      
+      .config {
+        display: flex;
+        align-items: center;
     }
   `;
 

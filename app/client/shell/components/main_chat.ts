@@ -31,6 +31,9 @@ export class ChatModule extends LitElement {
   accessor status: Array<{timestamp: number, duration: number, message: string, type: string}> = [{timestamp: Date.now(), duration: 0, message: "Ready", type: "initial"}]
 
   @state()
+  accessor tokenCount = ''
+
+  @state()
   accessor suggestions = ""
 
   @state()
@@ -95,6 +98,10 @@ export class ChatModule extends LitElement {
       console.log("process state", state);
       console.log("server message", serverState);
 
+      if (isFinal && serverState[2]?.text) {
+        this.tokenCount = serverState[2].text;
+      }
+
       // Extract text parts
       if (hasMessage) {
         for (const part of status.message.parts) {
@@ -116,8 +123,8 @@ export class ChatModule extends LitElement {
             this.#addStatusWithDuration(statusMessage, event.kind);
             
             // Get suggestions (part 2) if available
-            if (isFinal && serverState[2]?.text) {
-              this.suggestions = serverState[2].text;
+            if (isFinal && serverState[3]?.text) {
+              this.suggestions = serverState[3].text;
             }
             break; // Use the first text part
           }
@@ -226,8 +233,6 @@ export class ChatModule extends LitElement {
       overflow-y: auto;
       background: var(--module-chat-bg);
     }
-
-
 
     .subtitle {
       font-size: var(--font-size-base);
@@ -448,7 +453,7 @@ export class ChatModule extends LitElement {
       <stat-bar
         .title=${this.title}
         .time=${this.#totalDuration > 0 ? `${this.#totalDuration.toFixed(2)}s` : '0.00s'}
-        .tokens=${'569'}
+        .tokens=${this.tokenCount ? `${this.tokenCount}`: '0'}
         .configUrl=${'/llm_config'}
         .configType=${'llm'}
         .configData=${chatConfig}

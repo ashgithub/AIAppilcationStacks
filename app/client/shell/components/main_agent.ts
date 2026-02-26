@@ -68,6 +68,9 @@ export class DynamicModule extends LitElement {
   accessor suggestions = ""
 
   @state()
+  accessor tokenCount = ""
+
+  @state()
   accessor #lastUserQuestion: string = "";
 
   @state()
@@ -138,7 +141,7 @@ export class DynamicModule extends LitElement {
       .response {
         flex: 1 1 auto;
         min-height: 100px;
-        max-height: 400px;
+        max-height: 1050px;
         font-size: var(--font-size-base);
         line-height: 1.6;
         margin-bottom: var(--space-sm);
@@ -147,13 +150,15 @@ export class DynamicModule extends LitElement {
         border-radius: var(--radius-md);
         overflow-y: auto;
       }
-
+      
       .user-question {
+        align-self: flex-end;
+        background: var(--module-agent-active);
+        border: 1px solid var(--agent-accent);
+        border-bottom-right-radius: var(--radius-sm);
         padding: var(--space-sm) var(--space-md);
         margin-bottom: var(--space-sm);
-        background: var(--module-agent-active);
         border-radius: var(--radius-lg);
-        border-left: 3px solid var(--agent-accent);
       }
 
       .user-question-label {
@@ -173,9 +178,10 @@ export class DynamicModule extends LitElement {
         flex-direction: column;
         flex: 1 1 auto;
         min-height: 200px;
-        overflow: visible;
+        overflow: auto;
+        max-height: 1050px
       }
-
+        
       .surfaces {
         flex: 1 1 auto;
         width: 100%;
@@ -184,6 +190,7 @@ export class DynamicModule extends LitElement {
         padding-bottom: 32px;
         animation: fadeIn 1s cubic-bezier(0, 0, 0.3, 1) 0.3s backwards;
         overflow-y: auto;
+        max-height: 1050px
       }
 
       .pending {
@@ -258,6 +265,7 @@ export class DynamicModule extends LitElement {
         flex: 1 1 auto;
         overflow: visible;
         min-height: 100px;
+        max-height: 1050px;
       }
 
       .pending {
@@ -385,6 +393,10 @@ export class DynamicModule extends LitElement {
       // Get suggestions (part 2) if available
       if (isFinal && serverState[6]?.text) {
         this.suggestions = serverState[6].text;
+      }
+
+      if (isFinal && serverState[5]?.text) {
+        this.tokenCount = serverState[5].text;
       }
 
       if (state == 'failed') {
@@ -550,14 +562,14 @@ export class DynamicModule extends LitElement {
       <stat-bar
         .title=${this.title}
         .time=${this.#totalDuration > 0 ? `${this.#totalDuration.toFixed(2)}s` : ((this.#currentElapsedTime !== null) ? `${(this.#currentElapsedTime / 1000).toFixed(2)}s` : '0.00s')}
-        .tokens=${'12456'}
+        .tokens=${this.tokenCount ? `${this.tokenCount}`: '0'}
         .configUrl=${this.config.serverUrl + '/config'}
         .configType=${'agent'}
         .configData=${agentConfig}
       ></stat-bar>
       ${this.#lastUserQuestion ? html`
         <div class="user-question">
-          <div class="user-question-label">Your Question</div>
+          <div class="user-question-label">You</div>
           <div class="user-question-text">${this.#lastUserQuestion}</div>
         </div>
       ` : ''}
@@ -630,7 +642,7 @@ export class DynamicModule extends LitElement {
     const surfaces = this.#processor.getSurfaces();
     if (surfaces.size === 0) {
       return html`<div class="response-section">
-        <div class="response">Ready to process A2UI messages...</div>
+        <div class="response">Start a conversation by typing a message below...</div>
       </div>`;
     }
 

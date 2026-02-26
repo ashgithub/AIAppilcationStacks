@@ -159,7 +159,7 @@ export class StatusDrawer extends LitElement {
             ${!this.expanded && latestStatus ? html`
               <span class="latest-status">${latestStatus.message}</span>
             ` : ''}
-            <span class="log-count">${this.items.length} ${this.items.length === 1 ? 'entry' : 'entries'}</span>
+            <span class="log-count">${this.items.length} ${this.items.length === 1 ? 'step' : 'steps'}</span>
             <span class="expand-icon ${this.expanded ? 'expanded' : ''}">▲</span>
           </div>
         </div>

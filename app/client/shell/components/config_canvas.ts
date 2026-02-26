@@ -65,9 +65,9 @@ export class AgentConfigCanvas extends LitElement {
 
     .trigger-btn {
       padding: var(--space-sm);
-      border: 1px solid var(--agent-bg-secondary);
+      border: transparent;
       border-radius: var(--radius-sm);
-      background: var(--agent-bg);
+      background: transparent;
       color: var(--text-primary);
       font-size: var(--font-size-sm);
       font-weight: var(--font-weight-medium);

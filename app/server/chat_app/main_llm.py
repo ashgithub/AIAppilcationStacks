@@ -101,5 +101,6 @@ class OCIOutageEnergyLLM:
             "is_task_complete": True,
             "content": f"{final_response_content}",
             "final_state": f"{str(final_response_content)[:100]}\n{final_model_state}",
+            "token_count": str(model_token_count),
             "suggestions": suggestions.model_dump_json()
         }

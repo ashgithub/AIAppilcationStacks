@@ -100,6 +100,9 @@ class OutageEnergyLLMExecutor(AgentExecutor):
             final_state = item['final_state']
             final_parts.append(Part(root=TextPart(text=final_state.strip())))
 
+            final_token_count = item['token_count']
+            final_parts.append(Part(root=TextPart(text=final_token_count.strip())))
+
             suggestions = item['suggestions']
             final_parts.append(Part(root=TextPart(text=suggestions.strip())))
 
