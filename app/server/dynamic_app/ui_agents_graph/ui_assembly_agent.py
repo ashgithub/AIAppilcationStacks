@@ -8,6 +8,7 @@ from typing import List
 
 from dynamic_app.ui_agents_graph.widget_tools import get_native_component_example, create_custom_component_tools
 from core.gen_ai_provider import GenAIProvider
+from core.dynamic_app.schema_utils import load_a2ui_schema
 from core.dynamic_app.dynamic_struct import DynamicGraphState
 from core.dynamic_app.prompts import get_ui_assembly_instructions
 
@@ -17,17 +18,6 @@ class UIAssemblyAgent:
     """ Agent in charge of generating the ordered UI schemas from ui orchestrator """
 
     #region helpers
-    @staticmethod
-    def _load_full_a2ui_schema():
-        """Load the condensed A2UI schema from file."""
-        schema_path = os.path.join(os.path.dirname(__file__),'..','..','core','dynamic_app','schemas','a2ui_native_schema.json')
-        try:
-            with open(schema_path, 'r', encoding='utf-8') as f:
-                return json.dumps(json.load(f), indent=2)
-        except (FileNotFoundError, json.JSONDecodeError) as e:
-            print(f"Warning: Could not load a2ui schema: {e}")
-            return "{}"
-
     def _inject_custom_schemas_into_schema(self, schema_str, custom_schemas, allowed_components=None):
         """Inject custom component schemas into the A2UI schema, optionally filtering to allowed components."""
         if not custom_schemas:
@@ -93,7 +83,7 @@ class UIAssemblyAgent:
         data_context = state['messages'][-2].content
 
         self.A2UI_SCHEMA = self._inject_custom_schemas_into_schema(
-            self._load_full_a2ui_schema(),
+            load_a2ui_schema(),
             self.inline_catalog,
             allowed_components
         )

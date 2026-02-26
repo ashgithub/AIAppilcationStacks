@@ -16,6 +16,7 @@ from core.dynamic_app.dynamic_struct import AgentConfig
 from core.dynamic_app.dynamic_struct import DynamicGraphState
 from core.common_struct import SuggestedQuestions
 from core.common_struct import SuggestionModel
+from core.common_struct import SUGGESTION_QUERY
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -33,7 +34,7 @@ class DynamicGraph:
         self._suggestions_llm = SuggestionsReponseLLM()
         self._ui_assembly = UIAssemblyAgent(base_url, self._inline_catalog)
         # TODO: temp solution to graph state
-        self._out_query = "Based on the given context, generate a list of at least 1-3 suggested follow up questions that the user might want to ask next. These should be relevant to the information provided and help the user explore the topic further. Always provide suggestions, even if the information is limited. Consider questions will be shown in UI, in buttons, so build them short or clean to show good on UI. Do not make questions related to UI, or the structure, just the raw data that is presented."
+        self._out_query = SUGGESTION_QUERY
 
     @property
     def inline_catalog(self):
@@ -81,48 +82,40 @@ class DynamicGraph:
 
         self._dynamic_ui_graph = graph_builder.compile(checkpointer=checkpointer)
 
-    def _format_tool_call_message(self, message: AnyMessage) -> tuple[str, str]:
-        tool_name = str(message.tool_calls[0].get('name'))
-        tool_args = str(message.tool_calls[0].get('args'))
-        agent_name = str(message.name) if message.name else ""
-        timeline_message = f"{agent_name} called tool: {tool_name}"
-        detailed_message = f"Agent {agent_name} called tool: {tool_name} with args {tool_args}"
-        return timeline_message, detailed_message
+    def _format_message(self, message: AnyMessage, node_name: str = "", model_token_count: int = 0) -> tuple[str, int, str]:
+        """Status updates for client from each type of message"""
+        agent_name = str(message.name) if hasattr(message, 'name') and message.name else "GRAPH"
+        content = str(message.content)[:self.CONTENT_TRUNCATION_LENGTH]
 
-    def _format_tool_message(self, message: ToolMessage) -> tuple[str, str]:
-        tool_name = str(message.name)
-        status_content = str(message.content)
-        timeline_message = f"Tool {tool_name} responded"
-        detailed_message = f"Tool {tool_name} responded with data:\n{status_content[:self.CONTENT_TRUNCATION_LENGTH]}"
-        return timeline_message, detailed_message
+        if hasattr(message, 'tool_calls') and message.tool_calls:
+            tool_name = str(message.tool_calls[0].get('name', ''))
+            tool_args = str(message.tool_calls[0].get('args', ''))
+            timeline_message = f"{agent_name} called tool: {tool_name}"
+            detailed_message = f"Agent {agent_name} called tool: {tool_name} with args {tool_args}"
+        elif isinstance(message, ToolMessage):
 
-    def _format_ai_message(self, message: AIMessage, model_token_count: int) -> tuple[str, int, str]:
-        status_content = str(message.content)
-        model_id = str(message.response_metadata.get("model_id"))
-        total_tokens_on_call = int(message.response_metadata.get("total_tokens", '0'))
-        updated_token_count = model_token_count + total_tokens_on_call
-        agent_name = str(message.name) if message.name else "GRAPH"
-        model_data = f"""
+            tool_name = str(message.name)
+            timeline_message = f"Tool {tool_name} responded"
+            detailed_message = f"Tool {tool_name} responded with data:\n{content}"
+        elif isinstance(message, AIMessage):
+            model_id = str(message.response_metadata.get("model_id", ""))
+            total_tokens_on_call = int(message.response_metadata.get("total_tokens", '0'))
+            updated_token_count = model_token_count + total_tokens_on_call
+            model_data = f"""
             model_id: {model_id},
             total_tokens_on_call: {str(updated_token_count)}
-        """
-        formatted = f"{agent_name} response:\n{status_content[:self.CONTENT_TRUNCATION_LENGTH]}...\n\nAgent metadata:\n{model_data}"
-        
-        timeline_message = f"{agent_name} responded"
-        detailed_message = formatted
-        return timeline_message, updated_token_count, detailed_message
+            """
+            timeline_message = f"{agent_name} responded"
+            detailed_message = f"{agent_name} response:\n{content}...\n\nAgent metadata:\n{model_data}"
+            return timeline_message, updated_token_count, detailed_message
+        elif isinstance(message, HumanMessage):
+            timeline_message = f"Current query: {node_name}"
+            detailed_message = f"Query in process at {node_name}:\n{content}..."
+        else:
+            timeline_message = f"Calling node: {node_name}"
+            detailed_message = f"Calling node {node_name} with status: {content}"
 
-    def _format_human_message(self, message: HumanMessage, node_name: str) -> tuple[str, str]:
-        status_content = str(message.content)
-        timeline_message = f"Current query: {node_name}"
-        detailed_message = f"Query in process at {node_name}:\n{status_content[:self.CONTENT_TRUNCATION_LENGTH]}..."
-        return timeline_message, detailed_message
-
-    def _format_other_message(self, message: AnyMessage, node_name: str) -> tuple[str, str]:
-        status_content = str(message.content)
-        timeline_message = f"Calling node: {node_name}"
-        detailed_message = f"Calling node {node_name} with status: {status_content[:self.CONTENT_TRUNCATION_LENGTH]}"
-        return timeline_message, detailed_message
+        return timeline_message, model_token_count, detailed_message
 
     async def call_dynamic_ui_graph(self, query, session_id) -> AsyncIterable[dict[str, Any]]:
         current_message = {"messages":[HumanMessage(query)]}
@@ -146,24 +139,14 @@ class DynamicGraph:
                 suggestions = chunk[1]['suggestions']
             final_response_content = latest_message.content
 
-            if hasattr(latest_message, 'tool_calls') and latest_message.tool_calls:
-                timeline_message, detailed_message = self._format_tool_call_message(latest_message)
-            elif isinstance(latest_message, ToolMessage):
-                timeline_message, detailed_message = self._format_tool_message(latest_message)
-            elif isinstance(latest_message, AIMessage):
-                timeline_message, model_token_count, detailed_message = self._format_ai_message(latest_message, model_token_count)
-            elif isinstance(latest_message, HumanMessage):
-                # For human messages, update node_name from state before formatting
-                state = self._dynamic_ui_graph.get_state(config=config, subgraphs=True)
-                node_name = str(state.next[0]) if state.next else "GRAPH"
-                timeline_message, detailed_message = self._format_human_message(latest_message, node_name)
-            else:
-                timeline_message, detailed_message = self._format_other_message(latest_message, node_name)
+            # Update node_name from graph state
+            state = self._dynamic_ui_graph.get_state(config=config, subgraphs=True)
+            node_name = str(state.next[0]) if state.next else "GRAPH"
 
-            # Update node_name from graph state for non-human messages
-            if not isinstance(latest_message, HumanMessage):
-                state = self._dynamic_ui_graph.get_state(config=config, subgraphs=True)
-                node_name = str(state.next[0]) if state.next else "GRAPH"
+            if isinstance(latest_message, AIMessage):
+                timeline_message, model_token_count, detailed_message = self._format_message(latest_message, node_name, model_token_count)
+            else:
+                timeline_message, _, detailed_message = self._format_message(latest_message, node_name, model_token_count)
 
             # Yield intermediate updates
             yield {

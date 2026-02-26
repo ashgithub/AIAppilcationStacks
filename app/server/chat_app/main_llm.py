@@ -9,8 +9,10 @@ from langgraph.graph.state import CompiledStateGraph
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.memory import InMemorySaver
 
+from core.chat_app.prompts import MAIN_LLM_INSTRUCTIONS
 from core.common_struct import SuggestionModel
 from core.common_struct import SuggestedQuestions
+from core.common_struct import SUGGESTION_QUERY
 from chat_app.data_tools import get_outage_data, get_energy_data, get_industry_data
 
 logger = logging.getLogger(__name__)
@@ -24,7 +26,7 @@ class OCIOutageEnergyLLM:
         self._agent = self._build_agent()
         self._user_id = "remote_llm"
         self._suggestion_out = SuggestionModel().build_suggestion_model()
-        self._out_query = "Based on the given context, generate a list of at least 1-3 suggested follow up questions that the user might want to ask next. These should be relevant to the information provided and help the user explore the topic further. Always provide suggestions, even if the information is limited. Consider questions will be shown in UI, in buttons, so build them short or clean to show good on UI."
+        self._out_query = SUGGESTION_QUERY
 
     def _build_agent(self) -> CompiledStateGraph:
         """Builds the LLM agent for the outage and energy agent."""
@@ -39,7 +41,7 @@ class OCIOutageEnergyLLM:
         return create_agent(
             model=oci_llm,
             tools=[get_outage_data, get_energy_data, get_industry_data],
-            system_prompt="You are an outage and energy assistant that helps users get information about power outages, energy statistics, and industry performance. You MUST use the available tools to retrieve data before providing any answers. Always call the relevant tools first: get_outage_data for outage information, get_energy_data for energy statistics, and get_industry_data for industry performance data. Do not ask the user questions or seek clarification - instead, use the tools to gather all necessary information. Present your findings in well-formatted markdown responses. Never respond without first using the appropriate tools to fetch current data.",
+            system_prompt=MAIN_LLM_INSTRUCTIONS,
             name="outage_energy_llm",
             checkpointer= InMemorySaver()
         )

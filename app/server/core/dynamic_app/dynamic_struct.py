@@ -44,40 +44,40 @@ AGENT_CONFIG_SCHEMA = {
 CONFIG_SCHEMA = {
     "type": "object",
     "properties": {
-        "place_finder_agent": AGENT_CONFIG_SCHEMA,
-        "data_finder_agent": AGENT_CONFIG_SCHEMA,
-        "presenter_agent": AGENT_CONFIG_SCHEMA
+        "data_orchestrator_agent": AGENT_CONFIG_SCHEMA,
+        "data_analyzer_agent": AGENT_CONFIG_SCHEMA,
+        "ui_presenter_agent": AGENT_CONFIG_SCHEMA
     },
     "additionalProperties": False
 }
 
 # Default agent config
 DEFAULT_CONFIG = {
-        "place_finder_agent": AgentConfig(
+        "data_orchestrator_agent": AgentConfig(
             model="xai.grok-4-fast-non-reasoning",
             temperature=0.7,
-            name="place_finder_agent",
-            system_prompt="""You are and agent that is specialized on finding different restaurants/caffeterias depending on type of cuisine. 
-            Return your answer in the best way possible so other LLM can read the information and proceed. 
-            Only return a list of the names of restaurants/caffeterias found.""",
-            tools_enabled=["get_restaurants", "get_caffeterias"]
+            name="data_orchestrator_agent",
+            system_prompt="""You are an agent specialized in orchestrating data retrieval for energy and outage information.
+            Based on user queries about power outages, energy statistics, and industry performance, determine what data is needed.
+            Return your answer in the best way possible so other LLMs can read the information and proceed.
+            Only return the types of data needed: outage_data, energy_data, or industry_data.""",
+            tools_enabled=["get_outage_data", "get_energy_data", "get_industry_data"]
         ),
-        "data_finder_agent": AgentConfig(
+        "data_analyzer_agent": AgentConfig(
             model="xai.grok-4-fast-non-reasoning",
             temperature=0.7,
-            name="data_finder_agent",
-            system_prompt="""You are an agent expert in finding restaurant data.
-            You will receive the information about a list of restaurants or caffeterias to find information about.
-            Your job is to gather that information and pass the full data to a new agent that will respond to the user.
-            Important, consider including links, image references and other UI data to be rendered during next steps.
-            Consider that caffeteria or restaurant data should be complete, use tools as required according to context.
-            Make sure to use the exact restaurant names from information.""",
-            tools_enabled=["get_restaurant_data", "get_cafe_data"]
+            name="data_analyzer_agent",
+            system_prompt="""You are an agent expert in analyzing energy and outage data.
+            You will receive information about power outages, energy statistics, and industry performance data.
+            Your job is to analyze this data and provide insights, trends, and relevant information to help users understand the energy landscape.
+            Important, consider including relevant metrics, trends, and UI data to be rendered during next steps.
+            Ensure data analysis is accurate and comprehensive, using tools as required according to context.""",
+            tools_enabled=["get_outage_data", "get_energy_data", "get_industry_data"]
         ),
-        "presenter_agent": AgentConfig(
+        "ui_presenter_agent": AgentConfig(
             model="xai.grok-4",
             temperature=0.7,
-            name="presenter_agent",
+            name="ui_presenter_agent",
             system_prompt=None,
             tools_enabled=[]
         )

@@ -6,10 +6,8 @@ from a2a.server.apps import A2AStarletteApplication
 from a2a.server.request_handlers import DefaultRequestHandler
 from a2a.server.tasks import InMemoryTaskStore, BasePushNotificationSender, InMemoryPushNotificationConfigStore
 from a2a.types import AgentCard
-# from a2ui.extension.a2ui_extension import get_a2ui_agent_extension
 from starlette.applications import Starlette
 from starlette.middleware.cors import CORSMiddleware
-# from starlette.staticfiles import StaticFiles
 from starlette.responses import JSONResponse
 from starlette.requests import Request
 
@@ -46,8 +44,8 @@ def main(host, port):
         #region Agent executor setup
         agent_base_url = f"{base_url}/agent"
         agent_card = AgentCard(
-            name="Restaurant Agent",
-            description="This agent helps find restaurants based on user criteria.",
+            name="Energy Outage Agent",
+            description="This agent helps analyze power outages, energy statistics, and industry performance.",
             url=agent_base_url,
             version="1.0.0",
             default_input_modes=DynamicGraph.SUPPORTED_CONTENT_TYPES,
@@ -191,15 +189,11 @@ def main(host, port):
         main_app.add_route("/traditional/timeline", get_traditional_timeline, methods=["GET"])
         main_app.add_route("/traditional/industry", get_traditional_industry, methods=["GET"])
 
-        # main_app.mount("/static", StaticFiles(directory="images"), name="static")
         main_app.mount("/agent", agent_app)
         main_app.mount("/llm", llm_app)
 
         import uvicorn
         uvicorn.run(main_app, host=host, port=port)
-    except Exception as e:
-        logger.error(f"Error: {e}")
-        exit(1)
     except Exception as e:
         logger.error(f"An error occurred during server startup: {e}")
         exit(1)

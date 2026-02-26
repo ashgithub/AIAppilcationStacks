@@ -110,29 +110,14 @@ class DynamicGraphExecutor(AgentExecutor):
         if inline_catalog:
             logger.info(f"--- Found inline catalog with {len(inline_catalog)} components ---")
 
-        #TODO: past action items that must be removed.
         if ui_event_part:
             logger.info(f"Received a2ui ClientEvent: {ui_event_part}")
             # Changed on event name due to new version, could change in the future
             action = ui_event_part.get("name")
             ctx = ui_event_part.get("context", {})
 
-            if action == "book_restaurant":
-                restaurant_name = ctx.get("restaurantName", "Unknown Restaurant")
-                address = ctx.get("address", "Address not provided")
-                image_url = ctx.get("imageUrl", "")
-                query = f"USER_WANTS_TO_BOOK: {restaurant_name}, Address: {address}, ImageURL: {image_url}"
-
-            elif action == "submit_booking":
-                restaurant_name = ctx.get("restaurantName", "Unknown Restaurant")
-                party_size = ctx.get("partySize", "Unknown Size")
-                reservation_time = ctx.get("reservationTime", "Unknown Time")
-                dietary_reqs = ctx.get("dietary", "None")
-                image_url = ctx.get("imageUrl", "")
-                query = f"User submitted a booking for {restaurant_name} for {party_size} people at {reservation_time} with dietary requirements: {dietary_reqs}. The image URL is {image_url}"
-
-            else:
-                query = f"User submitted an event: {action} with data: {ctx}"
+            # Handle UI interaction events for energy/outage data
+            query = f"User submitted an event: {action} with data: {ctx}"
         else:
             if not query:
                 logger.info("No a2ui UI event part found. Falling back to text input.")
@@ -162,12 +147,6 @@ class DynamicGraphExecutor(AgentExecutor):
                     new_agent_parts_message(update_parts, task.context_id, task.id),
                 )
                 continue
-
-            final_state = (
-                TaskState.completed
-                if action == "submit_booking"
-                else TaskState.input_required
-            )
 
             content = item["content"]
             final_parts = []
@@ -211,12 +190,10 @@ class DynamicGraphExecutor(AgentExecutor):
                     logger.info(f"    - Data: {str(part.root.data)[:200]}...")
             logger.info("-----------------------------")
             # TODO: remove in case multiturn is enabled
-            final_state = TaskState.completed
-
             await updater.update_status(
-                final_state,
+                TaskState.completed,
                 new_agent_parts_message(final_parts, task.context_id, task.id),
-                final=(final_state == TaskState.completed),
+                final=True,
             )
             break
 
