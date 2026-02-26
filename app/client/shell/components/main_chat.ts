@@ -6,6 +6,7 @@ import { marked } from "marked"
 import { unsafeHTML } from "lit/directives/unsafe-html.js"
 import { repeat } from "lit/directives/repeat.js"
 import "./stat_bar.js"
+import "./status_drawer.js"
 import { chatConfig } from "../configs/chat_config.js"
 import { designTokensCSS, colors, radius } from "../theme/design-tokens.js"
 
@@ -486,15 +487,7 @@ export class ChatModule extends LitElement {
           </div>
         </div>
       ` : ''}
-      <div class="status">
-        ${repeat(
-          this.status,
-          (item) => item.timestamp,
-          (item) => html`<div class="status-item">
-            <span class="duration">${item.duration.toFixed(2)}s</span> - ${item.message}
-          </div>`
-        )}
-      </div>
+      <status-drawer .items=${this.status} accentColor="var(--oracle-primary)"></status-drawer>
     `;
   }
 }

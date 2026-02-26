@@ -39,6 +39,8 @@ export class StatBar extends LitElement {
       flex-direction: row;
       gap: var(--space-xs);
       align-items: center;
+      padding: var(--space-xs) var(--space-sm);
+      border-radius: var(--radius-sm);
     }
 
     .status-data{
@@ -73,10 +75,8 @@ export class StatBar extends LitElement {
     }
 
     .config {
-      font-size: var(--font-size-sm);
-      padding: var(--space-none);
-      background: var(--agent-bg);
-      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
     }
   `;
 

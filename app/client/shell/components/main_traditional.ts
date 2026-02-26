@@ -4,7 +4,7 @@ import { v0_8 } from "@a2ui/lit";
 import "./stat_bar.js"
 import { registerShellComponents } from "../ui/custom-components/register-components.js";
 import { outageConfig } from "../configs/outage_config.js"
-import { designTokensCSS, colors, radius } from "../theme/design-tokens.js"
+import { designTokensCSS, buttonStyles, colors, radius } from "../theme/design-tokens.js"
 
 registerShellComponents();
 
@@ -183,6 +183,7 @@ export class StaticModule extends LitElement {
   }
   static styles = css`
     ${designTokensCSS}
+    ${buttonStyles}
 
     :host {
       display: block;
@@ -197,29 +198,17 @@ export class StaticModule extends LitElement {
 
     .tabs {
       display: flex;
+      gap: var(--space-xs);
       margin-bottom: var(--space-md);
       border-bottom: 1px solid var(--border-secondary);
     }
 
-    .tab {
-      padding: var(--space-sm) var(--space-md);
-      background: none;
-      border: none;
-      color: var(--text-secondary);
-      font-size: var(--font-size-base);
-      font-weight: var(--font-weight-medium);
-      cursor: pointer;
-      transition: all var(--transition-slow);
-      border-bottom: 2px solid transparent;
+    .tabs .btn-tab.active {
+      color: var(--color-error);
+      border-bottom-color: var(--color-error);
     }
 
-    .tab.active {
-      color: var(--oracle-secondary);
-      border-bottom-color: var(--oracle-secondary);
-    }
-
-    .tab:hover {
-      color: var(--text-primary);
+    .tabs .btn-tab:hover {
       background: var(--module-traditional-active);
     }
 
@@ -272,42 +261,10 @@ export class StaticModule extends LitElement {
 
     .action-buttons {
       display: flex;
-      gap: var(--space-md);
+      gap: var(--space-sm);
       margin: var(--space-md) 0;
       justify-content: center;
       flex-wrap: wrap;
-    }
-
-    .action-btn {
-      padding: var(--space-sm) var(--space-lg);
-      border: none;
-      border-radius: var(--radius-md);
-      font-size: var(--font-size-base);
-      font-weight: var(--font-weight-medium);
-      cursor: pointer;
-      transition: all var(--transition-slow);
-      color: var(--neutral-white);
-    }
-
-    .energy-btn {
-      background: var(--oracle-secondary);
-    }
-
-    .energy-btn:hover {
-      background: #b8524a;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(209, 101, 86, 0.4);
-    }
-
-    .industry-btn {
-      background: var(--oracle-primary);
-      color: var(--neutral-900);
-    }
-
-    .industry-btn:hover {
-      background: #6ab0f5;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(136, 194, 255, 0.4);
     }
   `
 
@@ -315,13 +272,13 @@ export class StaticModule extends LitElement {
     return html`
       <stat-bar .title=${"Outage Monitoring"} .time=${""} .tokens=${""} .configUrl=${"/outage_config"} .configType=${"traditional"} .configData=${outageConfig}></stat-bar>
       <div class="tabs">
-        <button class="tab ${this.currentTab === 'summary' ? 'active' : ''}" @click=${() => this.switchTab('summary')}>
+        <button class="btn btn-tab ${this.currentTab === 'summary' ? 'active' : ''}" @click=${() => this.switchTab('summary')}>
           Energy Summary
         </button>
-        <button class="tab ${this.currentTab === 'details' ? 'active' : ''}" @click=${() => this.switchTab('details')}>
+        <button class="btn btn-tab ${this.currentTab === 'details' ? 'active' : ''}" @click=${() => this.switchTab('details')}>
           Outages Details
         </button>
-        <button class="tab ${this.currentTab === 'map' ? 'active' : ''}" @click=${() => this.switchTab('map')}>
+        <button class="btn btn-tab ${this.currentTab === 'map' ? 'active' : ''}" @click=${() => this.switchTab('map')}>
           Outage Map
         </button>
       </div>
@@ -357,7 +314,7 @@ export class StaticModule extends LitElement {
       <div class="chart-section">
         <div class="section-title">Energy Production Trends</div>
         <line-graph .seriesPath=${"/trends/energyTrend"} .labelPath=${"/trends/energyTrendLabels"} .title=${"Monthly Production by Source"} .processor=${this.processor} .component=${this}></line-graph>
-        ${!this.hasEnergyTrends() ? html`<button @click=${this.loadEnergyTrends} class="action-btn energy-btn">Load Energy Trends</button>` : ''}
+        ${!this.hasEnergyTrends() ? html`<button @click=${this.loadEnergyTrends} class="btn btn-outline-traditional">Load Energy Trends</button>` : ''}
       </div>
     `;
   }
@@ -371,12 +328,12 @@ export class StaticModule extends LitElement {
       <div class="timeline-section">
         <div class="section-title">Outage Timeline</div>
         <timeline-component .dataPath=${"/timeline/timelineEvents"} .processor=${this.processor} .component=${this}></timeline-component>
-        ${!this.hasTimeline() ? html`<button @click=${this.loadTimeline} class="action-btn">Load Timeline</button>` : ''}
+        ${!this.hasTimeline() ? html`<button @click=${this.loadTimeline} class="btn btn-outline-traditional">Load Timeline</button>` : ''}
       </div>
       <div class="table-section">
         <div class="section-title">Industry Performance Metrics</div>
         <outage-table .dataPath=${"/industry/industryTable"} .title=${"Industry Data"} .processor=${this.processor} .component=${this}></outage-table>
-        ${!this.hasIndustry() ? html`<button @click=${this.loadIndustryData} class="action-btn industry-btn">Load Industry Data</button>` : ''}
+        ${!this.hasIndustry() ? html`<button @click=${this.loadIndustryData} class="btn btn-outline-traditional">Load Industry Data</button>` : ''}
       </div>
     `;
   }

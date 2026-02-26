@@ -27,6 +27,7 @@ import * as UI from "@a2ui/lit/ui";
 import "../ui/ui.js";
 import "./config_canvas.js"
 import "./stat_bar.js";
+import "./status_drawer.js";
 
 // Register custom components
 import { registerShellComponents } from "../ui/custom-components/register-components.js";
@@ -147,49 +148,12 @@ export class DynamicModule extends LitElement {
         overflow-y: auto;
       }
 
-      .status {
-        flex-shrink: 0;
-        font-size: var(--font-size-sm);
-        padding: var(--space-sm);
-        display: flex;
-        flex-direction: column;
-        background: var(--surface-secondary);
-        border-radius: var(--radius-md);
-        min-height: 80px;
-        max-height: 250px;
-        overflow-y: auto;
-      }
-
-      .status p {
-        margin: var(--space-xs) 0;
-      }
-
-      .status-item {
-        padding: var(--space-xs) 0;
-        border-bottom: 1px solid var(--border-secondary);
-        font-size: var(--font-size-xs);
-        line-height: 1.4;
-        display: flex;
-        gap: var(--space-sm);
-      }
-
-      .status-item:last-child {
-        border-bottom: none;
-      }
-
-    .status-item .duration {
-      font-weight: var(--font-weight-bold);
-      color: var(--text-primary);
-      min-width: 4rem;
-      text-align: right;
-    }
-
       .user-question {
         padding: var(--space-sm) var(--space-md);
         margin-bottom: var(--space-sm);
         background: var(--module-agent-active);
         border-radius: var(--radius-lg);
-        border-left: 3px solid var(--oracle-accent);
+        border-left: 3px solid var(--agent-accent);
       }
 
       .user-question-label {
@@ -237,7 +201,7 @@ export class DynamicModule extends LitElement {
         width: 48px;
         height: 48px;
         border: 4px solid rgba(255, 255, 255, 0.1);
-        border-left-color: var(--oracle-accent);
+        border-left-color: var(--agent-accent);
         border-radius: 50%;
         animation: spin 1s linear infinite;
       }
@@ -281,8 +245,8 @@ export class DynamicModule extends LitElement {
     }
 
     .suggestion-item:hover {
-      background: rgba(240, 204, 113, 0.35);
-      border-color: var(--oracle-accent);
+      background: rgba(64, 196, 179, 0.25);
+      border-color: var(--agent-accent);
       transform: translateX(4px);
     }
 
@@ -747,17 +711,7 @@ export class DynamicModule extends LitElement {
   }
 
   #renderStatusWindow() {
-    return html`<div class="status-section">
-        <div class="status">
-          ${repeat(
-      this.status,
-      (item) => item.timestamp,
-      (item) => html`<div class="status-item">
-              <span class="duration">${item.duration.toFixed(2)}s</span> - ${item.message}
-            </div>`
-    )}
-        </div>
-      </div>`;
+    return html`<status-drawer .items=${this.status} accentColor="var(--agent-accent)"></status-drawer>`;
   }
 }
 

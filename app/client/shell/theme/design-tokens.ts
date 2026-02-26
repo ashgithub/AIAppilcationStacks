@@ -22,8 +22,8 @@ export const colors = {
   agent: {
     bg: '#181C27',           // Very dark blue-gray (primary background)
     bgSecondary: '#232935',  // Dark blue-gray (secondary background)
-    accent: '#213E30',       // Dark green (accent)
-    highlight: '#5A4A14',    // Dark gold/brown (highlight)
+    accent: '#40C4B3',       // Cyan/Teal (accent)
+    highlight: '#1A3A35',    // Dark teal (highlight)
     border: '#1A2E52',       // Dark blue (borders)
   },
 
@@ -281,12 +281,12 @@ export const designTokensCSS = css`
     --module-traditional-bg: linear-gradient(135deg, var(--oracle-bg-dark) 0%, #1f2329 100%);
 
     /* Module-Specific Accent Colors */
-    --module-agent-accent: var(--oracle-accent);       /* Gold for Agent */
+    --module-agent-accent: var(--agent-accent);        /* Cyan/Teal for Agent */
     --module-chat-accent: var(--oracle-primary);       /* Blue for Chat */
     --module-traditional-accent: var(--oracle-secondary); /* Coral for Traditional */
 
     /* Module-Specific Active Tab/Button Colors */
-    --module-agent-active: rgba(240, 204, 113, 0.2);   /* Gold glow */
+    --module-agent-active: rgba(64, 196, 179, 0.2);    /* Cyan/Teal glow */
     --module-chat-active: rgba(136, 194, 255, 0.2);    /* Blue glow */
     --module-traditional-active: rgba(209, 101, 86, 0.2); /* Coral glow */
   }
@@ -331,43 +331,186 @@ export const cardStyles = css`
 
 /** Button styles following the design system */
 export const buttonStyles = css`
+  /* Base Button */
   .btn {
-    padding: var(--space-sm) var(--space-md);
-    border-radius: var(--radius-md);
-    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+    padding: var(--space-xs) var(--space-md);
+    height: 32px;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
     font-family: var(--font-family);
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
     cursor: pointer;
     transition: all var(--transition-normal);
+    white-space: nowrap;
+    text-decoration: none;
   }
 
+  .btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .btn:active {
+    transform: scale(0.98);
+  }
+
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Primary - Filled with accent color */
   .btn-primary {
     background: var(--oracle-primary);
     color: var(--neutral-900);
+    border-color: var(--oracle-primary);
   }
 
   .btn-primary:hover {
-    filter: brightness(1.1);
+    background: #9fcfff;
+    box-shadow: 0 2px 8px rgba(136, 194, 255, 0.3);
   }
 
+  /* Secondary - Ghost/outline style */
   .btn-secondary {
-    background: var(--surface-secondary);
+    background: rgba(255, 255, 255, 0.05);
     color: var(--text-primary);
     border: 1px solid var(--border-secondary);
   }
 
   .btn-secondary:hover {
-    background: var(--hover-overlay);
+    background: rgba(255, 255, 255, 0.12);
+    border-color: var(--text-secondary);
   }
 
+  /* Success - Green filled */
   .btn-success {
     background: var(--color-success);
     color: var(--neutral-white);
+    border-color: var(--color-success);
   }
 
   .btn-success:hover {
     background: var(--color-success-dark);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+  }
+
+  /* Danger - Coral/red */
+  .btn-danger {
+    background: var(--oracle-secondary);
+    color: var(--neutral-white);
+    border-color: var(--oracle-secondary);
+  }
+
+  .btn-danger:hover {
+    background: #b8524a;
+    box-shadow: 0 2px 8px rgba(209, 101, 86, 0.3);
+  }
+
+  /* Ghost - Minimal, no border */
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+    border: none;
+  }
+
+  .btn-ghost:hover {
+    background: var(--hover-overlay);
+    color: var(--text-primary);
+  }
+
+  /* Outline variants for module colors */
+  .btn-outline-chat {
+    background: rgba(136, 194, 255, 0.08);
+    color: var(--oracle-primary);
+    border: 1px solid var(--oracle-primary);
+  }
+
+  .btn-outline-chat:hover {
+    background: rgba(136, 194, 255, 0.2);
+    box-shadow: 0 2px 8px rgba(136, 194, 255, 0.25);
+  }
+
+  .btn-outline-agent {
+    background: rgba(64, 196, 179, 0.08);
+    color: var(--agent-accent);
+    border: 1px solid var(--agent-accent);
+  }
+
+  .btn-outline-agent:hover {
+    background: rgba(64, 196, 179, 0.2);
+    box-shadow: 0 2px 8px rgba(64, 196, 179, 0.25);
+  }
+
+  .btn-outline-traditional {
+    background: rgba(209, 101, 86, 0.08);
+    color: var(--oracle-secondary);
+    border: 1px solid var(--oracle-secondary);
+  }
+
+  .btn-outline-traditional:hover {
+    background: rgba(209, 101, 86, 0.2);
+    box-shadow: 0 2px 8px rgba(209, 101, 86, 0.25);
+  }
+
+  /* Size variants */
+  .btn-sm {
+    padding: var(--space-xs) var(--space-sm);
+    height: 28px;
+    font-size: var(--font-size-xs);
+  }
+
+  .btn-lg {
+    padding: var(--space-sm) var(--space-lg);
+    height: 40px;
+    font-size: var(--font-size-base);
+  }
+
+  /* Icon button - square aspect */
+  .btn-icon {
+    padding: var(--space-xs);
+    width: 32px;
+    height: 32px;
+  }
+
+  .btn-icon.btn-sm {
+    width: 28px;
+    height: 28px;
+  }
+
+  /* Tab button variant */
+  .btn-tab {
+    background: transparent;
+    color: var(--text-secondary);
+    border: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    padding: var(--space-sm) var(--space-md);
+    height: auto;
+  }
+
+  .btn-tab:hover {
+    color: var(--text-primary);
+    background: var(--hover-overlay);
+    transform: none;
+  }
+
+  .btn-tab.active {
+    color: var(--oracle-primary);
+    border-bottom-color: var(--oracle-primary);
+  }
+
+  /* Pill button for tags/chips */
+  .btn-pill {
+    border-radius: var(--radius-full);
+    padding: var(--space-xs) var(--space-sm);
+    height: 24px;
+    font-size: var(--font-size-xs);
   }
 `;
 

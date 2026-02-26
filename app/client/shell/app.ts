@@ -71,23 +71,15 @@ export class AppContainer extends LitElement {
       align-items: center;
       justify-content: space-between;
       color: var(--text-primary);
-      font-size: var(--font-size-base);
-      font-weight: var(--font-weight-normal);
-      margin-bottom: 0;
-    }
-
-    .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      color: var(--text-primary);
       font-size: var(--font-size-sm);
       font-weight: var(--font-weight-normal);
-      padding: var(--space-xs) 0;
+      margin: 0;
+      padding: 0;
     }
 
     .header h3 {
       color: var(--text-primary);
+      margin: 0;
     }
 
     .oracle-text {
@@ -104,9 +96,48 @@ export class AppContainer extends LitElement {
     .control {
       display: flex;
       align-items: center;
-      gap: var(--space-sm);
+      gap: var(--space-xs);
       color: var(--text-primary);
-      font-size: var(--font-size-base);
+      font-size: var(--font-size-sm);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .control input {
+      display: none;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 36px;
+      height: 20px;
+      background: var(--neutral-600);
+      border-radius: 10px;
+      transition: background 0.2s ease;
+    }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      background: var(--neutral-white);
+      border-radius: 50%;
+      transition: transform 0.2s ease;
+    }
+
+    .control input:checked + .toggle-switch {
+      background: var(--color-success);
+    }
+
+    .control input:checked + .toggle-switch::after {
+      transform: translateX(16px);
+    }
+
+    .control:hover .toggle-switch {
+      opacity: 0.9;
     }
 
     .modules {
@@ -142,6 +173,7 @@ export class AppContainer extends LitElement {
                   }
                 }}
               />
+              <span class="toggle-switch"></span>
               Traditional
             </label>
             <label class="control">
@@ -155,6 +187,7 @@ export class AppContainer extends LitElement {
                   }
                 }}
               />
+              <span class="toggle-switch"></span>
               Chat
             </label>
             <label class="control">
@@ -168,6 +201,7 @@ export class AppContainer extends LitElement {
                   }
                 }}
               />
+              <span class="toggle-switch"></span>
               Agent
             </label>
           </div>
