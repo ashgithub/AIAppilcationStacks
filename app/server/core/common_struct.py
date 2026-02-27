@@ -19,3 +19,5 @@ Always provide suggestions, even if the information is limited.
 Consider questions will be shown in UI, in buttons, so build them short or clean to show good on UI.
 Do not make questions related to UI, or the structure, just the raw data that is presented.
 """
+
+EMBED_MODEL = "cohere.embed-english-light-v3.0"

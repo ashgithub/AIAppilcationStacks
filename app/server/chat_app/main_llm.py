@@ -13,6 +13,8 @@ from core.chat_app.prompts import MAIN_LLM_INSTRUCTIONS
 from core.common_struct import SuggestionModel
 from core.common_struct import SuggestedQuestions
 from core.common_struct import SUGGESTION_QUERY
+from chat_app.rag_tool import semantic_search
+from chat_app.nl2sql_tool import nl2sql_tool
 from chat_app.data_tools import get_outage_data, get_energy_data, get_industry_data
 
 logger = logging.getLogger(__name__)
@@ -41,6 +43,7 @@ class OCIOutageEnergyLLM:
         return create_agent(
             model=oci_llm,
             tools=[get_outage_data, get_energy_data, get_industry_data],
+            #tools=[nl2sql_tool, semantic_search],
             system_prompt=MAIN_LLM_INSTRUCTIONS,
             name="outage_energy_llm",
             checkpointer= InMemorySaver()
