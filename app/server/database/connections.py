@@ -17,18 +17,17 @@ class RAGDBConnection:
         return cls._instance
     
     def __init__(self):
-        # Avoid re-initialization on subsequent calls
         if RAGDBConnection._initialized:
             return
         RAGDBConnection._initialized = True
         
-        self._config_dir = os.getenv("DB_CONFIG_DIR")
+        self._config_dir = os.getenv("DB_WALLET_PATH")
         self._user = os.getenv("DB_USER")
         self._password = os.getenv("DB_PASSWORD")
         self._dsn = os.getenv("DB_DSN")
         self._wallet_location = os.getenv("DB_WALLET_PATH")
         self._wallet_password = os.getenv("DB_WALLET_PASSWORD")
-        self.table_prefix = "stacks_embeddings"
+        self.table_prefix = "edge_demo"
     
     def _get_pool(self) -> oracledb.ConnectionPool:
         """Get or create the connection pool (lazy initialization)."""
@@ -88,7 +87,7 @@ class RAGDBConnection:
             cur.execute(sql)
             return [d[0] for d in cur.description], cur.fetchall()
 
-    def create_table(self):
+    def create_table(self, conn: oracledb.Connection):
         """Drop and create embedding table."""
         print("Creating table for embeddings...")
 
@@ -105,21 +104,22 @@ class RAGDBConnection:
             """
         ]
 
-        for stmt in sql_statements:
-            try:
-                self.cursor.execute(stmt)
-            except Exception as e:
-                # Ignore if table doesn't exist and create a new one
-                print(f"Skipping error: {e}")
+        with conn.cursor() as cur:
+            for stmt in sql_statements:
+                try:
+                    cur.execute(stmt)
+                except Exception as e:
+                    print(f"Skipping error: {e}")
 
-    def insert_embedding(self, embeddings, texts, splits):
+    def insert_embedding(self, conn: oracledb.Connection, embeddings, texts, splits):
         for i, emb in enumerate(embeddings):
             chunk_text = texts[i][:3900]  # ensure within VARCHAR2(4000) limit according to table constraint
             metadata_source = f"{splits[i].metadata.get('source', 'pdf-doc')}_start_{splits[i].metadata.get('start_index', 0)}"
 
-            self.cursor.execute(
-                f"INSERT INTO {self.table_prefix}_embedding (text, vec, source) VALUES (:1, :2, :3)",
-                [chunk_text, array.array("f", emb), metadata_source],
-            )
-            
-        self.db_connection.commit()
+            with conn.cursor() as cur:
+                cur.execute(
+                    f"INSERT INTO {self.table_prefix}_embedding (text, vec, source) VALUES (:1, :2, :3)",
+                    [chunk_text, array.array("f", emb), metadata_source],
+                )
+
+        conn.commit()

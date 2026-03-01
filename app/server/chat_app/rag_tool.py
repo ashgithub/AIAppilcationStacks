@@ -19,7 +19,9 @@ def build_context_snippet(results: list[dict]) -> str:
 
 @tool()
 async def semantic_search(query: str, top_k: int = 3) -> str:
-    """Perform semantic search with cosine similarity to find relevant documents."""
+    """Perform semantic search with cosine similarity to find relevant documents:
+    [epa_actions_for_outages (US), fema_outage_flyer (US), general_disaster_manual (MEX)]
+    """
     
     embed_provider = GenAIEmbedProvider()
     db_conn = RAGDBConnection()
