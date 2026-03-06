@@ -42,6 +42,8 @@ An intelligent application that leverages AI agents to dynamically generate, mod
    npm run demo:edge  # Runs both client and server concurrently
    ```
 
+5. Try some queries from the bottom of this page!
+
 ## Architecture
 
 The application stack consists of three main components:
@@ -225,3 +227,29 @@ cd app/server
 uv pip install -e ".[dev]"
 uv run pytest tests/ -v
 ```
+
+### Queries to test
+a. DB-only queries:
+   1. Show me all substations and their capacity in descending order
+   2. Find circuits with the highest number of customers served
+   3. List assets that are currently in critical condition (condition_score < 3)
+   4. What are the most common outage cause categories in the last 6 months?
+   5. Which work orders are still open and their associated asset types?
+b. RAG-only queries:
+   6. What are the EPA recommended actions for power outages in the US?
+   7. How does FEMA assist with electrical outages?
+   8. What procedures are outlined in the Mexican disaster manual for infrastructure recovery?
+   9. What immediate steps should be taken during a widespread power outage according to US guidelines?
+   10. How do disaster response manuals address communication during outages?
+c. Mixed queries:
+   11. For outages caused by assets in poor condition, what EPA actions are recommended?
+   12. How should work orders be prioritized for assets that serve customers in critical infrastructure?
+   13. What FEMA procedures apply to outages affecting commercial customers during weather events?
+   14. Compare outage resolution times for circuits originating from different substations, and what the disaster manual says about response times
+   15. For assets requiring maintenance in the next 30 days, what safety protocols from the manuals should be followed?
+d. Non-related queries:
+   16. What's the current weather forecast? 
+   17. How do I make homemade pizza?
+   18. Explain quantum computing in simple terms
+   19. What's the population of Tokyo?
+   20. Tell me a joke about programming

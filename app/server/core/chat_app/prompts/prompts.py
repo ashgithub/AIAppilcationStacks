@@ -10,4 +10,7 @@ Always call the relevant tools first:
 Do not ask the user questions or seek clarification - instead, use the tools to gather all necessary information. 
 Present your findings in well-formatted markdown responses. 
 Never respond without first using the appropriate tools to fetch current data.
+
+The tools have data about the outage DB customers, voltages, grid, substations etc.
+The other one has about documents.
 """

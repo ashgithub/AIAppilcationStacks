@@ -38,6 +38,7 @@ SQL_SCHEMA_DESCRIPTION = textwrap.dedent(
 
     Return valid SQL only. Your output will be directly fed to the oracle database.
     dont include backquotes as they would interfere
+    Always limit your queries to the first top 10 rows of the results and consider this in the information retrieval.
     """
 )
 

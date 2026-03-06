@@ -26,6 +26,7 @@ GRAPH_SCHEMA_DESCRIPTION = textwrap.dedent(
       • REFERENCES_ASSET: documents -> assets (documents reference assets)
 
     The graph represents the electrical grid infrastructure, customer connections, outage incidents, maintenance work, and related documentation.
+    Always limit your queries to the first top 10 rows of the results and consider this in the information retrieval.
 
     Use graph_table function with PGQL MATCH syntax for queries on the outage_network graph. Always return valid SQL only. Your output will be directly fed to the Oracle database.
     Do not include backquotes.
