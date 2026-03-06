@@ -173,8 +173,8 @@ class DynamicGraph:
         # TODO: temp fix for state on graph
         fall_back_suggestions_model = SuggestionModel().build_suggestion_model()
         raw_suggestions = await fall_back_suggestions_model.ainvoke(self._out_query+f"\n\nContext for question generation:\n{final_response_content}")
+        if not raw_suggestions: raw_suggestions = SuggestedQuestions(suggested_questions=["Tell me more details about first data", "Make a summary of data given"])
         suggestions = raw_suggestions.model_dump_json()
-        if not suggestions: suggestions = SuggestedQuestions(suggested_questions=["Tell me more details about first data", "Make a summary of data given"])
 
         yield {
             "is_task_complete": True,

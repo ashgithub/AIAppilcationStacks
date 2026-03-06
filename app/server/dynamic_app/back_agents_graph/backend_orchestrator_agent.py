@@ -3,6 +3,7 @@ from langchain.agents import create_agent
 from dynamic_app.back_agents_graph.outage_agent import get_outage_data
 from dynamic_app.back_agents_graph.energy_agent import get_energy_data
 from dynamic_app.back_agents_graph.industry_agent import get_industry_data
+from dynamic_app.back_agents_graph.nl2graph_agent import call_graphDB
 from core.gen_ai_provider import GenAIProvider
 from core.dynamic_app.dynamic_struct import DynamicGraphState
 from core.dynamic_app.prompts import BACKEND_ORCHESTRATOR_INSTRUCTIONS
@@ -24,7 +25,8 @@ class BackendOrchestratorAgent:
 
     def _build_agent(self):
         """Build the agent with worker tools."""
-        tools = [get_outage_data, get_energy_data, get_industry_data]
+        # tools = [get_outage_data, get_energy_data, get_industry_data]
+        tools = [call_graphDB]
 
         return create_agent(
             model=self._client,
