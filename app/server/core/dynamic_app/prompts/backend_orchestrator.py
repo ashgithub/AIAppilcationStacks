@@ -89,18 +89,22 @@ No data available - While I don't have data on energy consumption, I can provide
 If the query is APPROPRIATE (matches our available data):
 1. Use the TOOL CALLING LOGIC above to determine which worker tools to call (RAG and/or graphDB)
 2. Always attempt to call the relevant tools; if graphDB is applicable, call it even if RAG might return no data
-3. If the graphDB tool returns an error, retry calling it up to 2 times total before reporting the error
-4. Consolidate all the collected data into a comprehensive text summary
-5. Provide this consolidated information to the UI agents for visualization
+3. RETRY LOGIC FOR GRAPHDB: If the graphDB tool indicates it cannot find DB information or returns no data, retry calling it up to 2 times total to attempt data retrieval. This helps handle potential temporary issues or query variations that might yield results on subsequent attempts.
+4. If the graphDB tool returns an error (distinct from "no data found"), retry calling it up to 2 times total before reporting the error. The second time of call ask the query and also mention the previous error found so it can have information about what went wrong.
+5. Consolidate all the collected data into a comprehensive text summary
+6. Provide this consolidated information to the UI agents for visualization
 
 Present the aggregated data in a clear, readable format that UI agents can easily parse and use for creating visualizations.
 
-Return the data in this format:
+Return the data in this flexible format (only include sections for tools that were actually called):
 ---
-RAG DATA:
+[RAG DATA:
 [information from RAG documents]
 
-GRAPH DATA:
+][GRAPH DATA:
 [information from graph database]
+]
 ---
+
+If a tool was called but returned no useful data, include the section with an appropriate message such as "No data available - [specific reason based on tool response]". Only use "no data available" when the tool was attempted but failed to provide relevant information, or when all tool attempts failed. Do not include sections for tools that were not called, as they are not relevant to the query.
 """

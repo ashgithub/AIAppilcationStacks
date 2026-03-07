@@ -189,7 +189,11 @@ class DynamicGraphExecutor(AgentExecutor):
                 elif isinstance(part.root, DataPart):
                     logger.info(f"    - Data: {str(part.root.data)[:200]}...")
             logger.info("-----------------------------")
-            # TODO: remove in case multiturn is enabled
+        
+            #TODO: temp fix when agent missed the data update
+            if len(final_parts) < 7:
+                final_parts.insert(4,Part(root=TextPart(text="Temp place holder")))
+
             await updater.update_status(
                 TaskState.completed,
                 new_agent_parts_message(final_parts, task.context_id, task.id),

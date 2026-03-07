@@ -1,4 +1,4 @@
-""" This is the main graph to put together the backend service and the dynamic ui """
+import logging
 
 from collections.abc import AsyncIterable
 from typing import Any
@@ -20,6 +20,8 @@ from core.common_struct import SUGGESTION_QUERY
 
 from dotenv import load_dotenv
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 class DynamicGraph:
     """ Graph to call the UI agent chain """
@@ -156,12 +158,15 @@ class DynamicGraph:
             else:
                 timeline_message, _, detailed_message = self._format_message(latest_message, node_name, model_token_count)
 
-            # Yield intermediate updates
-            yield {
+            updates = {
                 "is_task_complete": False,
                 "updates": timeline_message,
                 "detailed_updates": detailed_message
             }
+
+            logger.warning(f"STEP UPDATES: {updates}")
+
+            yield updates
 
         # Ensure final_response_content is valid
         if final_response_content and "---a2ui_JSON---" in final_response_content:
@@ -176,13 +181,17 @@ class DynamicGraph:
         if not raw_suggestions: raw_suggestions = SuggestedQuestions(suggested_questions=["Tell me more details about first data", "Make a summary of data given"])
         suggestions = raw_suggestions.model_dump_json()
 
-        yield {
+        final_payload = {
             "is_task_complete": True,
             "content": final_content,
             "detailed_updates": detailed_message,
             "token_count": str(model_token_count),
             "suggestions": suggestions
         }
+
+        logger.warning(f"AGENT FINAL PAYLOAD: {final_payload}")
+
+        yield final_payload
 
 #region Testing
 async def main():

@@ -1,6 +1,5 @@
 import json
 import logging
-import os
 import jsonschema
 from langchain.agents import create_agent
 from langchain.messages import HumanMessage, AIMessage
@@ -55,7 +54,7 @@ class UIAssemblyAgent:
         self.inline_catalog = inline_catalog or []
 
         self.gen_ai_provider = GenAIProvider()
-        self._client = self.gen_ai_provider.build_oci_client(model_kwargs={"temperature":0.7})
+        self._client = self.gen_ai_provider.build_oci_client(model_id='xai.grok-4-fast-reasoning',model_kwargs={"temperature":0.7})
         self.agent_name = "assembly_agent"
 
         # Initialize with no restrictions - will be set per call
