@@ -41,8 +41,8 @@ An intelligent application that leverages AI agents to dynamically generate, mod
    ```bash
    npm run demo:edge  # Runs both client and server concurrently
    ```
-
-5. Try some queries from the bottom of this page!
+5. access the application at `http://localhost:5173`
+6. Try some queries from the bottom of this page! 
 
 ## Architecture
 
