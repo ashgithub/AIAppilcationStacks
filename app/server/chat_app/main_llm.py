@@ -66,8 +66,8 @@ class OCIOutageEnergyLLM:
 
             if hasattr(latest_update, 'tool_calls') and latest_update.tool_calls:
                 if len(latest_update.tool_calls) == 1:
-                    tool_name = str(latest_update.tool_calls[0].get('name'))
-                    tool_args = str(latest_update.tool_calls[0].get('args'))
+                    tool_name = str(latest_update.tool_calls[0].get('name',''))
+                    tool_args = str(latest_update.tool_calls[0].get('args',''))
                     latest_update = f"Model calling tool: {tool_name} with args {tool_args}"    
                 else:
                     tool_names = [str(tc.get('name', '')) for tc in latest_update.tool_calls]
@@ -78,8 +78,8 @@ class OCIOutageEnergyLLM:
                 latest_update = f"Tool {tool_name} responded with:\n{status_content[:100]}...\n\nInformation passed to agent to build response"
             elif isinstance(latest_update, AIMessage):
                 status_content = str(latest_update.content)
-                model_id = str(latest_update.response_metadata.get("model_id"))
-                total_tokens_on_call = int(latest_update.response_metadata.get("total_tokens"))
+                model_id = str(latest_update.response_metadata.get("model_id", ""))
+                total_tokens_on_call = int(latest_update.response_metadata.get("total_tokens","0"))
                 model_token_count = model_token_count + total_tokens_on_call
                 agent_name = str(latest_update.name)
                 model_data = f"""
