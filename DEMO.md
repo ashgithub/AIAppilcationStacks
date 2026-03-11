@@ -35,6 +35,7 @@ This file includes different options to test out the LLM and Agent applications 
 1. Relational DB queries:
     - What are the most common outage cause categories in the last 6 months? (good text vs bar graph approach)
     - Find circuits with the highest number of customers served (agent fails on retrieve data sometimes)
+    - location of the main substations and circuits
 2. RAG queries:
     - What are the EPA recommended actions for power outages in the US? (Text vs text)
     - What immediate steps should be taken during a widespread power outage according to US guidelines? (text vs text)

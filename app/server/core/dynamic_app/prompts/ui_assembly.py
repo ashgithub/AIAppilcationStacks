@@ -117,7 +117,16 @@ ADDITIONAL COMPONENTS: You may also use native A2UI components (Text, Button, Im
 
 DATA TO VISUALIZE:
 {data_context}
-Extract and structure only the data relevant to the selected components. Ignore any data that doesn't pertain to the allowed components.
+
+CRITICAL: EXTRACT AND POPULATE RICH DETAILED INFORMATION FOR ALL COMPONENTS
+Analyze the data context deeply to extract contextual details, trends, causes, impacts, and insights. All components should display rich, informative details that help users understand the data better.
+
+DETAILS EXTRACTION REQUIREMENTS:
+- Analyze data for patterns, trends, root causes, impacts, and predictive insights
+- Extract quantitative metrics and qualitative explanations
+- Include contextual information like severity levels, affected parties, timeframes
+- Add forecasting, breakdowns, methodologies, and background information
+- Structure details with meaningful keys that clearly describe the information
 
 {requirements_str}
 
@@ -137,7 +146,39 @@ COMPONENT USAGE RULES:
 - Prioritize vertical layout for complex widget groups (columns, vertical).
 - If an example uses {{"path": "/data"}}, you MUST use {{"path": "/data"}} - do not change to "/data"
 
-EXAMPLE A2UI MESSAGE STRUCTURE:
+WIDGET-SPECIFIC DETAILS POPULATION:
+
+BAR GRAPH DETAILS:
+- Populate detailsPath with comprehensive contextual information for each bar
+- Include: trend, forecast, primaryCause, breakdown, impact, severity, affectedParties
+- Example: trend: "Increasing 15% YoY", forecast: "Expected growth to 25%", primaryCause: "Market expansion"
+
+KPI CARD DETAILS:
+- Add rich additional fields beyond label/value/change/changeLabel
+- Include: trend, breakdown, forecast, factors, methodology, impact, affectedAreas
+- Example: trend: "Steady improvement over past month", breakdown: "85% residential, 15% commercial"
+
+MAP COMPONENT DETAILS:
+- Add contextual details for each location marker
+- Include: category, status, impact, capacity, lastActivity, priority, contactInfo
+- Example: category: "Critical Infrastructure", impact: "Serves 50K customers", priority: "High"
+
+LINE GRAPH DETAILS (FUTURE-PROOF):
+- Add series-level contextual information
+- Include: trend, forecast, seasonality, anomalies, correlation, drivers
+- Structure details within series data for future expansion
+
+TABLE DETAILS (FUTURE-PROOF):
+- Include rich row-level context and explanations
+- Add metadata, explanations, relationships, historical context
+- Structure details within row data for future expansion
+
+TIMELINE DETAILS (FUTURE-PROOF):
+- Add comprehensive event information
+- Include: impact, resolution, followUp, stakeholders, lessonsLearned
+- Structure details within event data for future expansion
+
+EXAMPLE A2UI MESSAGE STRUCTURE WITH RICH DETAILS:
 [
   {{
     "beginRendering": {{
@@ -160,7 +201,7 @@ EXAMPLE A2UI MESSAGE STRUCTURE:
         }},
         {{
           "id": "chart",
-          "component": {{"BarGraph": {{"dataPath": "/values", "labelPath": "/labels"}}}}
+          "component": {{"BarGraph": {{"dataPath": "/values", "labelPath": "/labels", "detailsPath": "/details"}}}}
         }}
       ]
     }}
@@ -184,6 +225,33 @@ EXAMPLE A2UI MESSAGE STRUCTURE:
             {{"key": "1", "valueNumber": 8.7}},
             {{"key": "2", "valueNumber": 4.1}}
           ]
+        }},
+        {{
+          "key": "details",
+          "valueMap": [
+            {{
+              "key": "0",
+              "valueMap": [
+                {{"key": "trend", "valueString": "Moderate growth"}},
+                {{"key": "forecast", "valueString": "Expected 4.5% next quarter"}},
+                {{"key": "primaryCause", "valueString": "Increased automation investment"}},
+                {{"key": "breakdown", "valueString": "60% equipment, 40% process optimization"}},
+                {{"key": "impact", "valueString": "Creates 2,300 new jobs"}},
+                {{"key": "affectedParties", "valueString": "Manufacturing workforce, suppliers"}}
+              ]
+            }},
+            {{
+              "key": "1",
+              "valueMap": [
+                {{"key": "trend", "valueString": "Rapid expansion"}},
+                {{"key": "forecast", "valueString": "Projected 12% annual growth"}},
+                {{"key": "primaryCause", "valueString": "AI and cloud adoption"}},
+                {{"key": "breakdown", "valueString": "45% software, 35% hardware, 20% services"}},
+                {{"key": "impact", "valueString": "Tech sector employment up 8%"}},
+                {{"key": "affectedParties", "valueString": "Developers, IT professionals, startups"}}
+              ]
+            }}
+          ]
         }}
       ]
     }}
@@ -201,5 +269,6 @@ MANDATORY TOOLS USAGE:
 - Use get_native_component_example(component_name) for native components
 - Use get_native_component_catalog() to see available native options
 
-Generate a complete, valid A2UI message array that uses ONLY the allowed components from the orchestrator selection and follows the EXACT predefined schema structures from the tools. Ignore any irrelevant data.
+Generate a complete, valid A2UI message array that uses ONLY the allowed components from the orchestrator selection and follows the EXACT predefined schema structures from the tools.
+Include rich, contextual details extracted from the data context to maximize information value for all components.
 """

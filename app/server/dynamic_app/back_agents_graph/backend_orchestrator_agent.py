@@ -1,4 +1,5 @@
 from langchain.agents import create_agent
+from langgraph.checkpoint.memory import InMemorySaver
 
 from dynamic_app.back_agents_graph.rag_agent import semantic_search
 from dynamic_app.back_agents_graph.nl2graph_agent import call_graphDB
@@ -29,5 +30,6 @@ class BackendOrchestratorAgent:
             model=self._client,
             tools=tools,
             system_prompt=self.system_prompt,
-            name=self.agent_name
+            name=self.agent_name,
+            checkpointer=InMemorySaver()
         )
