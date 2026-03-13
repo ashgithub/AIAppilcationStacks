@@ -12,7 +12,6 @@ export class ChatInput extends LitElement {
   @state()
   accessor #inputValue = ""
 
-  // Default server URL for sending messages
   private llmDefaultServer = "http://localhost:10002/llm";
   private agentDefaultServer = "http://localhost:10002/agent";
 

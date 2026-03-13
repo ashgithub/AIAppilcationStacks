@@ -23,17 +23,14 @@ import { repeat } from "lit/directives/repeat.js";
 import { v0_8 } from "@a2ui/lit";
 import * as UI from "@a2ui/lit/ui";
 
-// App elements.
 import "../ui/ui.js";
 import "./config_canvas.js"
 import "./stat_bar.js";
 import "./status_drawer.js";
 
-// Register custom components
 import { registerShellComponents } from "../ui/custom-components/register-components.js";
 registerShellComponents();
 
-// Configurations
 import { AppConfig } from "../configs/types.js";
 import { config as restaurantConfig } from "../configs/restaurant.js";
 import { agentConfig } from "../configs/agent_config.js";
@@ -338,7 +335,6 @@ export class DynamicModule extends LitElement {
       this.config.background
     );
 
-    // Listen for streaming events from the router
     if (this.router) {
       this.router.addEventListener('streaming-event', (event: any) => {
         const streamingEvent = event.detail;
@@ -357,10 +353,7 @@ export class DynamicModule extends LitElement {
           this.#error = null;
           this.sources = [];
           this.#startLoadingAnimation();
-          // Capture the last user question
           this.#lastUserQuestion = sentEvent.message || '';
-          // Reset status with new query start
-          // this.status = [{ timestamp: Date.now(), duration: 0, message: "Query sent", type: "sent" }];
           console.log("Query sent on agent")
           this.status = []
           this.#startStopwatch();
@@ -391,11 +384,11 @@ export class DynamicModule extends LitElement {
   }
 
   #startStopwatch() {
-    this.#stopStopwatch(); // Clear any existing timer
+    this.#stopStopwatch();
     this.#stopwatchInterval = window.setInterval(() => {
       if (this.#startTime && this.#elapsedTime === null) {
         this.#currentElapsedTime = Date.now() - this.#startTime;
-        this.requestUpdate(); // Trigger re-render
+        this.requestUpdate();
       }
     }, 100);
   }
@@ -408,19 +401,16 @@ export class DynamicModule extends LitElement {
     this.#currentElapsedTime = null;
   }
 
-  // TODO: this method should go on a separate router type, missing to update
+  // TODO: move this mapping logic into a typed router helper.
   private updateStatusFromStreamingEvent(event: any) {
-    // Only process events from this module's server URL
     if (event.serverUrl !== this.config.serverUrl) return;
 
-    // status updates messages
     if (event.kind === 'status-update') {
       const status = event.status;
       const isFinal = event.final;
       const state = status?.state;
       const hasMessage = status?.message?.parts?.length > 0;
 
-      // Actual part with status of server
       const serverState: Array<any> = hasMessage ? event.status.message.parts : [{ "text": "Server did not send any message parts" }];
       const serverMessage = serverState[0].text || "No text content"
 
@@ -446,27 +436,22 @@ export class DynamicModule extends LitElement {
       if (state == 'failed') {
         this.#addStatusWithDuration("Task failed - An error occurred", event.kind);
       } else {
-        // The final message is a copy from the previous message, so final is no use to add.
-        if(!isFinal){
+        if (!isFinal) {
           this.#addStatusWithDuration(serverMessage, event.kind);
         }
-        // this.#addStatusWithDuration(serverMessage, event.kind);
       }
 
-      // Calculate elapsed time when final response is received
       if (hasMessage && this.#startTime) {
         this.#elapsedTime = Date.now() - this.#startTime;
         this.#stopStopwatch();
       }
 
-      // End request-level loading once server marks this cycle complete.
       if (isFinal || state === 'failed') {
         this.#requesting = false;
         this.#stopLoadingAnimation();
       }
     }
     else if (event.kind === 'task') {
-      // this.#addStatusWithDuration("Task management event received", event.kind);
       console.log("Task management event received")
     }
     else if (event.kind === 'message') {
@@ -475,15 +460,12 @@ export class DynamicModule extends LitElement {
     else {
       this.#addStatusWithDuration(`Event type: ${event.kind || 'unknown'}`, event.kind);
     }
-  }
-
-  //calculated with the previous duration
+  }  // Compute step duration from the previous status timestamp.
   #addStatusWithDuration(message: string, type: string) {
     const now = Date.now();
     const lastStatus = this.status[this.status.length - 1];
     const duration = lastStatus ? (now - lastStatus.timestamp) / 1000 : 0;
 
-    // Filter out duplicate status entries with same message and type
     if (lastStatus && lastStatus.message === message && lastStatus.type === type) {
       return;
     }
@@ -495,28 +477,24 @@ export class DynamicModule extends LitElement {
       type
     }];
 
-    // Update total duration from start
     if (this.#startTime) {
       this.#totalDuration = (now - this.#startTime) / 1000;
     }
   }
 
-  //Parse from a list into single suggestions (TODO: create interface for suggestions)
+  // Accept JSON suggestions or plain text split by newline/comma.
   #parseSuggestions(suggestionsText: string): string[] {
-    // First, try to parse as JSON and extract suggested_questions
     try {
       const parsed = JSON.parse(suggestionsText);
       if (parsed && Array.isArray(parsed.suggested_questions)) {
         return parsed.suggested_questions;
       }
-    } catch (e) {
-      // Split by newlines
+    } catch {
       let suggestions = suggestionsText
         .split(/\n/)
         .map(s => s.trim())
         .filter(s => s.length > 0);
 
-      // Split by comas
       if (suggestions.length === 1) {
         suggestions = suggestions[0]
           .split(/[,;]/)
@@ -524,18 +502,17 @@ export class DynamicModule extends LitElement {
           .filter(s => s.length > 0);
       }
 
-      // try to reduce other symbols
-      return suggestions.map(s => s.replace(/^(\d+[\.\)]\s*|[-•]\s*)/, '').trim());
+      return suggestions.map(s => s.replace(/^(\d+[\.\)]\s*|[-Ã¢â‚¬Â¢]\s*)/, '').trim());
     }
+
+    return [];
   }
 
-  // this sends the message to the server (TODO: change and put on text area if possible)
   async #handleSuggestionClick(suggestion: string) {
     if (!this.router || !suggestion.trim()) return;
 
     console.log("Sending suggestion as query:", suggestion);
     try {
-      // Clear current suggestions when a new query is sent
       this.suggestions = "";
       this.sources = [];
       this.router.sendTextMessage(this.config.serverUrl, suggestion.trim());
@@ -545,25 +522,21 @@ export class DynamicModule extends LitElement {
   }
 
   private processMessages(event: any) {
-    // Only process events from this module's server URL
     if (event.serverUrl !== this.config.serverUrl) return;
 
-    // Check if this event contains A2UI messages
     if (event.kind === "status-update" && event.status?.message?.parts) {
       const newMessages: v0_8.Types.ServerToClientMessage[] = [];
       for (const part of event.status.message.parts) {
         if (part.kind === 'data') {
           const data = part.data;
           if (Array.isArray(data)) {
-            // Proper A2UI format: array of messages
             newMessages.push(...data);
           } else {
-            // Single message format (temporary compatibility)
             newMessages.push(data);
           }
         }
       }
-      // Replace with latest messages, not accumulate
+
       if (newMessages.length > 0) {
         this.#processingSurfaces = true;
         this.#startLoadingAnimation();
@@ -575,7 +548,6 @@ export class DynamicModule extends LitElement {
       }
     }
   }
-
   snackbar(
     message: string | HTMLTemplateResult,
     type: SnackType,
@@ -732,7 +704,7 @@ export class DynamicModule extends LitElement {
       `;
     }
 
-    // Show loading when processing new surfaces (TODO: fix styles since loader is not showing)
+    // Keep a loading state while a new surface tree is being applied.
     if (this.#processingSurfaces) {
       const text = this.#getCurrentLoadingText("Updating interface...");
 
@@ -746,7 +718,6 @@ export class DynamicModule extends LitElement {
       `;
     }
 
-    // Render A2UI surfaces
     const surfaces = this.#processor.getSurfaces();
     if (surfaces.size === 0) {
       return html`<div class="response-section">
@@ -842,3 +813,5 @@ declare global {
     "dynamic-module": DynamicModule
   }
 }
+
+

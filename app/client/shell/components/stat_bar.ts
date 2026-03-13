@@ -3,7 +3,6 @@ import { customElement, property } from "lit/decorators.js";
 import { AppConfigType, ConfigData } from "../configs/types.js";
 import { designTokensCSS } from "../theme/design-tokens.js";
 
-// Import the config canvas component
 import "./config_canvas.js";
 
 @customElement("stat-bar")

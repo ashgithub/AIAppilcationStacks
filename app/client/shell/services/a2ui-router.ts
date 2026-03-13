@@ -4,16 +4,14 @@ import { createContext } from "@lit/context";
 
 export class A2UIRouter extends EventTarget {
   private clients = new Map<string, A2UIClient>();
-  private sessions = new Map<string, string>(); // serverUrl -> sessionId
+  private sessions = new Map<string, string>();
 
-  // Get or create an A2UIClient for the given server URL
   private getClient(serverUrl: string): A2UIClient {
     if (!this.clients.has(serverUrl)) {
       const client = new A2UIClient(serverUrl);
 
-      // Forward all streaming events from the client
       client.addEventListener('streaming-event', (event: any) => {
-        // Re-dispatch the event with server URL context. important to filter events
+        // Attach source server so each module can filter events.
         this.dispatchEvent(new CustomEvent('streaming-event', {
           detail: {
             ...event.detail,
@@ -29,12 +27,7 @@ export class A2UIRouter extends EventTarget {
     return this.clients.get(serverUrl)!;
   }
 
-  /**
-   * Send a message to the server
-   * @param serverUrl The server URL to send to
-   * @param message The message to send (string for text, A2UI object for structured)
-   * @param useSession Whether to include session ID for memory persistence
-   */
+  /** Sends text or structured A2UI messages to the target server. */
   async sendMessage(
     serverUrl: string,
     message: v0_8.Types.A2UIClientEventMessage | string,
@@ -45,13 +38,8 @@ export class A2UIRouter extends EventTarget {
     return client.send(message, sessionId);
   }
 
-  /**
-   * Send a text message to the server
-   * @param serverUrl The server URL to send to
-   * @param text The text message to send
-   */
+  /** Sends a plain text prompt. */
   async sendTextMessage(serverUrl: string, text: string): Promise<v0_8.Types.ServerToClientMessage[]> {
-    // Emit message-sent event for timing
     this.dispatchEvent(new CustomEvent('message-sent', {
       detail: {
         serverUrl,
@@ -65,16 +53,11 @@ export class A2UIRouter extends EventTarget {
     return this.sendMessage(serverUrl, text);
   }
 
-  /**
-   * Send an A2UI structured message to the server
-   * @param serverUrl The server URL to send to
-   * @param message The A2UI message to send
-   */
+  /** Sends a structured A2UI event payload. */
   async sendA2UIMessage(
     serverUrl: string,
     message: v0_8.Types.A2UIClientEventMessage
   ): Promise<v0_8.Types.ServerToClientMessage[]> {
-    // Emit message-sent event for timing
     this.dispatchEvent(new CustomEvent('message-sent', {
       detail: {
         serverUrl,
@@ -87,7 +70,6 @@ export class A2UIRouter extends EventTarget {
     return this.sendMessage(serverUrl, message);
   }
 
-  // Gets all active server URLs (endpoints from starlette app)
   getActiveServers(): string[] {
     return Array.from(this.clients.keys());
   }
@@ -109,21 +91,16 @@ export class A2UIRouter extends EventTarget {
     this.sessions.clear();
   }
 
-  // This function is in case the client needs to close SSe
   cleanup(serverUrl: string): void {
     const client = this.clients.get(serverUrl);
     if (client) {
-      // Note: A2UIClient doesn't have a disconnect method yet
-      // TODO: This is a placeholder for future cleanup
-      // Missing to add the logic to close server
+      // TODO: close the active stream once SDK adds a disconnect API.
       this.clients.delete(serverUrl);
     }
     this.sessions.delete(serverUrl);
   }
 }
 
-// Create a singleton instance
 export const a2uiRouter = new A2UIRouter();
 
-// Context for dependency injection
 export const routerContext = createContext<A2UIRouter>('a2ui-router');

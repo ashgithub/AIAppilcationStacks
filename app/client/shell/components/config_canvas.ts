@@ -1,3 +1,4 @@
+/* Configuration sidebar for app settings */
 import { LitElement, html, css } from "lit"
 import { customElement, property, state } from "lit/decorators.js"
 import { AppConfigType, ConfigData, AgentAppConfig, LLMConfig, TraditionalConfig, EnhancedAgentAppConfig, ToolAssignments } from "../configs/types.js"
@@ -418,6 +419,7 @@ export class AgentConfigCanvas extends LitElement {
   render() {
     const availableModels = [
       "xai.grok-4",
+      "xai.grok-4-fast-reasoning",
       "xai.grok-4-fast-non-reasoning",
       "meta.llama-4-scout-17b-16e-instruct",
       "openai.gpt-4.1",
@@ -425,17 +427,13 @@ export class AgentConfigCanvas extends LitElement {
     ];
 
     const availableTools = [
-      "query_database",
-      "search_knowledge_base",
-      "get_analytics",
-      "generate_report"
+      "talk2DB",
+      "semantic_search",
     ];
 
     const availableDBTypes = [
-      "MySQL",
-      "PostgreSQL",
-      "SQLite",
-      "MongoDB"
+      "SQL_DB",
+      "Graph_DB"
     ];
 
     const availableThemes = [
@@ -487,22 +485,6 @@ export class AgentConfigCanvas extends LitElement {
                     <option value=${model} ?selected=${activeAgent.model === model}>${model}</option>
                   `)}
                 </select>
-              </div>
-
-              <div class="form-group">
-                <label>Temperature</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="2"
-                  step="0.1"
-                  .value=${activeAgent.temperature.toString()}
-                  @input=${(e: Event) => {
-                    const newConfig = { ...enhancedConfig };
-                    newConfig.agents[this.activeTab].temperature = parseFloat((e.target as HTMLInputElement).value) || 0;
-                    this.configData = newConfig;
-                  }}
-                />
               </div>
 
               <div class="form-group">
@@ -596,22 +578,6 @@ export class AgentConfigCanvas extends LitElement {
                 <option value=${model} ?selected=${llmConfig?.model === model}>${model}</option>
               `)}
             </select>
-          </div>
-
-          <div class="form-group">
-            <label>Temperature</label>
-            <input
-              type="number"
-              min="0"
-              max="2"
-              step="0.1"
-              .value=${llmConfig?.temperature?.toString() || '0.7'}
-              @input=${(e: Event) => {
-                const newConfig = { ...llmConfig };
-                newConfig.temperature = parseFloat((e.target as HTMLInputElement).value) || 0;
-                this.configData = newConfig;
-              }}
-            />
           </div>
 
           <div class="form-group">

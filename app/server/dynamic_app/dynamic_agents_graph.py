@@ -173,6 +173,7 @@ class DynamicGraph:
         suggestions = ""
         source_documents: list[str] = []
         detailed_message = ""
+        processed_messages = 0
 
         async for chunk in self._dynamic_ui_graph.astream(
             input=current_message,
@@ -180,41 +181,49 @@ class DynamicGraph:
             stream_mode='values',
             subgraphs=True
         ):
-            latest_message: AnyMessage = chunk[1]['messages'][-1]
             if 'suggestions' in chunk[1]:
                 suggestions = chunk[1]['suggestions']
-            final_response_content = latest_message.content
+            messages = chunk[1].get("messages", [])
+            new_messages = messages[processed_messages:]
+            processed_messages = len(messages)
 
             # Update node_name from graph state
             state = self._dynamic_ui_graph.get_state(config=config, subgraphs=True)
             node_name = str(state.next[0]) if state.next else "GRAPH"
 
-            # Skip state for graph routing or no named nodes
-            if node_name == "GRAPH" and isinstance(latest_message, AIMessage) or hasattr(latest_message, 'name') and not latest_message.name:
-                continue
+            for latest_message in new_messages:
+                if isinstance(latest_message, AIMessage):
+                    final_response_content = latest_message.content
 
-            if isinstance(latest_message, AIMessage):
-                timeline_message, model_token_count, detailed_message = self._format_message(
-                    latest_message,
-                    node_name,
-                    model_token_count,
-                    source_documents
-                )
-            else:
-                timeline_message, _, detailed_message = self._format_message(
-                    latest_message,
-                    node_name,
-                    model_token_count,
-                    source_documents
-                )
+                # Skip state for graph routing or no named nodes
+                if (
+                    (node_name == "GRAPH" and isinstance(latest_message, AIMessage))
+                    or (hasattr(latest_message, 'name') and not latest_message.name)
+                ):
+                    continue
 
-            updates = {
-                "is_task_complete": False,
-                "updates": timeline_message,
-                "detailed_updates": detailed_message
-            }
+                if isinstance(latest_message, AIMessage):
+                    timeline_message, model_token_count, detailed_message = self._format_message(
+                        latest_message,
+                        node_name,
+                        model_token_count,
+                        source_documents
+                    )
+                else:
+                    timeline_message, _, detailed_message = self._format_message(
+                        latest_message,
+                        node_name,
+                        model_token_count,
+                        source_documents
+                    )
 
-            yield updates
+                updates = {
+                    "is_task_complete": False,
+                    "updates": timeline_message,
+                    "detailed_updates": detailed_message
+                }
+
+                yield updates
 
         # Ensure final_response_content is valid
         if final_response_content and "---a2ui_JSON---" in final_response_content:

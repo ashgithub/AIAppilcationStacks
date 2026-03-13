@@ -38,7 +38,6 @@ export class A2UIClient extends EventTarget {
 
   async #getClient() {
     if (!this.#client) {
-      // Default to localhost:10002 if no URL provided (fallback for restaurant app default)
       const baseUrl = this.#serverUrl || "http://localhost:10002";
 
       this.#client = await A2AClient.fromCardUrl(
@@ -62,16 +61,13 @@ export class A2UIClient extends EventTarget {
     const client = await this.#getClient();
     const catalog = componentRegistry.getInlineCatalog();
 
-    // Create ClientToServerMessage with inline catalog
     let clientMessage: any;
 
     if (typeof message === 'string') {
-      // For string messages, wrap as request
       clientMessage = {
         request: message,
       };
     } else {
-      // For A2UIClientEventMessage objects, use as-is
       clientMessage = message;
     }
 
@@ -83,14 +79,12 @@ export class A2UIClient extends EventTarget {
       },
     };
 
-    // Create part with the ClientToServerMessage
     const parts: Part[] = [{
       kind: "data",
       data: finalClientMessage as unknown as Record<string, unknown>,
       mimeType: A2UI_MIME_TYPE,
     } as Part];
 
-    // Create A2A message
     const finalMessage = {
       messageId: crypto.randomUUID(),
       role: "user" as const,
@@ -98,21 +92,15 @@ export class A2UIClient extends EventTarget {
       kind: "message" as const,
     };
 
-    // Opens Streaming SSE connection
     const streamingResponse = client.sendMessageStream({
       message: finalMessage,
     });
 
     const messages: v0_8.Types.ServerToClientMessage[] = [];
 
-    // Process streaming events
     for await (const event of streamingResponse) {
-
-      // Dispatch event for UI status updates
       this.dispatchEvent(new CustomEvent('streaming-event', { detail: event }));
 
-      // Check if this event contains task status with message parts
-      // Only add the A2UI messages to render, probably will require handling LLM text responses.
       if (event.kind === "status-update" && event.status?.message?.parts) {
         for (const part of event.status.message.parts) {
           if (part.kind === 'data') {

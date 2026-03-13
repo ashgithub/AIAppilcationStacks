@@ -81,53 +81,59 @@ class OCIOutageEnergyLLM:
         final_model_state = None
         model_token_count = 0
         source_documents: list[str] = []
+        processed_messages = 0
 
         async for event in self._agent.astream(
             input=current_message,
             stream_mode="values",
             config=config
         ):
-            latest_update:AnyMessage = event['messages'][-1]
-            final_response_content = latest_update.content
+            messages = event.get("messages", [])
+            new_messages = messages[processed_messages:]
+            processed_messages = len(messages)
 
-            if hasattr(latest_update, 'tool_calls') and latest_update.tool_calls:
-                if len(latest_update.tool_calls) == 1:
-                    tool_name = str(latest_update.tool_calls[0].get('name',''))
-                    tool_args = str(latest_update.tool_calls[0].get('args',''))
-                    latest_update = f"Model calling tool: {tool_name} with args {tool_args}"    
+            for latest_update in new_messages:
+                if isinstance(latest_update, AIMessage):
+                    final_response_content = latest_update.content
+
+                if hasattr(latest_update, 'tool_calls') and latest_update.tool_calls:
+                    if len(latest_update.tool_calls) == 1:
+                        tool_name = str(latest_update.tool_calls[0].get('name',''))
+                        tool_args = str(latest_update.tool_calls[0].get('args',''))
+                        update_text = f"Model calling tool: {tool_name} with args {tool_args}"    
+                    else:
+                        tool_names = [str(tc.get('name', '')) for tc in latest_update.tool_calls]
+                        update_text = f"Model called tools: {', '.join(tool_names)}"  
+                elif isinstance(latest_update,ToolMessage):
+                    tool_name = str(latest_update.name)
+                    status_content = str(latest_update.content)
+                    update_text = f"Tool {tool_name} responded with:\n{status_content[:100]}...\n\nInformation passed to agent to build response"
+                    if tool_name == "semantic_search":
+                        for document_name in extract_RAG_sources(status_content):
+                            if document_name not in source_documents:
+                                source_documents.append(document_name)
+                elif isinstance(latest_update, AIMessage):
+                    status_content = str(latest_update.content)
+                    model_id = str(latest_update.response_metadata.get("model_id", ""))
+                    total_tokens_on_call = int(latest_update.response_metadata.get("total_tokens","0"))
+                    model_token_count = model_token_count + total_tokens_on_call
+                    agent_name = str(latest_update.name)
+                    model_data = f"""
+                        model_id: {model_id},
+                        agent_name: {agent_name},
+                        total_tokens_on_call: {str(model_token_count)}
+                    """
+                    update_text = f"Model responded:\n{status_content[:100]}...\n\nModel metadata:\n{model_data}"
+                    final_model_state = update_text
                 else:
-                    tool_names = [str(tc.get('name', '')) for tc in latest_update.tool_calls]
-                    latest_update = f"Model called tools: {', '.join(tool_names)}"  
-            elif isinstance(latest_update,ToolMessage):
-                tool_name = str(latest_update.name)
-                status_content = str(latest_update.content)
-                latest_update = f"Tool {tool_name} responded with:\n{status_content[:100]}...\n\nInformation passed to agent to build response"
-                if tool_name == "semantic_search":
-                    for document_name in extract_RAG_sources(status_content):
-                        if document_name not in source_documents:
-                            source_documents.append(document_name)
-            elif isinstance(latest_update, AIMessage):
-                status_content = str(latest_update.content)
-                model_id = str(latest_update.response_metadata.get("model_id", ""))
-                total_tokens_on_call = int(latest_update.response_metadata.get("total_tokens","0"))
-                model_token_count = model_token_count + total_tokens_on_call
-                agent_name = str(latest_update.name)
-                model_data = f"""
-                    model_id: {model_id},
-                    agent_name: {agent_name},
-                    total_tokens_on_call: {str(model_token_count)}
-                """
-                latest_update = f"Model responded:\n{status_content[:100]}...\n\nModel metadata:\n{model_data}"
-                final_model_state = latest_update
-            else:
-                status_content = str(latest_update.content)
-                latest_update = f"Model processing:\n{status_content[:100]}..."
+                    status_content = str(latest_update.content)
+                    update_text = f"Model processing:\n{status_content[:100]}..."
 
-            # Yield intermediate updates on every attempt
-            yield {
-                "is_task_complete": False,
-                "updates": latest_update
-            }
+                # Yield intermediate updates on every attempt
+                yield {
+                    "is_task_complete": False,
+                    "updates": update_text
+                }
 
         suggestions = await self._suggestion_out.ainvoke(self._out_query+f"\n\nContext for question generation:\n{final_response_content}")
         if not suggestions: suggestions = SuggestedQuestions(suggested_questions=["Tell me more details about first data", "Make a summary of data given"])

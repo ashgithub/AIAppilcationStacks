@@ -27,7 +27,7 @@ const KPI_THEMES: Record<string, { primary: string; bg: string }> = {
   orange: { primary: colors.semantic.warning, bg: `rgba(245, 158, 11, 0.1)` },
 };
 
-// single KPI card to include on the set
+// Individual KPI card component.
 @customElement('kpi-card')
 export class KpiCard extends Root {
   @property({ attribute: false }) accessor dataPath: any = "";
@@ -211,7 +211,6 @@ export class KpiCard extends Root {
   render() {
     let kpiData: KpiData | null = null;
 
-    // If dataPath is provided, fetch data from processor
     if (this.dataPath && typeof this.dataPath === 'string' && this.processor) {
       const rawData = this.processor.getData(this.component, this.dataPath, this.surfaceId ?? 'default') as any;
       
@@ -220,7 +219,6 @@ export class KpiCard extends Root {
       }
     }
     
-    // Otherwise, use direct properties
     if (!kpiData && (this.label || this.value)) {
       kpiData = {
         label: this.label,
@@ -238,7 +236,6 @@ export class KpiCard extends Root {
       return html`<div class="empty-state">No KPI data</div>`;
     }
 
-    // Store current data for modal
     this.currentKpiData = kpiData;
     const themeColors = KPI_THEMES[kpiData.color || this.colorTheme] || KPI_THEMES.cyan;
     const changeClass = this.getChangeClass(kpiData.change);
@@ -302,7 +299,6 @@ export class KpiCard extends Root {
       }
     }
 
-    // Add any extra details
     if (kpiData.details) {
       Object.assign(data, kpiData.details);
     }
@@ -311,12 +307,11 @@ export class KpiCard extends Root {
   }
 
   private parseKpiData(rawData: any): KpiData | null {
-    // Standard KPI fields that should not go into details
+    // Keep known KPI keys out of the derived `details` payload.
     const standardFields = new Set(['label', 'value', 'unit', 'change', 'changeLabel', 'icon', 'color', 'colorTheme', 'details']);
 
     if (rawData instanceof Map) {
       const details: Record<string, any> = {};
-      // Collect non-standard fields into details
       rawData.forEach((value, key) => {
         if (!standardFields.has(key)) {
           details[key] = value;
@@ -344,12 +339,10 @@ export class KpiCard extends Root {
         else if (kv.key === 'icon') result.icon = kv.valueString;
         else if (kv.key === 'color' || kv.key === 'colorTheme') result.color = kv.valueString;
         else if (kv.key === 'details' && kv.valueMap) {
-          // Explicit details object
           for (const detailKv of kv.valueMap) {
             details[detailKv.key] = detailKv.valueString ?? detailKv.valueNumber ?? detailKv.valueBool;
           }
         } else if (!standardFields.has(kv.key)) {
-          // Non-standard fields become details (trend, forecast, breakdown, etc.)
           details[kv.key] = kv.valueString ?? kv.valueNumber ?? kv.valueBool;
         }
       }
@@ -359,7 +352,6 @@ export class KpiCard extends Root {
       return result;
     } else if (typeof rawData === 'object') {
       const details: Record<string, any> = {};
-      // Collect non-standard fields into details
       for (const key of Object.keys(rawData)) {
         if (!standardFields.has(key)) {
           details[key] = rawData[key];
@@ -446,7 +438,7 @@ export class KpiCard extends Root {
   }
 }
 
-// A group of cards to render together
+// Renders a collection of KPI cards from a bound data set.
 @customElement('kpi-card-group')
 export class KpiCardGroup extends Root {
   @property({ attribute: false }) accessor dataPath: any = "";
@@ -499,7 +491,6 @@ export class KpiCardGroup extends Root {
   render() {
     let kpiItems: KpiData[] = [];
 
-    // Resolve dataPath
     if (this.dataPath && typeof this.dataPath === 'string' && this.processor) {
       let rawData = this.processor.getData(this.component, this.dataPath, this.surfaceId ?? 'default') as any;
 
@@ -546,7 +537,7 @@ export class KpiCardGroup extends Root {
   }
 
   private parseItem(item: any, idx: number): KpiData | null {
-    // Standard KPI fields that should not go into details
+    // Keep known KPI keys out of the derived `details` payload.
     const standardFields = new Set(['label', 'value', 'unit', 'change', 'changeLabel', 'icon', 'color', 'colorTheme', 'details']);
 
     if (item instanceof Map) {
@@ -582,7 +573,6 @@ export class KpiCardGroup extends Root {
             details[detailKv.key] = detailKv.valueString ?? detailKv.valueNumber ?? detailKv.valueBool;
           }
         } else if (!standardFields.has(kv.key)) {
-          // Non-standard fields become details (trend, forecast, breakdown, etc.)
           details[kv.key] = kv.valueString ?? kv.valueNumber ?? kv.valueBool;
         }
       }

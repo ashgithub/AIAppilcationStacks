@@ -2,8 +2,7 @@ import { html, css, LitElement } from "lit";
 import { property, customElement, state } from "lit/decorators.js";
 import { designTokensCSS } from "../../theme/design-tokens.js";
 
-// modal to show details for a determinated item
-// reusable to work for different components.
+// Reusable details viewer used by interactive components.
 @customElement('detail-modal')
 export class DetailModal extends LitElement {
   @property({ type: Boolean }) accessor open = false;
@@ -287,7 +286,6 @@ export class DetailModal extends LitElement {
   }
 
   private renderContent() {
-    // If fields are provided, use them to render structured data
     if (this.fields.length > 0) {
       return html`
         <div class="detail-grid">
@@ -296,7 +294,6 @@ export class DetailModal extends LitElement {
       `;
     }
 
-    // Otherwise, render all data fields
     const entries = Object.entries(this.data);
     if (entries.length === 0) {
       return html`<p style="color: var(--text-secondary); font-style: italic;">No details available</p>`;
@@ -394,7 +391,6 @@ export class DetailModal extends LitElement {
   }
 }
 
-// Custom event for row/item selection
 export class ItemSelectEvent extends Event {
   static eventName = 'item-select';
 
@@ -406,7 +402,6 @@ export class ItemSelectEvent extends Event {
   }
 }
 
-// Custom event for KPI click
 export class KpiClickEvent extends Event {
   static eventName = 'kpi-click';
 
