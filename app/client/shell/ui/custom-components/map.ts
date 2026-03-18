@@ -38,13 +38,13 @@ export class MapComponent extends Root {
     css`
       :host {
         display: block;
-        height: 400px;
+        height: var(--map-component-height, 400px);
         width: 100%;
-        max-width: 600px;
+        max-width: 100%;
+        min-width: 0;
         border-radius: var(--radius-lg);
         overflow: hidden;
         box-shadow: var(--shadow-lg);
-        margin: var(--space-xs);
         background: var(--surface-primary);
       }
 
@@ -52,11 +52,13 @@ export class MapComponent extends Root {
         display: flex;
         height: 100%;
         width: 100%;
+        min-width: 0;
       }
 
       .map-container {
         flex: 1;
         height: 100%;
+        min-width: 0;
         position: relative;
         box-sizing: border-box;
       }
@@ -72,13 +74,35 @@ export class MapComponent extends Root {
 
       /* Info panel */
       .map-info-panel {
-        width: 200px;
+        width: clamp(180px, 24vw, 280px);
         background: var(--surface-secondary);
         border-left: 1px solid var(--border-primary);
         padding: var(--space-md);
         overflow-y: auto;
         display: flex;
         flex-direction: column;
+      }
+
+      @media (max-width: 768px) {
+        :host {
+          height: auto;
+          min-height: var(--map-component-mobile-min-height, 420px);
+        }
+
+        .map-wrapper {
+          flex-direction: column;
+        }
+
+        .map-container {
+          min-height: var(--map-component-mobile-map-height, 280px);
+        }
+
+        .map-info-panel {
+          width: 100%;
+          border-left: none;
+          border-top: 1px solid var(--border-primary);
+          max-height: 38vh;
+        }
       }
 
       .info-panel-header {
@@ -420,12 +444,18 @@ export class MapComponent extends Root {
       }
     });
     this.resizeObserver.observe(this);
+    this.resizeObserver.observe(this.mapContainer);
   }
 
   updated(changedProperties: Map<string | number | symbol, unknown>) {
     super.updated(changedProperties);
     if (changedProperties.has('dataPath') || changedProperties.has('centerLat') || changedProperties.has('centerLng') || changedProperties.has('zoom')) {
       this.updateMap();
+    }
+
+    if (changedProperties.has('showInfoPanel') && this.map) {
+      // The map canvas needs an explicit resize when side panel visibility changes.
+      requestAnimationFrame(() => this.map?.resize());
     }
   }
 

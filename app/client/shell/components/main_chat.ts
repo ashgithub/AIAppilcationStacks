@@ -51,32 +51,58 @@ export class ChatModule extends LitElement {
 
   private defaultServerUrl = "http://localhost:10002/llm";
 
+  #onStreamingEvent = (event: Event) => {
+    const customEvent = event as CustomEvent;
+    this.processStreamingEvent(customEvent.detail);
+  };
+
+  #onMessageSent = (event: Event) => {
+    const customEvent = event as CustomEvent;
+    const sentEvent = customEvent.detail;
+
+    if (sentEvent.serverUrl !== this.defaultServerUrl) {
+      return;
+    }
+
+    this.#startTime = sentEvent.timestamp;
+    this.#elapsedTime = null;
+    this.#totalDuration = 0;
+    this.tokenCount = "";
+    this.suggestions = "";
+    this.messages = [...this.messages, {
+      role: 'user',
+      content: sentEvent.message || 'User query',
+      timestamp: Date.now()
+    }];
+    this.#pendingResponse = true;
+    this.#requestScrollToBottom();
+    console.log("Query sent to LLM");
+    this.#resetStatusForNewRequest();
+  };
+
   // #region Lifecycle
   connectedCallback() {
     super.connectedCallback();
 
     if (this.router) {
-      this.router.addEventListener('streaming-event', (event: any) => {
-        const streamingEvent = event.detail;
-        this.processStreamingEvent(streamingEvent);
-      });
+      this.router.removeEventListener('streaming-event', this.#onStreamingEvent);
+      this.router.removeEventListener('message-sent', this.#onMessageSent);
+      this.router.addEventListener('streaming-event', this.#onStreamingEvent);
+      this.router.addEventListener('message-sent', this.#onMessageSent);
+    }
+  }
 
-      this.router.addEventListener('message-sent', (event: any) => {
-        const sentEvent = event.detail;
-        if (sentEvent.serverUrl === this.defaultServerUrl) {
-          this.#startTime = sentEvent.timestamp;
-          this.#elapsedTime = null;
-          this.#totalDuration = 0;
-          this.messages = [...this.messages, {
-            role: 'user',
-            content: sentEvent.message || 'User query',
-            timestamp: Date.now()
-          }];
-          this.#pendingResponse = true;
-          console.log("Query sent to LLM")
-          this.status = []
-        }
-      });
+  disconnectedCallback() {
+    if (this.router) {
+      this.router.removeEventListener('streaming-event', this.#onStreamingEvent);
+      this.router.removeEventListener('message-sent', this.#onMessageSent);
+    }
+    super.disconnectedCallback();
+  }
+
+  protected updated(changedProperties: Map<string | number | symbol, unknown>) {
+    if (changedProperties.has("messages")) {
+      this.#scrollToBottom();
     }
   }
   // #endregion Lifecycle
@@ -98,6 +124,8 @@ export class ChatModule extends LitElement {
       console.log("server message", serverState);
       const messageSources = isFinal ? this.#parseSources(serverState[4]?.text || "[]") : [];
 
+      this.#resetStatusIfNewTurnFromStream(serverMessage, isFinal);
+
       if (isFinal && serverState[2]?.text) {
         this.tokenCount = serverState[2].text;
       }
@@ -113,7 +141,7 @@ export class ChatModule extends LitElement {
                 timestamp: Date.now()
               }];
               this.#pendingResponse = false;
-              this.updateComplete.then(() => this.#scrollToBottom());
+              this.#requestScrollToBottom();
             }
             
             // Skip final echo; only incremental updates are useful in the log.
@@ -160,6 +188,10 @@ export class ChatModule extends LitElement {
     const now = Date.now();
     const lastStatus = this.status[this.status.length - 1];
     const duration = lastStatus ? (now - lastStatus.timestamp) / 1000 : 0;
+
+    if (lastStatus && lastStatus.message === message && lastStatus.type === type) {
+      return;
+    }
     
     this.status = [...this.status, {
       timestamp: now,
@@ -170,6 +202,33 @@ export class ChatModule extends LitElement {
     
     if (this.#startTime) {
       this.#totalDuration = (now - this.#startTime) / 1000;
+    }
+  }
+
+  #resetStatusForNewRequest() {
+    this.status = [];
+  }
+
+  #getVisibleStatus() {
+    return this.status;
+  }
+
+  #resetStatusIfNewTurnFromStream(serverMessage: string, isFinal: boolean) {
+    if (isFinal) {
+      return;
+    }
+
+    const isProcessingStep = /^Model processing:/i.test(serverMessage.trim());
+    if (!isProcessingStep || this.status.length === 0) {
+      return;
+    }
+
+    const previousTurnCompleted = this.status.some((item) =>
+      /^Model responded:/i.test(item.message) || item.type === "error"
+    );
+
+    if (previousTurnCompleted) {
+      this.#resetStatusForNewRequest();
     }
   }
 
@@ -200,10 +259,14 @@ export class ChatModule extends LitElement {
 
   // #region UI Helpers
   #scrollToBottom() {
-    const chatContainer = this.shadowRoot?.querySelector('.chat-messages');
+    const chatContainer = this.shadowRoot?.querySelector('.chat-messages') as HTMLElement | null;
     if (chatContainer) {
       chatContainer.scrollTop = chatContainer.scrollHeight;
     }
+  }
+
+  #requestScrollToBottom() {
+    this.updateComplete.then(() => this.#scrollToBottom());
   }
 
   #parseSources(sourcesText: string): string[] {
@@ -227,7 +290,8 @@ export class ChatModule extends LitElement {
   }
 
   #getCurrentPendingText() {
-    const latestStatusText = this.status[this.status.length - 1]?.message;
+    const visibleStatus = this.#getVisibleStatus();
+    const latestStatusText = visibleStatus[visibleStatus.length - 1]?.message;
     if (typeof latestStatusText === "string" && latestStatusText.trim().length > 0) {
       return latestStatusText;
     }
@@ -262,7 +326,7 @@ export class ChatModule extends LitElement {
       flex-direction: column;
       flex: 1 1 auto;
       min-width: 0;
-      overflow-y: auto;
+      overflow: hidden;
       background: var(--module-chat-bg);
     }
 
@@ -283,6 +347,7 @@ export class ChatModule extends LitElement {
       background: rgba(0, 0, 0, 0.2);
       border-radius: var(--radius-md);
       overflow-y: auto;
+      overflow-x: hidden;
       display: flex;
       flex-direction: column;
       gap: var(--space-md);
@@ -403,6 +468,7 @@ export class ChatModule extends LitElement {
       min-height: 80px;
       max-height: 250px;
       overflow-y: auto;
+      overflow-x: hidden;
     }
 
     .status p {
@@ -567,7 +633,7 @@ export class ChatModule extends LitElement {
           </div>
         </div>
       ` : ''}
-      <status-drawer .items=${this.status} accentColor="var(--oracle-primary)"></status-drawer>
+      <status-drawer .items=${this.#getVisibleStatus()} accentColor="var(--oracle-primary)"></status-drawer>
     `;
   }
   

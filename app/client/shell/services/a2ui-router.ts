@@ -31,26 +31,29 @@ export class A2UIRouter extends EventTarget {
   async sendMessage(
     serverUrl: string,
     message: v0_8.Types.A2UIClientEventMessage | string,
-    useSession: boolean = true
+    useSession: boolean = true,
+    requestId?: string
   ): Promise<v0_8.Types.ServerToClientMessage[]> {
     const client = this.getClient(serverUrl);
     const sessionId = useSession ? this.getSessionId(serverUrl) : undefined;
-    return client.send(message, sessionId);
+    return client.send(message, sessionId, requestId);
   }
 
   /** Sends a plain text prompt. */
   async sendTextMessage(serverUrl: string, text: string): Promise<v0_8.Types.ServerToClientMessage[]> {
+    const requestId = crypto.randomUUID();
     this.dispatchEvent(new CustomEvent('message-sent', {
       detail: {
         serverUrl,
         message: text,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        requestId
       },
       bubbles: true,
       composed: true
     }));
 
-    return this.sendMessage(serverUrl, text);
+    return this.sendMessage(serverUrl, text, true, requestId);
   }
 
   /** Sends a structured A2UI event payload. */
@@ -58,16 +61,18 @@ export class A2UIRouter extends EventTarget {
     serverUrl: string,
     message: v0_8.Types.A2UIClientEventMessage
   ): Promise<v0_8.Types.ServerToClientMessage[]> {
+    const requestId = crypto.randomUUID();
     this.dispatchEvent(new CustomEvent('message-sent', {
       detail: {
         serverUrl,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        requestId
       },
       bubbles: true,
       composed: true
     }));
 
-    return this.sendMessage(serverUrl, message);
+    return this.sendMessage(serverUrl, message, true, requestId);
   }
 
   getActiveServers(): string[] {

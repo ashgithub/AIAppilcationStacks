@@ -216,7 +216,7 @@ export class AgentConfigCanvas extends LitElement {
     }
 
     textarea {
-      resize: vertical;
+      resize: none;
       min-height: 80px;
     }
 

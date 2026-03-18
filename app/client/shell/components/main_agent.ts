@@ -128,7 +128,7 @@ export class DynamicModule extends LitElement {
         flex-direction: column;
         flex: 1 1 auto;
         min-width: 0;
-        overflow-y: auto;
+        overflow: hidden;
         margin: 0;
         padding: var(--space-sm);
         color: var(--text-primary);
@@ -154,6 +154,7 @@ export class DynamicModule extends LitElement {
         background: rgba(0, 0, 0, 0.2);
         border-radius: var(--radius-md);
         overflow-y: auto;
+        overflow-x: hidden;
       }
       
       .user-question {
@@ -195,6 +196,7 @@ export class DynamicModule extends LitElement {
         padding-bottom: 32px;
         animation: fadeIn 1s cubic-bezier(0, 0, 0.3, 1) 0.3s backwards;
         overflow-y: auto;
+        overflow-x: hidden;
         max-height: var(--conversation-max-height);
       }
 

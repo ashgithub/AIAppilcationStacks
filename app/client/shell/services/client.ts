@@ -56,7 +56,8 @@ export class A2UIClient extends EventTarget {
 
   async send(
     message: v0_8.Types.A2UIClientEventMessage | string,
-    sessionId?: string
+    sessionId?: string,
+    requestId?: string
   ): Promise<v0_8.Types.ServerToClientMessage[]> {
     const client = await this.#getClient();
     const catalog = componentRegistry.getInlineCatalog();
@@ -99,7 +100,12 @@ export class A2UIClient extends EventTarget {
     const messages: v0_8.Types.ServerToClientMessage[] = [];
 
     for await (const event of streamingResponse) {
-      this.dispatchEvent(new CustomEvent('streaming-event', { detail: event }));
+      this.dispatchEvent(new CustomEvent('streaming-event', {
+        detail: {
+          ...event,
+          clientRequestId: requestId
+        }
+      }));
 
       if (event.kind === "status-update" && event.status?.message?.parts) {
         for (const part of event.status.message.parts) {
