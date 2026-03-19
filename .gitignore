@@ -10,5 +10,3 @@ dist
 uv.lock
 __pycache__
 .pytest_cache
-
-langfuse_docs.md

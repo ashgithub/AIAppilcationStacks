@@ -10,7 +10,7 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import InMemorySaver
 from langchain.messages import HumanMessage, AIMessage, AnyMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
-from langfuse import Langfuse, propagate_attributes
+from langfuse import Langfuse
 
 from dynamic_app.ui_agents_graph.ui_orchestrator_agent import UIOrchestrator
 from dynamic_app.ui_agents_graph.ui_orchestrator_agent import SuggestionsReponseLLM
@@ -76,13 +76,12 @@ class DynamicGraph:
         self.graph_configuration = graph_configuration or {}
         self._inline_catalog = inline_catalog or []
         self.langfuse_client = langfuse_client
-        self._backend_orchestrator = BackendOrchestratorAgent(langfuse_client=langfuse_client)
-        self._ui_orchestrator = UIOrchestrator(langfuse_client=langfuse_client)
+        self._backend_orchestrator = BackendOrchestratorAgent()
+        self._ui_orchestrator = UIOrchestrator()
         self._suggestions_llm = SuggestionsReponseLLM()
         self._ui_assembly = UIAssemblyAgent(
             base_url,
             self._inline_catalog,
-            langfuse_client=langfuse_client,
         )
         self._out_query = SUGGESTION_QUERY
         self.langfuse_tracing_provider = LangfuseTracingProvider(langfuse_client=langfuse_client)
@@ -132,6 +131,35 @@ class DynamicGraph:
     #endregion
 
     #region Stream Formatting
+    def _extract_node_name_from_stream_chunk(self, chunk: Any) -> str:
+        """Resolve node name directly from subgraph stream chunk path."""
+        if isinstance(chunk, tuple) and chunk:
+            path = chunk[0]
+            if isinstance(path, tuple) and path:
+                return str(path[-1])
+            if isinstance(path, str):
+                return path
+        return "GRAPH"
+
+    def _extract_chunk_state(self, chunk: Any) -> dict[str, Any]:
+        """Normalize chunk state shape for subgraph stream mode."""
+        if isinstance(chunk, tuple) and len(chunk) > 1 and isinstance(chunk[1], dict):
+            return chunk[1]
+        if isinstance(chunk, dict):
+            return chunk
+        return {}
+
+    def _message_dedupe_key(self, message: AnyMessage) -> str:
+        """Build a stable dedupe key for streamed messages."""
+        message_id = getattr(message, "id", None)
+        if message_id:
+            return str(message_id)
+
+        message_name = str(getattr(message, "name", "") or "")
+        message_content = str(getattr(message, "content", "") or "")
+        message_type = message.__class__.__name__
+        return f"{message_type}:{message_name}:{message_content}"
+
     def _format_message(
         self,
         message: AnyMessage,
@@ -143,7 +171,7 @@ class DynamicGraph:
         if source_documents is None:
             source_documents = []
 
-        agent_name = str(message.name) if hasattr(message, 'name') and message.name else "GRAPH"
+        agent_name = str(message.name) if hasattr(message, 'name') and message.name else (node_name or "GRAPH")
         content = str(message.content)[:self.CONTENT_TRUNCATION_LENGTH]
 
         if hasattr(message, 'tool_calls') and message.tool_calls:
@@ -197,23 +225,12 @@ class DynamicGraph:
         suggestions = ""
         source_documents: list[str] = []
         detailed_message = ""
-        processed_messages = 0
-        langfuse_client = self.langfuse_client or self.langfuse_tracing_provider.get_current_client()
+        seen_message_keys: set[str] = set()
+        emitted_human_message = False
         final_payload: dict[str, Any] | None = None
-        root_observation = langfuse_client.start_observation(
-            as_type="span",
-            name="DynamicGraph -> Pipeline Stream",
-            input={"query": query},
-            metadata=self.langfuse_tracing_provider.build_observation_metadata(
-                session_id=stable_session_id,
-                user_id=os.getenv("LANGFUSE_USER_ID", "default_user"),
-                tags=["main_dynamic_app"],
-                extra={"request_id": request_id},
-            ),
-        )
+        langfuse_client = self.langfuse_client or self.langfuse_tracing_provider.get_current_client()
         session_token = self.langfuse_tracing_provider.set_current_session_id(stable_session_id)
         client_token = self.langfuse_tracing_provider.set_current_client(langfuse_client)
-        trace_token = self.langfuse_tracing_provider.set_current_trace_id(root_observation.trace_id)
         try:
             config:RunnableConfig = self.langfuse_tracing_provider.build_runnable_config(
                 run_id=request_id,
@@ -222,64 +239,66 @@ class DynamicGraph:
                 user_id=os.getenv("LANGFUSE_USER_ID", "default_user"),
                 tags=["main_dynamic_app"],
                 extra_metadata={"request_id": request_id},
-                trace_context=self.langfuse_tracing_provider.get_current_trace_context(),
             )
-            with propagate_attributes(
-                session_id=stable_session_id,
-                user_id=os.getenv("LANGFUSE_USER_ID", "default_user"),
-                tags=["main_dynamic_app"],
+            async for chunk in self._dynamic_ui_graph.astream(
+                input=current_message,
+                config=config,
+                stream_mode='values',
+                subgraphs=True
             ):
-                async for chunk in self._dynamic_ui_graph.astream(
-                    input=current_message,
-                    config=config,
-                    stream_mode='values',
-                    subgraphs=True
-                ):
-                    if 'suggestions' in chunk[1]:
-                        suggestions = chunk[1]['suggestions']
-                    messages = chunk[1].get("messages", [])
-                    new_messages = messages[processed_messages:]
-                    processed_messages = len(messages)
+                chunk_state = self._extract_chunk_state(chunk)
+                node_name = self._extract_node_name_from_stream_chunk(chunk)
 
+                if 'suggestions' in chunk_state:
+                    suggestions = chunk_state['suggestions']
 
-                    state = self._dynamic_ui_graph.get_state(config=config, subgraphs=True)
-                    node_name = str(state.next[0]) if state.next else "GRAPH"
+                messages = chunk_state.get("messages", [])
+                new_messages: list[AnyMessage] = []
+                for message in messages:
+                    dedupe_key = self._message_dedupe_key(message)
+                    if dedupe_key in seen_message_keys:
+                        continue
+                    seen_message_keys.add(dedupe_key)
+                    new_messages.append(message)
 
-                    for latest_message in new_messages:
-                        logger.warning(latest_message)
-                        if isinstance(latest_message, AIMessage):
-                            final_response_content = latest_message.content
+                logger.debug(
+                    "dynamic stream chunk node=%s total_messages=%s new_messages=%s",
+                    node_name,
+                    len(messages),
+                    len(new_messages),
+                )
 
-                        if (
-                            (node_name == "GRAPH" and isinstance(latest_message, AIMessage))
-                            or (hasattr(latest_message, 'name') and not latest_message.name)
-                        ):
+                for latest_message in new_messages:
+                    if isinstance(latest_message, HumanMessage):
+                        if emitted_human_message:
                             continue
+                        emitted_human_message = True
 
-                        if isinstance(latest_message, AIMessage):
-                            timeline_message, model_token_count, detailed_message = self._format_message(
-                                latest_message,
-                                node_name,
-                                model_token_count,
-                                source_documents
-                            )
-                        else:
-                            timeline_message, _, detailed_message = self._format_message(
-                                latest_message,
-                                node_name,
-                                model_token_count,
-                                source_documents
-                            )
+                    if isinstance(latest_message, AIMessage):
+                        final_response_content = latest_message.content
 
-                        updates = {
-                            "is_task_complete": False,
-                            "updates": timeline_message,
-                            "detailed_updates": detailed_message
-                        }
+                    if isinstance(latest_message, AIMessage):
+                        timeline_message, model_token_count, detailed_message = self._format_message(
+                            latest_message,
+                            node_name,
+                            model_token_count,
+                            source_documents
+                        )
+                    else:
+                        timeline_message, _, detailed_message = self._format_message(
+                            latest_message,
+                            node_name,
+                            model_token_count,
+                            source_documents
+                        )
 
-                        logger.warning(updates)
+                    updates = {
+                        "is_task_complete": False,
+                        "updates": timeline_message,
+                        "detailed_updates": detailed_message
+                    }
 
-                        yield updates
+                    yield updates
 
             if final_response_content and "---a2ui_JSON---" in final_response_content:
                 text_part, json_string = final_response_content.split("---a2ui_JSON---", 1)
@@ -294,17 +313,6 @@ class DynamicGraph:
                 raw_suggestions = SuggestedQuestions(suggested_questions=["Tell me more details about first data", "Make a summary of data given"])
             suggestions = raw_suggestions.model_dump_json()
 
-            root_observation.update(
-                output={
-                    "session_id": stable_session_id,
-                    "request_id": request_id,
-                    "message_count": processed_messages,
-                    "token_count": model_token_count,
-                    "sources": source_documents,
-                    "final_response": final_content,
-                }
-            )
-
             final_payload = {
                 "is_task_complete": True,
                 "content": final_content,
@@ -314,11 +322,6 @@ class DynamicGraph:
                 "sources": json.dumps(source_documents)
             }
         finally:
-            try:
-                root_observation.end()
-            except Exception:
-                pass
-            self.langfuse_tracing_provider.reset_current_trace_id(trace_token)
             self.langfuse_tracing_provider.reset_current_client(client_token)
             self.langfuse_tracing_provider.reset_current_session_id(session_token)
 

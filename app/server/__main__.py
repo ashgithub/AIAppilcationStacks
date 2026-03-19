@@ -38,7 +38,7 @@ from traditional_app.data_provider import (
 from dotenv import load_dotenv
 load_dotenv()
 
-logging.basicConfig(level=logging.WARNING)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 @click.command()

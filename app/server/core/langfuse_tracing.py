@@ -205,12 +205,13 @@ class LangfuseTracingProvider:
 
     def get_trace_handler(self, trace_context: dict[str, str] | None = None):
         if trace_context is None:
-            trace_context = self.get_current_trace_context()
-        langfuse_handler = SafeLangfuseCallbackHandler(
+            return SafeLangfuseCallbackHandler(
+                public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
+            )
+        return SafeLangfuseCallbackHandler(
             public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
             trace_context=trace_context,
         )
-        return langfuse_handler
 
     def build_observation_metadata(
         self,
@@ -240,9 +241,6 @@ class LangfuseTracingProvider:
         extra_metadata: dict[str, Any] | None = None,
         trace_context: dict[str, str] | None = None,
     ) -> dict[str, Any]:
-        if trace_context is None:
-            trace_context = self.get_current_trace_context()
-
         metadata: dict[str, Any] = {"langfuse_session_id": session_id}
         if user_id:
             metadata["langfuse_user_id"] = user_id

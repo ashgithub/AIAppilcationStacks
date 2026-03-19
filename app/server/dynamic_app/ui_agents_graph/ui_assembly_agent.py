@@ -1,21 +1,16 @@
 import json
 import logging
 import jsonschema
-import os
-import uuid
 
 from langchain.agents import create_agent
 from langchain.messages import HumanMessage, AIMessage
-from langchain_core.runnables import RunnableConfig
 from typing import List
-from langfuse import Langfuse, propagate_attributes
 
 from dynamic_app.ui_agents_graph.widget_tools import get_native_component_example, create_custom_component_tools
 from core.gen_ai_provider import GenAIProvider
 from core.dynamic_app.schema_utils import load_a2ui_schema
 from core.dynamic_app.dynamic_struct import DynamicGraphState
 from core.dynamic_app.prompts import get_ui_assembly_instructions
-from core.langfuse_tracing import LangfuseTracingProvider
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +54,6 @@ class UIAssemblyAgent:
         self,
         base_url: str = None,
         inline_catalog: List[dict] = None,
-        langfuse_client: Langfuse | None = None,
     ):
         self.base_url = base_url or "http://localhost:8000"
         self.inline_catalog = inline_catalog or []
@@ -73,9 +67,6 @@ class UIAssemblyAgent:
         self.agent = None
 
         self.a2ui_schema_object = None
-        
-        self.langfuse_client = langfuse_client
-        self.langfuse_tracing_provider = LangfuseTracingProvider(langfuse_client=langfuse_client)
 
     def _build_agent(self):
         return create_agent(
@@ -142,7 +133,7 @@ Only after calling all required tools, generate the final A2UI JSON response."""
             )
             return {
                 'messages': state['messages'] + [
-                    AIMessage(content="I'm sorry, I'm facing an internal configuration error with my UI components.")
+                    AIMessage(content="I'm sorry, I'm facing an internal configuration error with my UI components.", name=self.agent_name)
                 ]
             }
 
@@ -152,40 +143,8 @@ Only after calling all required tools, generate the final A2UI JSON response."""
             logger.info(
                 f"--- UIAssemblyAgent: Validation attempt {attempt}/{max_retries + 1} ---"
             )
-            session_id = self.langfuse_tracing_provider.get_current_session_id() or uuid.uuid4().hex
-            run_id = uuid.uuid4().hex
-            langfuse_client = self.langfuse_client or self.langfuse_tracing_provider.get_current_client()
-            trace_context = self.langfuse_tracing_provider.get_current_trace_context()
-
             messages = {'messages': [HumanMessage(content=current_query_text)]}
-            with langfuse_client.start_as_current_observation(
-                as_type="span",
-                name="DynamicGraph -> UI Assembly",
-                trace_context=trace_context,
-                input={"attempt": attempt, "query": current_query_text[:250]},
-                metadata=self.langfuse_tracing_provider.build_observation_metadata(
-                    session_id=session_id,
-                    user_id=os.getenv("LANGFUSE_USER_ID", "default_user"),
-                    tags=["ui_assembly"],
-                    extra={"request_id": run_id},
-                ),
-            ) as observation:
-                config:RunnableConfig = self.langfuse_tracing_provider.build_runnable_config(
-                    run_id=run_id,
-                    session_id=session_id,
-                    thread_id=session_id,
-                    user_id=os.getenv("LANGFUSE_USER_ID", "default_user"),
-                    tags=["ui_assembly"],
-                    extra_metadata={"request_id": run_id, "attempt": attempt},
-                    trace_context=trace_context,
-                )
-                with propagate_attributes(
-                    session_id=session_id,
-                    user_id=os.getenv("LANGFUSE_USER_ID", "default_user"),
-                    tags=["ui_assembly"],
-                ):
-                    response = await self.agent.ainvoke(messages, config)
-                observation.update(output={"messages_count": len(response.get("messages", []))})
+            response = await self.agent.ainvoke(messages)
             final_response_content = response['messages'][-1].content
 
             is_valid = False
@@ -237,7 +196,7 @@ Only after calling all required tools, generate the final A2UI JSON response."""
                     f"--- UIAssemblyAgent: Response is valid. Returning final response (Attempt {attempt}). ---"
                 )
                 validated_response = response.copy()
-                validated_response['messages'][-1] = AIMessage(content=final_response_content)
+                validated_response['messages'][-1] = AIMessage(content=final_response_content, name=self.agent_name)
                 return validated_response
 
             if attempt <= max_retries:
@@ -261,7 +220,7 @@ Only after calling all required tools, generate the final A2UI JSON response."""
                 AIMessage(content=(
                     "I'm sorry, I'm having trouble generating the interface for that request right now. "
                     "Please try again in a moment."
-                ))
+                ), name=self.agent_name)
             ]
         }
     #endregion
