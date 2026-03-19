@@ -12,7 +12,7 @@ This file includes different options to test out the LLM and Agent applications 
 2. RAG queries:
     - What are the EPA recommended actions for power outages in the US? (passed)
     - What immediate steps should be taken during a widespread power outage according to US guidelines? (passed)
-    - Summarize key communication protocols from disaster response manuals during outages (passed)
+    - Which are the protocols followed by mexican regulations for ambiental disaster attention?
 3. DB + RAG queries (mixed):
     - Look for the outages in residential areas, and then explain, what recovery procedures does the disaster manual recommend? (passed)
     - Compare average outage duration by cause category and reference relevant EPA guidelines (passed)
@@ -25,6 +25,7 @@ This file includes different options to test out the LLM and Agent applications 
 2. RAG queries:
     - How do disaster response manuals address communication during outages? (text)
     - Create a timeline visualization of FEMA assistance steps for electrical outages (timeline most)
+    - How can we identify and evaluate risks according to mexican guidelines?
 3. DB + RAG queries (mixed):
     - Map outage locations and overlay EPA recommended response zones (map dashboard)
     - Generate a dashboard showing work order priorities with referenced manual safety protocols (Not working - orchestrator decided not to call)
@@ -38,7 +39,7 @@ This file includes different options to test out the LLM and Agent applications 
 2. RAG queries:
     - What immediate steps should be taken during a widespread power outage according to US guidelines? (text vs text)
     - What procedures are outlined in the Mexican disaster manual for infrastructure recovery compared to EPA and FEMA available procedures?
-    - what are the recommended steps for earthquakes over mexico?
+    - what are the recommended attencion guidelines for earthquakes at mexico?
 3. DB + RAG queries (mixed):
     - Compare outage resolution times for circuits originating from different substations, and what the disaster manual says about response times (bar grpah vs md chart)
     - Analyze customer complaints by outage category and correlate with FEMA assistance guidelines (agent sometimes fails)

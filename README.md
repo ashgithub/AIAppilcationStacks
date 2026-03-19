@@ -21,6 +21,8 @@ An intelligent application that leverages AI agents to dynamically generate, mod
 > If using Mac/Linux try looking at [compatibility readme](./MAC-LINUX.md) to fix errors
 > Remove the usage of `shx` package if errors persist.
 > Start clean dependencies installation specially for client.
+>
+> Langfuse host: [host](https://apps.research-lab.ugbu.oraclepdemos.com/langfuse/organization/cmmwz8eo00138wp07y72jd9dh)
 
 ## Quick Start
 
