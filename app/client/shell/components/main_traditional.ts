@@ -1,6 +1,9 @@
 import { LitElement, html, css } from "lit"
 import { customElement, property, state } from "lit/decorators.js"
+import { consume } from "@lit/context"
 import { v0_8 } from "@a2ui/lit";
+import { A2UIRouter, routerContext } from "../services/a2ui-router.js";
+import { buildServerUrl } from "../services/server-endpoints.js";
 import "./stat_bar.js"
 import { registerShellComponents } from "../ui/custom-components/register-components.js";
 import { outageConfig } from "../configs/outage_config.js"
@@ -12,6 +15,9 @@ registerShellComponents();
 // #region Component
 @customElement("static-module")
 export class StaticModule extends LitElement {
+  @consume({ context: routerContext })
+  accessor router!: A2UIRouter;
+
   @property({ type: String }) accessor currentTab = 'summary';
   @property({ attribute: false }) accessor component: any = this;
   
@@ -29,12 +35,11 @@ export class StaticModule extends LitElement {
 
   private async initializeData() {
     try {
-      const response = await fetch('http://localhost:10002/traditional');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const messages: v0_8.Types.ServerToClientMessage[] = await response.json();
+      const messages = this.router
+        ? await this.router.fetchTraditionalMessages('/traditional')
+        : await this.fetchDirect('/traditional');
       this.processor.processMessages(messages);
+      this.requestUpdate();
     } catch (error) {
       console.error('Failed to fetch outage data from server:', error);
       // Fall back to local data if the server is unavailable.
@@ -44,16 +49,22 @@ export class StaticModule extends LitElement {
 
   private async fetchData(endpoint: string) {
     try {
-      const response = await fetch(`http://localhost:10002${endpoint}`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const messages: v0_8.Types.ServerToClientMessage[] = await response.json();
+      const messages = this.router
+        ? await this.router.fetchTraditionalMessages(endpoint)
+        : await this.fetchDirect(endpoint);
       this.processor.processMessages(messages);
       this.requestUpdate();
     } catch (error) {
       console.error(`Failed to fetch data from ${endpoint}:`, error);
     }
+  }
+
+  private async fetchDirect(endpoint: string): Promise<v0_8.Types.ServerToClientMessage[]> {
+    const response = await fetch(buildServerUrl(endpoint));
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
   }
 
   private async loadEnergyTrends() {

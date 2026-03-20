@@ -1,6 +1,7 @@
 // Old schema should be removed, kept as example
 
 import { AppConfig } from "./types.js";
+import { SERVER_URLS } from "../services/server-endpoints.js";
 
 export const config: AppConfig = {
   key: "restaurant",
@@ -39,5 +40,5 @@ export const config: AppConfig = {
     "Creating amazing visuals...",
     "Almost there...",
   ],
-  serverUrl: "http://localhost:10002/agent",
+  serverUrl: SERVER_URLS.agent,
 };

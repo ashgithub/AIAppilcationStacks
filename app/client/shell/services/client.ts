@@ -19,6 +19,7 @@ import { A2AClient } from "@a2a-js/sdk/client";
 import { v0_8 } from "@a2ui/lit";
 import { registerShellComponents } from "../ui/custom-components/register-components.js";
 import { componentRegistry } from "@a2ui/lit/ui";
+import { DEFAULT_SERVER_ORIGIN } from "./server-endpoints.js";
 
 const A2UI_MIME_TYPE = "application/json+a2ui";
 
@@ -38,7 +39,7 @@ export class A2UIClient extends EventTarget {
 
   async #getClient() {
     if (!this.#client) {
-      const baseUrl = this.#serverUrl || "http://localhost:10002";
+      const baseUrl = this.#serverUrl || DEFAULT_SERVER_ORIGIN;
 
       this.#client = await A2AClient.fromCardUrl(
         `${baseUrl}/.well-known/agent-card.json`,

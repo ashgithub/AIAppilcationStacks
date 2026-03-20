@@ -1,6 +1,8 @@
 import { A2UIClient } from "./client.js";
 import { v0_8 } from "@a2ui/lit";
 import { createContext } from "@lit/context";
+import { normalizeStreamingEvent } from "./stream-event-normalizer.js";
+import { buildServerUrl } from "./server-endpoints.js";
 
 export class A2UIRouter extends EventTarget {
   private clients = new Map<string, A2UIClient>();
@@ -11,11 +13,14 @@ export class A2UIRouter extends EventTarget {
       const client = new A2UIClient(serverUrl);
 
       client.addEventListener('streaming-event', (event: any) => {
+        const normalized = normalizeStreamingEvent(event.detail);
+
         // Attach source server so each module can filter events.
         this.dispatchEvent(new CustomEvent('streaming-event', {
           detail: {
             ...event.detail,
-            serverUrl
+            serverUrl,
+            normalized,
           },
           bubbles: true,
           composed: true
@@ -73,6 +78,16 @@ export class A2UIRouter extends EventTarget {
     }));
 
     return this.sendMessage(serverUrl, message, true, requestId);
+  }
+
+  async fetchTraditionalMessages(
+    endpoint: string = "/traditional"
+  ): Promise<v0_8.Types.ServerToClientMessage[]> {
+    const response = await fetch(buildServerUrl(endpoint));
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
   }
 
   getActiveServers(): string[] {
