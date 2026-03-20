@@ -22,7 +22,7 @@ from a2a.utils import (
     new_task,
 )
 from a2a.utils.errors import ServerError
-from a2ui.extension.a2ui_extension import create_a2ui_part, try_activate_a2ui_extension
+from a2ui.a2a import create_a2ui_part, try_activate_a2ui_extension
 from dynamic_app.dynamic_agents_graph import DynamicGraph
 from core.dynamic_app.dynamic_struct import AgentConfig, CONFIG_SCHEMA, DEFAULT_CONFIG
 

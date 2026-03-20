@@ -1,17 +1,17 @@
 /*
- Copyright 2025 Google LLC
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
-      https://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
+ * Copyright 2025 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 import { CustomElementConstructorOf } from "./ui.js";
@@ -20,6 +20,11 @@ export class ComponentRegistry {
   private schemas: Map<string, unknown> = new Map();
   private registry: Map<string, CustomElementConstructorOf<HTMLElement>> =
     new Map();
+  private normalizedTypeMap: Map<string, string> = new Map();
+
+  private normalizeTypeName(typeName: string): string {
+    return typeName.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+  }
 
   register(
     typeName: string,
@@ -34,6 +39,7 @@ export class ComponentRegistry {
     }
 
     this.registry.set(typeName, constructor);
+    this.normalizedTypeMap.set(this.normalizeTypeName(typeName), typeName);
     if (schema) {
       this.schemas.set(typeName, schema);
     }
@@ -56,7 +62,18 @@ export class ComponentRegistry {
   }
 
   get(typeName: string): CustomElementConstructorOf<HTMLElement> | undefined {
-    return this.registry.get(typeName);
+    const exactMatch = this.registry.get(typeName);
+    if (exactMatch) {
+      return exactMatch;
+    }
+
+    const normalized = this.normalizeTypeName(typeName);
+    const canonicalType = this.normalizedTypeMap.get(normalized);
+    if (!canonicalType) {
+      return undefined;
+    }
+
+    return this.registry.get(canonicalType);
   }
 
   getInlineCatalog(): { components: { [key: string]: unknown } } {

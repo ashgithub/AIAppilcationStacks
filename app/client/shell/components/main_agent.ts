@@ -35,11 +35,19 @@ import { AppConfig } from "../configs/types.js";
 import { config as restaurantConfig } from "../configs/restaurant.js";
 import { agentConfig } from "../configs/agent_config.js";
 
+import { marked } from "marked";
+
 // #region Component
 @customElement("dynamic-module")
 export class DynamicModule extends LitElement {
   @provide({ context: UI.Context.themeContext })
   accessor theme: v0_8.Types.Theme = uiTheme;
+
+  @provide({ context: UI.Context.markdown })
+  accessor markdownRenderer: v0_8.Types.MarkdownRenderer = async (md, _options) => {
+    return marked.parse(md) as string;
+  };
+
 
   @consume({ context: routerContext })
   accessor router!: A2UIRouter;

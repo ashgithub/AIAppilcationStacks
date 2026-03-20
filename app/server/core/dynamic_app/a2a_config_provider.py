@@ -2,7 +2,7 @@
 
 # region Imports
 from a2a.types import AgentCapabilities, AgentSkill
-from a2ui.extension.a2ui_extension import get_a2ui_agent_extension
+from a2ui.a2a import get_a2ui_agent_extension
 # endregion Imports
 
 # region Capabilities

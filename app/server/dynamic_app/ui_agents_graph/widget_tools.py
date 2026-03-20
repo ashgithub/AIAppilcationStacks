@@ -44,20 +44,31 @@ async def get_native_component_catalog() -> str:
 #region Dynamic Tools
 def create_custom_component_tools(inline_catalog, allowed_components=None):
     """Create custom-component tool wrappers from inline catalog definitions."""
+    def _catalog_name(item):
+        return item.get("name") or item.get("widget-name", "")
 
     @tool()
     async def get_custom_component_catalog() -> str:
         """Returns the list of available custom component names"""
         if allowed_components:
-            component_names = [name for name in allowed_components if any((item.get("name") or item.get("widget-name", "")).lower() == name.lower() for item in inline_catalog)]
+            allowed_lookup = {name.lower() for name in allowed_components}
+            component_names = [
+                _catalog_name(item)
+                for item in inline_catalog
+                if _catalog_name(item) and _catalog_name(item).lower() in allowed_lookup
+            ]
         else:
-            component_names = [(item.get("name") or item.get("widget-name", "")) for item in inline_catalog if item.get("name") or item.get("widget-name")]
+            component_names = [
+                _catalog_name(item)
+                for item in inline_catalog
+                if _catalog_name(item)
+            ]
         return json.dumps({"available_components": component_names})
 
     @tool()
     async def get_custom_component_example(component_name: str) -> str:
         """Return the A2UI example schema for a custom component."""
-        if allowed_components and component_name not in [comp.lower() for comp in allowed_components]:
+        if allowed_components and component_name.lower() not in [comp.lower() for comp in allowed_components]:
             return f"Component '{component_name}' is not in the allowed list: {allowed_components}"
 
         for item in inline_catalog:

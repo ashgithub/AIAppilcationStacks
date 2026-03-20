@@ -26,6 +26,11 @@ An intelligent application that leverages AI agents to dynamically generate, mod
 
 ## Quick Start
 
+Now need to install the python package first on AIAppilcationStacks\libs\agent_sdks\python>uv sync
+AIAppilcationStacks\libs\agent_sdks\python>uv pip install -e .
+
+Then sync the server dependencies
+
 1. **Setup libraries:**
    ```bash
    # Build renderers

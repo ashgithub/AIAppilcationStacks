@@ -44,9 +44,10 @@ class UIAssemblyAgent:
         try:
             parsed = json.loads(data)
             if isinstance(parsed, dict) and 'widgets' in parsed:
-                return [widget.get('name', '').lower() for widget in parsed['widgets']]
+                component_names = [widget.get('name', '') for widget in parsed['widgets']]
+                return [name for name in component_names if isinstance(name, str) and name.strip()]
         except (json.JSONDecodeError, TypeError):
-            return ['bar-graph']
+            return ['BarGraph']
     #endregion
 
     #region Setup
