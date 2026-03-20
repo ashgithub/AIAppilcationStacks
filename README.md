@@ -1,6 +1,5 @@
 <!-- This branch is to test integration of deepagents in parallel invokation -->
 
-
 # AI Application Stacks
 
 A comprehensive demonstration project showcasing the evolution of application development paradigms, from traditional static interfaces to dynamic AI-driven experiences.
