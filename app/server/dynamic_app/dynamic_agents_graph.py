@@ -61,7 +61,7 @@ def extract_RAG_sources(semantic_result: str) -> list[str]:
 class DynamicGraph:
     """Graph that orchestrates backend retrieval and UI generation."""
 
-    SUPPORTED_CONTENT_TYPES = ["text", "text/plain", "text/event-stream"]
+    SUPPORTED_CONTENT_TYPES = ["text", "text/plain", "text/event-stream", "application/json+a2ui"]
     CONTENT_TRUNCATION_LENGTH = 50
 
     def __init__(
@@ -295,7 +295,9 @@ class DynamicGraph:
                     updates = {
                         "is_task_complete": False,
                         "updates": timeline_message,
-                        "detailed_updates": detailed_message
+                        "detailed_updates": detailed_message,
+                        # Expose raw model content so the executor can progressively parse A2UI payloads.
+                        "content": str(getattr(latest_message, "content", "") or ""),
                     }
 
                     yield updates

@@ -4,7 +4,7 @@ import { provide } from "@lit/context"
 import { a2uiRouter, routerContext } from "./services/a2ui-router.js"
 import { designTokensCSS, buttonStyles, colors, radius, spacing } from "./theme/design-tokens.js"
 import { SERVER_URLS } from "./services/server-endpoints.js";
-import "./components/main_traditional"
+import "./components/main_traditional.js"
 import "./components/chatTextArea"
 import "./components/main_agent"
 import "./components/main_chat"

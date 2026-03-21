@@ -3,6 +3,36 @@ from langchain.tools import tool
 from core.dynamic_app.schemas.widget_schemas.a2ui_custom_catalog_list import CUSTOM_CATALOG
 from core.dynamic_app.schemas.native_examples.catalog import NATIVE_EXAMPLES_CATALOG
 
+def _normalize_component_name(value: str) -> str:
+    return "".join(ch for ch in str(value).strip().lower() if ch.isalnum())
+
+
+def _build_native_alias_lookup() -> dict[str, str]:
+    lookup: dict[str, str] = {}
+    for example in NATIVE_EXAMPLES_CATALOG:
+        canonical = example.get("component-name", "")
+        if not canonical:
+            continue
+        lookup[_normalize_component_name(canonical)] = canonical
+
+    # Helpful aliases frequently produced by models.
+    aliases = {
+        "text": "Text",
+        "card": "Card",
+        "row": "Row",
+        "column": "Column",
+        "table": "Table",
+        "timeline": "Timeline",
+        "map": "Map",
+    }
+    for alias, canonical in aliases.items():
+        if _normalize_component_name(canonical) in lookup:
+            lookup[_normalize_component_name(alias)] = lookup[_normalize_component_name(canonical)]
+    return lookup
+
+
+NATIVE_COMPONENT_LOOKUP = _build_native_alias_lookup()
+
 
 #region Catalog Tools
 @tool()
@@ -25,8 +55,10 @@ async def get_widget_catalog() -> str:
 @tool()
 async def get_native_component_example(component_name: str) -> str:
     """Return a complete A2UI example for a native component."""
+    normalized = _normalize_component_name(component_name)
+    canonical = NATIVE_COMPONENT_LOOKUP.get(normalized, component_name)
     for example in NATIVE_EXAMPLES_CATALOG:
-        if example["component-name"] == component_name:
+        if example["component-name"] == canonical:
             return example["example"]
     return f"No example found for native component '{component_name}'"
 

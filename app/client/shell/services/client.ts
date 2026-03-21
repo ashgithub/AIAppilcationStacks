@@ -22,6 +22,45 @@ import { componentRegistry } from "@a2ui/lit/ui";
 import { DEFAULT_SERVER_ORIGIN } from "./server-endpoints.js";
 
 const A2UI_MIME_TYPE = "application/json+a2ui";
+const A2UI_STANDARD_CATALOG_ID = "https://a2ui.org/specification/v0_8/standard_catalog_definition.json";
+
+function isServerToClientMessage(value: unknown): value is v0_8.Types.ServerToClientMessage {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  return Boolean(
+    candidate.beginRendering ||
+      candidate.surfaceUpdate ||
+      candidate.dataModelUpdate ||
+      candidate.deleteSurface
+  );
+}
+
+function collectServerMessages(value: unknown, out: v0_8.Types.ServerToClientMessage[]): void {
+  if (!value) return;
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectServerMessages(item, out);
+    }
+    return;
+  }
+
+  if (isServerToClientMessage(value)) {
+    out.push(value);
+    return;
+  }
+
+  if (typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    if ("data" in obj) collectServerMessages(obj.data, out);
+    if ("root" in obj) collectServerMessages(obj.root, out);
+    if ("part" in obj) collectServerMessages(obj.part, out);
+    if ("payload" in obj) collectServerMessages(obj.payload, out);
+  }
+}
 
 export class A2UIClient extends EventTarget {
   #serverUrl: string;
@@ -73,9 +112,20 @@ export class A2UIClient extends EventTarget {
       clientMessage = message;
     }
 
+    const supportedCatalogIds = new Set<string>([A2UI_STANDARD_CATALOG_ID]);
+    const catalogId = (catalog as { catalogId?: string } | null | undefined)?.catalogId;
+    if (catalogId) {
+      supportedCatalogIds.add(catalogId);
+    }
+
     const finalClientMessage = {
       ...clientMessage,
       metadata: {
+        a2uiClientCapabilities: {
+          supportedCatalogIds: Array.from(supportedCatalogIds),
+          inlineCatalogs: [catalog],
+        },
+        // Backward compatibility for server handlers still reading metadata.inlineCatalogs directly.
         inlineCatalogs: [catalog],
         ...(sessionId && { sessionId }),
       },
@@ -96,6 +146,14 @@ export class A2UIClient extends EventTarget {
 
     const streamingResponse = client.sendMessageStream({
       message: finalMessage,
+      configuration: {
+        acceptedOutputModes: [
+          "text",
+          "text/plain",
+          "text/event-stream",
+          A2UI_MIME_TYPE,
+        ],
+      },
     });
 
     const messages: v0_8.Types.ServerToClientMessage[] = [];
@@ -108,12 +166,17 @@ export class A2UIClient extends EventTarget {
         }
       }));
 
-      if (event.kind === "status-update" && event.status?.message?.parts) {
-        for (const part of event.status.message.parts) {
-          if (part.kind === 'data') {
-            const a2uiMessage = part.data as v0_8.Types.ServerToClientMessage;
-            messages.push(a2uiMessage);
-          }
+      const statusParts = event.kind === "status-update" ? (event.status?.message?.parts || []) : [];
+      const artifactParts = event.kind === "artifact-update" ? (event.artifact?.parts || []) : [];
+
+      for (const part of [...statusParts, ...artifactParts]) {
+        if (part.kind === "data") {
+          collectServerMessages(part.data, messages);
+          continue;
+        }
+        const root = (part as { root?: { kind?: string; data?: unknown } }).root;
+        if (root?.kind === "data") {
+          collectServerMessages(root.data, messages);
         }
       }
     }

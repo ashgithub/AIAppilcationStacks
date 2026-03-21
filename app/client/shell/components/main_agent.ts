@@ -112,6 +112,9 @@ export class DynamicModule extends LitElement {
   @state()
   accessor #totalDuration: number = 0;
 
+  @state()
+  accessor #activeRequestId: string | null = null;
+
   // #region Internal Services
   #processor = v0_8.Data.createSignalA2uiMessageProcessor();
   #loadingInterval: number | undefined;
@@ -134,6 +137,7 @@ export class DynamicModule extends LitElement {
     const sentEvent = customEvent.detail;
 
     if (sentEvent.serverUrl === this.config.serverUrl) {
+      this.#activeRequestId = sentEvent.requestId || null;
       this.#startTime = sentEvent.timestamp;
       this.#elapsedTime = null;
       this.#currentElapsedTime = 0;
@@ -145,6 +149,8 @@ export class DynamicModule extends LitElement {
       this.#lastUserQuestion = sentEvent.message || '';
       console.log("Query sent on agent")
       this.status = []
+      this.#processor.clearSurfaces();
+      this.#lastMessages = [];
       this.#startStopwatch();
     }
   };
@@ -443,6 +449,7 @@ export class DynamicModule extends LitElement {
   // TODO: move this mapping logic into a typed router helper.
   private updateStatusFromStreamingEvent(event: any) {
     if (event.serverUrl !== this.config.serverUrl) return;
+    if (this.#activeRequestId && event.clientRequestId && event.clientRequestId !== this.#activeRequestId) return;
     const normalized = event.normalized;
 
     if (event.kind === 'status-update') {
@@ -513,20 +520,22 @@ export class DynamicModule extends LitElement {
 
   private processMessages(event: any) {
     if (event.serverUrl !== this.config.serverUrl) return;
+    if (this.#activeRequestId && event.clientRequestId && event.clientRequestId !== this.#activeRequestId) return;
     const normalized = event.normalized;
 
-    if (event.kind === "status-update") {
-      const newMessages: v0_8.Types.ServerToClientMessage[] = normalized?.uiMessages || [];
-
-      if (newMessages.length > 0) {
-        this.#processingSurfaces = true;
-        this.#startLoadingAnimation();
-        this.#lastMessages = newMessages;
-        this.#processor.clearSurfaces();
-        this.#processor.processMessages(this.#lastMessages);
-        this.#stopLoadingAnimation();
-        this.#processingSurfaces = false;
+    const newMessages: v0_8.Types.ServerToClientMessage[] = normalized?.uiMessages || [];
+    if (newMessages.length > 0) {
+      // As soon as we receive the first UI delta, switch from request loader
+      // to the progressive surface renderer.
+      if (this.#requesting) {
+        this.#requesting = false;
       }
+      this.#processingSurfaces = true;
+      this.#startLoadingAnimation();
+      this.#lastMessages = [...this.#lastMessages, ...newMessages];
+      this.#processor.processMessages(newMessages);
+      this.#stopLoadingAnimation();
+      this.#processingSurfaces = false;
     }
   }
   // #endregion Streaming And Parsing

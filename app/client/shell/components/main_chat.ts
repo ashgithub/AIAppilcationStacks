@@ -52,6 +52,9 @@ export class ChatModule extends LitElement {
   @state()
   accessor #elapsedTime: number | null = null;
 
+  @state()
+  accessor #activeRequestId: string | null = null;
+
   private defaultServerUrl = SERVER_URLS.llm;
 
   #onStreamingEvent = (event: Event) => {
@@ -68,6 +71,7 @@ export class ChatModule extends LitElement {
     }
 
     this.#startTime = sentEvent.timestamp;
+    this.#activeRequestId = sentEvent.requestId || null;
     this.#elapsedTime = null;
     this.#totalDuration = 0;
     this.tokenCount = "";
@@ -113,6 +117,7 @@ export class ChatModule extends LitElement {
   // #region Streaming
   private processStreamingEvent(event: any) {
     if (event.serverUrl !== this.defaultServerUrl) return;
+    if (this.#activeRequestId && event.clientRequestId && event.clientRequestId !== this.#activeRequestId) return;
     const normalized = event.normalized;
 
     if (event.kind === 'status-update') {

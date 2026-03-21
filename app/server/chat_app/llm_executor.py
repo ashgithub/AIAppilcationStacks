@@ -1,4 +1,6 @@
 import logging
+import json
+from typing import Any
 
 from langfuse import Langfuse
 from a2a.server.agent_execution import AgentExecutor, RequestContext
@@ -14,13 +16,52 @@ from a2a.types import (
 )
 from a2a.utils import (
     new_agent_parts_message,
-    new_agent_text_message,
     new_task,
 )
 from a2a.utils.errors import ServerError
+from a2ui.a2a import create_a2ui_part
 from chat_app.main_llm import OCIOutageEnergyLLM
 
 logger = logging.getLogger(__name__)
+
+
+def _extract_a2ui_messages_from_content(content: str) -> list[dict[str, Any]]:
+    """Extract A2UI messages from delimited content blocks."""
+    if not isinstance(content, str) or "---a2ui_JSON---" not in content:
+        return []
+
+    _, json_string = content.split("---a2ui_JSON---", 1)
+    cleaned = json_string.strip()
+    if cleaned.startswith("```json"):
+        cleaned = cleaned[len("```json"):].strip()
+    if cleaned.endswith("```"):
+        cleaned = cleaned[:-3].strip()
+
+    if not cleaned:
+        return []
+
+    try:
+        parsed = json.loads(cleaned)
+    except json.JSONDecodeError:
+        logger.debug("Skipping non-JSON A2UI fragment in LLM update.")
+        return []
+
+    if isinstance(parsed, list):
+        return [msg for msg in parsed if isinstance(msg, dict)]
+    if isinstance(parsed, dict):
+        return [parsed]
+    return []
+
+
+def _append_unique_a2ui_parts(
+    target_parts: list[Part], content: str, seen_hashes: set[str]
+) -> None:
+    for message in _extract_a2ui_messages_from_content(content):
+        serialized = json.dumps(message, sort_keys=True, ensure_ascii=False)
+        if serialized in seen_hashes:
+            continue
+        seen_hashes.add(serialized)
+        target_parts.append(create_a2ui_part(message))
 
 
 #region Executor
@@ -40,6 +81,7 @@ class OutageEnergyLLMExecutor(AgentExecutor):
         event_queue: EventQueue,
     ) -> None:
         query = ""
+        emitted_a2ui_hashes: set[str] = set()
 
         logger.info(
             f"--- Client requested extensions: {context.requested_extensions} ---"
@@ -54,17 +96,21 @@ class OutageEnergyLLMExecutor(AgentExecutor):
             )
             for i, part in enumerate(context.message.parts):
                 if isinstance(part.root, DataPart):
-                    if "userAction" in part.root.data:
+                    data = part.root.data
+                    metadata = data.get("metadata", {}) if isinstance(data, dict) else {}
+
+                    if "sessionId" in metadata:
+                        session_id = metadata["sessionId"]
+                        logger.info(f"  Part {i}: Found sessionId in metadata: {session_id}")
+
+                    if "userAction" in data:
                         logger.info(f"  Part {i}: Found a2ui UI ClientEvent payload.")
-                        ui_event_part = part.root.data["userAction"]
-                    elif "request" in part.root.data:
+                        ui_event_part = data["userAction"]
+                    elif "request" in data:
                         logger.info(f"  Part {i}: Found request in DataPart.")
-                        query = part.root.data["request"]
-                        if "metadata" in part.root.data and "sessionId" in part.root.data["metadata"]:
-                            session_id = part.root.data["metadata"]["sessionId"]
-                            logger.info(f"  Part {i}: Found sessionId in metadata: {session_id}")
+                        query = data["request"]
                     else:
-                        logger.info(f"  Part {i}: DataPart (data: {part.root.data})")
+                        logger.info(f"  Part {i}: DataPart (data: {data})")
                 elif isinstance(part.root, TextPart):
                     logger.info(f"  Part {i}: TextPart (text: {part.root.text})")
                     if not query:
@@ -91,15 +137,24 @@ class OutageEnergyLLMExecutor(AgentExecutor):
         async for item in agent.oci_stream(query, memory_id):
             is_task_complete = item["is_task_complete"]
             if not is_task_complete:
+                update_parts = [Part(root=TextPart(text=item["updates"]))]
+                _append_unique_a2ui_parts(update_parts, item.get("content", ""), emitted_a2ui_hashes)
                 await updater.update_status(
                     TaskState.working,
-                    new_agent_text_message(item["updates"], task.context_id, task.id),
+                    new_agent_parts_message(update_parts, task.context_id, task.id),
                 )
                 continue
             
             content = item["content"]
             final_parts = []
-            final_parts.append(Part(root=TextPart(text=content.strip())))
+            if "---a2ui_JSON---" in content:
+                text_content, _ = content.split("---a2ui_JSON---", 1)
+                if text_content.strip():
+                    final_parts.append(Part(root=TextPart(text=text_content.strip())))
+            else:
+                final_parts.append(Part(root=TextPart(text=content.strip())))
+
+            _append_unique_a2ui_parts(final_parts, content, emitted_a2ui_hashes)
 
             final_state = item['final_state']
             final_parts.append(Part(root=TextPart(text=final_state.strip())))

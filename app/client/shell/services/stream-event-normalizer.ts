@@ -4,6 +4,8 @@ type StreamPart = {
   kind?: string;
   text?: string;
   data?: unknown;
+  root?: unknown;
+  metadata?: Record<string, unknown>;
 };
 
 type RawStreamingEvent = {
@@ -14,6 +16,9 @@ type RawStreamingEvent = {
     message?: {
       parts?: StreamPart[];
     };
+  };
+  artifact?: {
+    parts?: StreamPart[];
   };
 };
 
@@ -95,6 +100,82 @@ function isServerToClientMessage(value: unknown): value is v0_8.Types.ServerToCl
       candidate.dataModelUpdate ||
       candidate.deleteSurface
   );
+}
+
+function extractTextFromPart(part: StreamPart): string[] {
+  const texts: string[] = [];
+
+  if (part.kind === "text" && typeof part.text === "string") {
+    texts.push(part.text);
+  }
+
+  const root = part.root as Record<string, unknown> | undefined;
+  if (root && typeof root === "object") {
+    if (root.kind === "text" && typeof root.text === "string") {
+      texts.push(root.text);
+    }
+  }
+
+  return texts;
+}
+
+function collectServerMessages(value: unknown, out: v0_8.Types.ServerToClientMessage[]): void {
+  if (!value) return;
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectServerMessages(item, out);
+    }
+    return;
+  }
+
+  if (isServerToClientMessage(value)) {
+    out.push(value);
+    return;
+  }
+
+  if (typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+
+    // Common wrappers for data parts in different transports/SDK shapes.
+    if ("data" in obj) {
+      collectServerMessages(obj.data, out);
+    }
+    if ("root" in obj) {
+      collectServerMessages(obj.root, out);
+    }
+    if ("part" in obj) {
+      collectServerMessages(obj.part, out);
+    }
+    if ("payload" in obj) {
+      collectServerMessages(obj.payload, out);
+    }
+  }
+}
+
+function extractUiMessagesFromPart(part: StreamPart): v0_8.Types.ServerToClientMessage[] {
+  const uiMessages: v0_8.Types.ServerToClientMessage[] = [];
+
+  if (part.kind === "data") {
+    collectServerMessages(part.data, uiMessages);
+  }
+
+  const root = part.root as Record<string, unknown> | undefined;
+  if (root && typeof root === "object") {
+    if (root.kind === "data") {
+      collectServerMessages(root.data, uiMessages);
+    } else {
+      collectServerMessages(root, uiMessages);
+    }
+  }
+
+  return uiMessages;
+}
+
+function extractPartsFromEvent(event: RawStreamingEvent): StreamPart[] {
+  const statusParts = event.status?.message?.parts || [];
+  const artifactParts = event.artifact?.parts || [];
+  return [...statusParts, ...artifactParts];
 }
 
 function pickMetadataFromFinalTextParts(textParts: string[]) {
@@ -187,27 +268,20 @@ export function normalizeStreamingEvent(raw: unknown): NormalizedStreamingEvent 
   const kind = event.kind || "unknown";
   const isFinal = Boolean(event.final);
   const state = event.status?.state || null;
-  const parts = event.status?.message?.parts || [];
+  const parts = extractPartsFromEvent(event);
 
   const textParts: string[] = [];
   const uiMessages: v0_8.Types.ServerToClientMessage[] = [];
 
   for (const part of parts) {
-    if (part.kind === "text" && typeof part.text === "string") {
-      textParts.push(part.text);
-      continue;
+    const partTexts = extractTextFromPart(part);
+    if (partTexts.length > 0) {
+      textParts.push(...partTexts);
     }
 
-    if (part.kind === "data") {
-      if (Array.isArray(part.data)) {
-        for (const item of part.data) {
-          if (isServerToClientMessage(item)) {
-            uiMessages.push(item);
-          }
-        }
-      } else if (isServerToClientMessage(part.data)) {
-        uiMessages.push(part.data);
-      }
+    const partUiMessages = extractUiMessagesFromPart(part);
+    if (partUiMessages.length > 0) {
+      uiMessages.push(...partUiMessages);
     }
   }
 

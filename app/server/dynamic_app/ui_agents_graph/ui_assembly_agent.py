@@ -6,7 +6,11 @@ from langchain.agents import create_agent
 from langchain.messages import HumanMessage, AIMessage
 from typing import List
 
-from dynamic_app.ui_agents_graph.widget_tools import get_native_component_example, create_custom_component_tools
+from dynamic_app.ui_agents_graph.widget_tools import (
+    get_native_component_catalog,
+    get_native_component_example,
+    create_custom_component_tools,
+)
 from core.gen_ai_provider import GenAIProvider
 from core.dynamic_app.schema_utils import load_a2ui_schema
 from core.dynamic_app.dynamic_struct import DynamicGraphState
@@ -72,7 +76,12 @@ class UIAssemblyAgent:
     def _build_agent(self):
         return create_agent(
             model=self._client,
-            tools=[self.get_custom_component_example_tool, get_native_component_example],
+            tools=[
+                self.get_custom_component_catalog_tool,
+                self.get_custom_component_example_tool,
+                get_native_component_catalog,
+                get_native_component_example,
+            ],
             system_prompt=self.system_prompt,
             name=self.agent_name
         )
