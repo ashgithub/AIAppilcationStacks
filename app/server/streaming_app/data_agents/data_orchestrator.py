@@ -1,6 +1,7 @@
 import logging
 
 from langgraph.graph import MessagesState
+from langgraph.checkpoint.memory import InMemorySaver
 
 from streaming_app.data_agents.nl2graph_agent import call_graphDB
 from streaming_app.data_agents.rag_agent import semantic_search
@@ -17,6 +18,7 @@ class DataOrchestrator(BaseAgent):
         self.agent_name = "data_orchestrator"
         self.system_prompt = BACKEND_ORCHESTRATOR_INSTRUCTIONS
         self.tools = [call_graphDB, semantic_search]
+        self.checkpointer=InMemorySaver()
         self.agent = self.build_agent()
 
     async def __call__(self, state: MessagesState):

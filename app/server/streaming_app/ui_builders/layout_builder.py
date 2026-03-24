@@ -1,8 +1,8 @@
-import json
 import logging
+import json
 
 from pydantic import BaseModel, Field, ConfigDict
-from langchain.messages import AIMessage
+from langchain.messages import AIMessage, HumanMessage, AnyMessage
 
 from core.base_agent import BaseAgent
 from core.dynamic_app.dynamic_struct import DynamicGraphState
@@ -54,7 +54,9 @@ class LayoutBuilder(BaseAgent):
 
     def __init__(self):
         super().__init__()
-        self.agent_name = "ui_parallel_skeleton_planner"
+        self.model="xai.grok-4-fast-reasoning"
+        self.model_kwargs={"temperature":0.1}
+        self.agent_name = "layout_planner"
         self.system_prompt = UI_PARALLEL_LAYOUT_PLANNER_INSTRUCTIONS
         self.tools = [
             get_widget_catalog,
@@ -198,8 +200,53 @@ class LayoutBuilder(BaseAgent):
 
         return structured
 
+    def _ensure_minimum_viable_package(self, structured: ParallelSkeletonPlan) -> ParallelSkeletonPlan:
+        """Guarantee at least one safe package, without forcing a second widget family."""
+        if structured.work_packages:
+            return structured
+
+        structured.work_packages = [
+            ParallelWorkPackage(
+                package_id="pkg-1",
+                widgets=["Text"],
+                target_component_ids=["summary-main"],
+                target_data_keys=["summaryData"],
+                priority=1,
+                rationale="Fallback package added because planner returned no packages.",
+            )
+        ]
+        return structured
+
+    @staticmethod
+    def _find_latest_message_by_name(messages: list[AnyMessage], name: str) -> AnyMessage | None:
+        for message in reversed(messages):
+            if getattr(message, "name", None) == name:
+                return message
+        return None
+
+    def _build_planner_state(self, state: DynamicGraphState) -> DynamicGraphState:
+        """Trim context to reduce token load: latest user intent + latest backend data summary."""
+        messages = state.get("messages", [])
+        latest_user = next((m for m in reversed(messages) if isinstance(m, HumanMessage)), None)
+        latest_backend = self._find_latest_message_by_name(messages, "data_orchestrator")
+
+        trimmed_messages: list[AnyMessage] = []
+        if latest_user is not None:
+            trimmed_messages.append(latest_user)
+        if latest_backend is not None:
+            trimmed_messages.append(latest_backend)
+
+        if not trimmed_messages:
+            trimmed_messages = messages[-2:] if len(messages) >= 2 else messages
+
+        return {
+            "messages": trimmed_messages,
+            "suggestions": state.get("suggestions", ""),
+        }
+
     async def __call__(self, state: DynamicGraphState):
-        response = await self.agent.ainvoke(state)
+        planner_state = self._build_planner_state(state)
+        response = await self.agent.ainvoke(planner_state)
 
         structured = response.get("structured_response")
         if not isinstance(structured, ParallelSkeletonPlan):
@@ -208,6 +255,13 @@ class LayoutBuilder(BaseAgent):
             structured = ParallelSkeletonPlan.model_validate_json(latest_content)
 
         structured = self._normalize_work_packages(structured)
+        structured = self._ensure_minimum_viable_package(structured)
+        if not structured.shell_messages:
+            structured.shell_messages = self._build_fallback_shell_messages(
+                surface_id=structured.surface_id,
+                root_component_id=structured.root_component_id,
+                work_packages=structured.work_packages,
+            )
         structured = self._normalize_shell_messages(structured)
 
         payload = structured.model_dump_json()
@@ -235,16 +289,3 @@ if __name__ == "__main__":
     import asyncio
 
     asyncio.run(main())
-    WIDGET_ALIASES = {
-        "barchart": "BarGraph",
-        "bargraph": "BarGraph",
-        "linechart": "LineGraph",
-        "linegraph": "LineGraph",
-        "map": "MapComponent",
-        "mapcomponent": "MapComponent",
-        "timeline": "TimelineComponent",
-        "timelinecomponent": "TimelineComponent",
-        "kpi": "KpiCard",
-        "kpicard": "KpiCard",
-        "table": "Table",
-    }

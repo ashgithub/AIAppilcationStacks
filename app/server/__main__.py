@@ -21,6 +21,8 @@ from chat_app.llm_executor import OutageEnergyLLMExecutor
 from chat_app.main_llm import OCIOutageEnergyLLM
 from dynamic_app.dynamic_agents_graph import DynamicGraph
 from dynamic_app.dynamic_graph_executor import DynamicGraphExecutor
+from streaming_app.streaming_graph import StreamingDynamicApp
+from streaming_app.streaming_executor import StreamingGraphExecutor
 from mock_executors import MockDynamicExecutor, MockLLMExecutor
 from core.dynamic_app.a2a_config_provider import (
     dynamic_agent_capabilities,
@@ -45,7 +47,14 @@ logger = logging.getLogger(__name__)
 @click.option("--host", default="localhost")
 @click.option("--port", default=10002)
 @click.option("--mock", is_flag=True, default=False, help="Run credential-free mock executors for UI testing")
-def main(host, port, mock):
+@click.option(
+    "--agent-backend",
+    type=click.Choice(["dynamic", "streaming"], case_sensitive=False),
+    default="dynamic",
+    show_default=True,
+    help="Select which backend is mounted at /agent.",
+)
+def main(host, port, mock, agent_backend):
     try:
         langfuse_client = Langfuse(
             public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
@@ -60,12 +69,13 @@ def main(host, port, mock):
         if mock:
             logger.warning("Starting server in mock mode (no OCI credentials required)")
 
-        # region Agent executor setup
-        agent_base_url = f"{base_url}/agent"
-        agent_card = AgentCard(
+        # region Dynamic agent executor setup
+        primary_agent_base_url = f"{base_url}/agent"
+        dynamic_base_url = primary_agent_base_url
+        dynamic_agent_card = AgentCard(
             name="Energy Outage Agent",
             description="This agent helps analyze power outages, energy statistics, and industry performance.",
-            url=agent_base_url,
+            url=dynamic_base_url,
             version="1.0.0",
             default_input_modes=DynamicGraph.SUPPORTED_CONTENT_TYPES,
             default_output_modes=DynamicGraph.SUPPORTED_CONTENT_TYPES,
@@ -73,30 +83,73 @@ def main(host, port, mock):
             skills=[get_widget_catalog,get_widget_schema],
         )
 
-        agent_executor = MockDynamicExecutor() if mock else DynamicGraphExecutor(
-            base_url=agent_base_url,
+        dynamic_agent_executor = MockDynamicExecutor() if mock else DynamicGraphExecutor(
+            base_url=dynamic_base_url,
             langfuse_client=langfuse_client,
         )
 
         httpx_client = httpx.AsyncClient()
-        agent_push_config_store = InMemoryPushNotificationConfigStore()
-        agent_push_sender = BasePushNotificationSender(
+        dynamic_agent_push_config_store = InMemoryPushNotificationConfigStore()
+        dynamic_agent_push_sender = BasePushNotificationSender(
             httpx_client=httpx_client,
-            config_store=agent_push_config_store
+            config_store=dynamic_agent_push_config_store
         )
         
-        agent_request_handler = DefaultRequestHandler(
-            agent_executor=agent_executor,
+        dynamic_agent_request_handler = DefaultRequestHandler(
+            agent_executor=dynamic_agent_executor,
             task_store=InMemoryTaskStore(),
-            push_config_store=agent_push_config_store,
-            push_sender=agent_push_sender
+            push_config_store=dynamic_agent_push_config_store,
+            push_sender=dynamic_agent_push_sender
         )
 
-        agent_server = A2AStarletteApplication(
-            agent_card=agent_card, http_handler=agent_request_handler
+        dynamic_agent_server = A2AStarletteApplication(
+            agent_card=dynamic_agent_card, http_handler=dynamic_agent_request_handler
         )
 
-        agent_app = agent_server.build()
+        dynamic_agent_app = dynamic_agent_server.build()
+        # endregion
+
+        # region Streaming agent executor setup
+        streaming_base_url = primary_agent_base_url
+        streaming_agent_card = AgentCard(
+            name="Energy Outage Streaming Agent",
+            description="Streaming-first agent that emits progressive UI fragments from layout planning and worker packages.",
+            url=streaming_base_url,
+            version="1.0.0",
+            default_input_modes=StreamingDynamicApp.SUPPORTED_CONTENT_TYPES,
+            default_output_modes=StreamingDynamicApp.SUPPORTED_CONTENT_TYPES,
+            capabilities=dynamic_agent_capabilities,
+            skills=[get_widget_catalog, get_widget_schema],
+        )
+
+        streaming_agent_executor = MockDynamicExecutor() if mock else StreamingGraphExecutor(
+            base_url=streaming_base_url,
+            langfuse_client=langfuse_client,
+        )
+
+        streaming_agent_push_config_store = InMemoryPushNotificationConfigStore()
+        streaming_agent_push_sender = BasePushNotificationSender(
+            httpx_client=httpx_client,
+            config_store=streaming_agent_push_config_store,
+        )
+
+        streaming_agent_request_handler = DefaultRequestHandler(
+            agent_executor=streaming_agent_executor,
+            task_store=InMemoryTaskStore(),
+            push_config_store=streaming_agent_push_config_store,
+            push_sender=streaming_agent_push_sender,
+        )
+
+        streaming_agent_server = A2AStarletteApplication(
+            agent_card=streaming_agent_card, http_handler=streaming_agent_request_handler
+        )
+        streaming_agent_app = streaming_agent_server.build()
+
+        selected_primary_agent_app = (
+            streaming_agent_app if str(agent_backend).lower() == "streaming" else dynamic_agent_app
+        )
+        selected_backend_label = str(agent_backend).lower()
+        logger.info("Primary /agent backend selected: %s", selected_backend_label)
         # endregion
 
         # region LLM executor setup
@@ -144,13 +197,13 @@ def main(host, port, mock):
 
         # region Config endpoints
         async def get_config(request: Request):
-            config = agent_executor.get_config()
+            config = dynamic_agent_executor.get_config()
             return JSONResponse(config)
 
         async def post_config(request: Request):
             try:
                 data = await request.json()
-                success, error = agent_executor.update_config(data)
+                success, error = dynamic_agent_executor.update_config(data)
                 if success:
                     return JSONResponse({"status": "success", "message": "Configuration updated"})
                 else:
@@ -159,7 +212,7 @@ def main(host, port, mock):
                 return JSONResponse({"status": "error", "message": str(e)}, status_code=400)
 
         async def delete_config(request: Request):
-            agent_executor.reset_config()
+            dynamic_agent_executor.reset_config()
             return JSONResponse({"status": "success", "message": "Configuration reset to default"})
         # endregion
 
@@ -220,7 +273,7 @@ def main(host, port, mock):
         if rag_docs_dir.exists():
             main_app.mount("/rag_docs", StaticFiles(directory=str(rag_docs_dir)), name="rag_docs")
 
-        main_app.mount("/agent", agent_app)
+        main_app.mount("/agent", selected_primary_agent_app)
         main_app.mount("/llm", llm_app)
         # endregion
         # endregion
@@ -234,3 +287,8 @@ def main(host, port, mock):
 
 if __name__ == "__main__":
     main()
+
+"""
+uv run __main__.py --agent-backend dynamic
+uv run __main__.py --agent-backend streaming
+"""
