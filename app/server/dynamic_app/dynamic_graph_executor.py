@@ -4,7 +4,7 @@ import json
 import logging
 import copy
 import os
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 import jsonschema
 from langfuse import Langfuse
 from typing import Any
@@ -42,6 +42,16 @@ PROGRESSIVE_UI_STEP_DELAY_SECONDS = max(
 ENABLE_INTERMEDIATE_A2UI_PARTS = (
     os.getenv("A2UI_ENABLE_INTERMEDIATE_PARTS", "false").strip().lower()
     in {"1", "true", "yes", "on"}
+)
+PROGRESSIVE_UI_DATA_CHUNK_SIZE = max(
+    1, int(os.getenv("A2UI_PROGRESSIVE_DATA_CHUNK_SIZE", "1"))
+)
+ENABLE_PARALLEL_PROGRESSIVE_TEST = (
+    os.getenv("A2UI_ENABLE_PARALLEL_PROGRESSIVE_TEST", "false").strip().lower()
+    in {"1", "true", "yes", "on"}
+)
+PROGRESSIVE_PARALLEL_MAX_CONCURRENCY = max(
+    1, int(os.getenv("A2UI_PROGRESSIVE_PARALLEL_MAX_CONCURRENCY", "4"))
 )
 
 
@@ -190,17 +200,124 @@ def _chunk_list(items: list[Any], size: int) -> list[list[Any]]:
     return [items[i : i + size] for i in range(0, len(items), size)]
 
 
-def _build_progressive_messages(
-    messages: list[dict[str, Any]], component_chunk_size: int
+@dataclass
+class ProgressiveReplayPlan:
+    begin_messages: list[dict[str, Any]]
+    skeleton_messages: list[dict[str, Any]]
+    component_messages: list[dict[str, Any]]
+    data_messages: list[dict[str, Any]]
+    passthrough_messages: list[dict[str, Any]]
+
+    @property
+    def total_steps(self) -> int:
+        return (
+            len(self.begin_messages)
+            + len(self.skeleton_messages)
+            + len(self.component_messages)
+            + len(self.data_messages)
+            + len(self.passthrough_messages)
+        )
+
+
+def _build_progressive_data_messages(
+    pending_data_updates: list[dict[str, Any]], data_chunk_size: int
 ) -> list[dict[str, Any]]:
+    def normalize_path(path: str | None) -> str:
+        if not path or path.strip() == "":
+            return "/"
+        if path.startswith("/"):
+            return path
+        return f"/{path}"
+
+    def join_data_path(base_path: str, child_key: str) -> str:
+        base = normalize_path(base_path)
+        escaped_key = child_key.replace("~", "~0").replace("/", "~1")
+        if base == "/":
+            return f"/{escaped_key}"
+        return f"{base.rstrip('/')}/{escaped_key}"
+
+    def to_leaf_contents(entry: dict[str, Any]) -> list[dict[str, Any]]:
+        value_keys = [key for key in entry.keys() if key.startswith("value")]
+        if len(value_keys) != 1:
+            return [entry]
+
+        value_key = value_keys[0]
+        return [{"key": ".", value_key: entry[value_key]}]
+
+    progressive_data: list[dict[str, Any]] = []
+    for msg in pending_data_updates:
+        data_update = msg.get("dataModelUpdate", {})
+        surface_id = data_update.get("surfaceId")
+        contents = data_update.get("contents")
+        if not isinstance(surface_id, str) or not isinstance(contents, list):
+            progressive_data.append(msg)
+            continue
+
+        path = normalize_path(data_update.get("path", "/"))
+
+        # Emit leaf-level key updates so progressive chunks don't replace
+        # previously sent sibling data at the same map path.
+        leaf_updates: list[dict[str, Any]] = []
+        for entry in contents:
+            if not isinstance(entry, dict):
+                leaf_updates.append(
+                    {
+                        "surfaceId": surface_id,
+                        "path": path,
+                        "contents": [entry],
+                    }
+                )
+                continue
+
+            entry_key = entry.get("key")
+            if not isinstance(entry_key, str):
+                leaf_updates.append(
+                    {
+                        "surfaceId": surface_id,
+                        "path": path,
+                        "contents": [entry],
+                    }
+                )
+                continue
+
+            if entry_key == ".":
+                leaf_updates.append(
+                    {
+                        "surfaceId": surface_id,
+                        "path": path,
+                        "contents": [entry],
+                    }
+                )
+                continue
+
+            leaf_updates.append(
+                {
+                    "surfaceId": surface_id,
+                    "path": join_data_path(path, entry_key),
+                    "contents": to_leaf_contents(entry),
+                }
+            )
+
+        for chunk in _chunk_list(leaf_updates, data_chunk_size):
+            for update in chunk:
+                progressive_data.append({"dataModelUpdate": update})
+
+    return progressive_data
+
+
+def _build_progressive_replay_plan(
+    messages: list[dict[str, Any]], component_chunk_size: int, data_chunk_size: int
+) -> ProgressiveReplayPlan:
     """
-    Build a compliant progressive sequence from final A2UI:
+    Build a compliant progressive replay plan from final A2UI:
     1) beginRendering messages,
-    2) structural skeleton components,
-    3) remaining leaf components in chunks,
-    4) dataModelUpdate messages.
+    2) structural skeleton deltas,
+    3) component deltas in chunks,
+    4) dataModelUpdate deltas in chunks.
     """
-    progressive: list[dict[str, Any]] = []
+    begin_messages: list[dict[str, Any]] = []
+    skeleton_messages: list[dict[str, Any]] = []
+    component_messages: list[dict[str, Any]] = []
     root_by_surface: dict[str, str] = {}
     pending_surface_updates: list[dict[str, Any]] = []
     pending_data_updates: list[dict[str, Any]] = []
@@ -213,7 +330,7 @@ def _build_progressive_messages(
             root_id = begin.get("root")
             if isinstance(surface_id, str) and isinstance(root_id, str):
                 root_by_surface[surface_id] = root_id
-            progressive.append(msg)
+            begin_messages.append(msg)
             continue
 
         if "surfaceUpdate" in msg:
@@ -231,7 +348,7 @@ def _build_progressive_messages(
         surface_id = surface_update.get("surfaceId")
         components = surface_update.get("components", [])
         if not isinstance(surface_id, str) or not isinstance(components, list):
-            progressive.append(msg)
+            passthrough.append(msg)
             continue
 
         component_map: dict[str, dict[str, Any]] = {}
@@ -245,8 +362,6 @@ def _build_progressive_messages(
         root_id = root_by_surface.get(surface_id)
         root_components: list[dict[str, Any]] = []
         layout_components: list[dict[str, Any]] = []
-        leaf_components: list[dict[str, Any]] = []
-
         for component in components:
             if not isinstance(component, dict):
                 continue
@@ -255,8 +370,6 @@ def _build_progressive_messages(
                 root_components.append(component)
             elif _is_layout_component(component):
                 layout_components.append(component)
-            else:
-                leaf_components.append(component)
 
         skeleton_components: list[dict[str, Any]] = []
         skeleton_ids: set[str] = set()
@@ -287,16 +400,15 @@ def _build_progressive_messages(
             ordered_progressive_state[ref_id] = _build_loading_placeholder(ref_id)
             placeholder_ids.add(ref_id)
 
-        def append_progressive_step() -> None:
-            progressive.append({
-                "surfaceUpdate": {
-                    "surfaceId": surface_id,
-                    "components": list(ordered_progressive_state.values()),
-                }
-            })
-
         if ordered_progressive_state:
-            append_progressive_step()
+            skeleton_messages.append(
+                {
+                    "surfaceUpdate": {
+                        "surfaceId": surface_id,
+                        "components": list(ordered_progressive_state.values()),
+                    }
+                }
+            )
 
         remaining_components: list[dict[str, Any]] = []
         seeded_real_ids = {
@@ -315,36 +427,104 @@ def _build_progressive_messages(
                 remaining_components.append(component)
 
         for chunk in _chunk_list(remaining_components, component_chunk_size):
+            component_messages.append(
+                {
+                    "surfaceUpdate": {
+                        "surfaceId": surface_id,
+                        "components": chunk,
+                    }
+                }
+            )
             for component in chunk:
                 component_id = component.get("id")
-                if isinstance(component_id, str):
-                    ordered_progressive_state[component_id] = component
-                    if component_id in placeholder_ids:
-                        placeholder_ids.remove(component_id)
-            append_progressive_step()
+                if isinstance(component_id, str) and component_id in placeholder_ids:
+                    placeholder_ids.remove(component_id)
 
         # Finalize unresolved placeholders so the UI does not stay stuck in loading state.
         if placeholder_ids:
+            unavailable_components: list[dict[str, Any]] = []
             for component_id in sorted(placeholder_ids):
-                ordered_progressive_state[component_id] = {
-                    "id": component_id,
-                    "component": {
-                        "Text": {
-                            "text": {
-                                "literalString": f"Content unavailable for '{component_id}'."
-                            },
-                            "usageHint": "caption",
+                unavailable_components.append(
+                    {
+                        "id": component_id,
+                        "component": {
+                            "Text": {
+                                "text": {
+                                    "literalString": f"Content unavailable for '{component_id}'."
+                                },
+                                "usageHint": "caption",
+                            }
                         }
-                    },
+                    }
+                )
+            component_messages.append(
+                {
+                    "surfaceUpdate": {
+                        "surfaceId": surface_id,
+                        "components": unavailable_components,
+                    }
                 }
-            append_progressive_step()
+            )
 
         if not ordered_progressive_state and components:
-            progressive.append(msg)
+            passthrough.append(msg)
 
-    progressive.extend(pending_data_updates)
-    progressive.extend(passthrough)
-    return progressive
+    data_messages = _build_progressive_data_messages(pending_data_updates, data_chunk_size)
+    return ProgressiveReplayPlan(
+        begin_messages=begin_messages,
+        skeleton_messages=skeleton_messages,
+        component_messages=component_messages,
+        data_messages=data_messages,
+        passthrough_messages=passthrough,
+    )
+
+
+def _extract_component_type(component: dict[str, Any]) -> str:
+    component_wrapper = component.get("component")
+    if not isinstance(component_wrapper, dict) or not component_wrapper:
+        return ""
+    return str(next(iter(component_wrapper.keys())))
+
+
+def _estimate_emit_delay_seconds(message: dict[str, Any]) -> float:
+    surface_update = message.get("surfaceUpdate")
+    if isinstance(surface_update, dict):
+        components = surface_update.get("components", [])
+        if isinstance(components, list) and components:
+            component_types = {
+                _extract_component_type(component)
+                for component in components
+                if isinstance(component, dict)
+            }
+            if component_types.intersection({"BarGraph", "LineGraph", "Table", "Map"}):
+                return 0.65
+            if component_types.intersection({"Card", "Tabs", "Modal", "List"}):
+                return 0.25
+            if component_types.intersection({"Row", "Column"}):
+                return 0.12
+            if component_types.intersection({"Text", "Icon", "Divider"}):
+                return 0.04
+        return 0.18
+
+    data_update = message.get("dataModelUpdate")
+    if isinstance(data_update, dict):
+        contents = data_update.get("contents", [])
+        keys = []
+        if isinstance(contents, list):
+            keys = [
+                str(entry.get("key", "")).lower()
+                for entry in contents
+                if isinstance(entry, dict)
+            ]
+        if any("table" in key for key in keys):
+            return 0.75
+        if any("chart" in key or "graph" in key for key in keys):
+            return 0.55
+        if any("kpi" in key for key in keys):
+            return 0.16
+        return 0.22
+
+    return 0.1
 
 
 #region Executor
@@ -358,13 +538,22 @@ class DynamicGraphExecutor(AgentExecutor):
         self.base_url = base_url
         self.langfuse_client = langfuse_client
         self.progressive_component_chunk_size = PROGRESSIVE_UI_COMPONENT_CHUNK_SIZE
+        self.progressive_data_chunk_size = PROGRESSIVE_UI_DATA_CHUNK_SIZE
         self.progressive_step_delay_seconds = PROGRESSIVE_UI_STEP_DELAY_SECONDS
         self.enable_intermediate_a2ui_parts = ENABLE_INTERMEDIATE_A2UI_PARTS
+        self.enable_parallel_progressive_test = ENABLE_PARALLEL_PROGRESSIVE_TEST
+        self.progressive_parallel_max_concurrency = PROGRESSIVE_PARALLEL_MAX_CONCURRENCY
         logger.info(
-            "Progressive UI replay config | chunk_size=%s step_delay_s=%s intermediate_parts=%s",
+            (
+                "Progressive UI replay config | component_chunk_size=%s data_chunk_size=%s "
+                "step_delay_s=%s intermediate_parts=%s parallel_test=%s parallel_concurrency=%s"
+            ),
             self.progressive_component_chunk_size,
+            self.progressive_data_chunk_size,
             self.progressive_step_delay_seconds,
             self.enable_intermediate_a2ui_parts,
+            self.enable_parallel_progressive_test,
+            self.progressive_parallel_max_concurrency,
         )
         self._recreate_graphs()
 
@@ -513,20 +702,27 @@ class DynamicGraphExecutor(AgentExecutor):
 
                         if isinstance(json_data, list):
                             logger.info(f"Found {len(json_data)} final A2UI message(s). Replaying progressively.")
-                            progressive_messages = _build_progressive_messages(
+                            replay_plan = _build_progressive_replay_plan(
                                 [message for message in json_data if isinstance(message, dict)],
                                 component_chunk_size=self.progressive_component_chunk_size,
+                                data_chunk_size=self.progressive_data_chunk_size,
                             )
-                            total_steps = len(progressive_messages)
+                            total_steps = replay_plan.total_steps
+                            emitted_step_number = 0
 
-                            for index, progressive_message in enumerate(progressive_messages):
+                            async def emit_progressive_message(
+                                progressive_message: dict[str, Any],
+                                apply_delay: bool = True,
+                            ) -> bool:
+                                nonlocal emitted_step_number
                                 serialized = json.dumps(progressive_message, sort_keys=True, ensure_ascii=False)
                                 if serialized in emitted_a2ui_hashes:
-                                    continue
+                                    return False
                                 emitted_a2ui_hashes.add(serialized)
+                                emitted_step_number += 1
 
                                 step_parts = [
-                                    Part(root=TextPart(text=f"Building interface step {index + 1}/{total_steps}")),
+                                    Part(root=TextPart(text=f"Building interface step {emitted_step_number}/{total_steps}")),
                                     Part(root=TextPart(text=item['detailed_updates'])),
                                     create_a2ui_part(progressive_message),
                                 ]
@@ -534,7 +730,59 @@ class DynamicGraphExecutor(AgentExecutor):
                                     TaskState.working,
                                     new_agent_parts_message(step_parts, task.context_id, task.id),
                                 )
-                                await asyncio.sleep(self.progressive_step_delay_seconds)
+                                if apply_delay:
+                                    await asyncio.sleep(self.progressive_step_delay_seconds)
+                                return True
+
+                            for progressive_message in replay_plan.begin_messages:
+                                await emit_progressive_message(progressive_message, apply_delay=True)
+
+                            for progressive_message in replay_plan.skeleton_messages:
+                                await emit_progressive_message(progressive_message, apply_delay=True)
+
+                            chunk_messages = [
+                                *replay_plan.component_messages,
+                                *replay_plan.data_messages,
+                            ]
+                            if self.enable_parallel_progressive_test and chunk_messages:
+                                logger.info(
+                                    (
+                                        "Parallel progressive test is enabled. "
+                                        "Emitting %s component/data chunk(s) with concurrency=%s."
+                                    ),
+                                    len(chunk_messages),
+                                    self.progressive_parallel_max_concurrency,
+                                )
+                                semaphore = asyncio.Semaphore(self.progressive_parallel_max_concurrency)
+
+                                async def prepare_parallel_chunk(
+                                    progressive_message: dict[str, Any]
+                                ) -> dict[str, Any]:
+                                    async with semaphore:
+                                        await asyncio.sleep(
+                                            self.progressive_step_delay_seconds
+                                            + _estimate_emit_delay_seconds(progressive_message)
+                                        )
+                                        return progressive_message
+
+                                scheduled_chunks = [
+                                    asyncio.create_task(prepare_parallel_chunk(progressive_message))
+                                    for progressive_message in chunk_messages
+                                ]
+                                for scheduled in asyncio.as_completed(scheduled_chunks):
+                                    progressive_message = await scheduled
+                                    await emit_progressive_message(
+                                        progressive_message,
+                                        apply_delay=False,
+                                    )
+                            else:
+                                for progressive_message in replay_plan.component_messages:
+                                    await emit_progressive_message(progressive_message, apply_delay=True)
+                                for progressive_message in replay_plan.data_messages:
+                                    await emit_progressive_message(progressive_message, apply_delay=True)
+
+                            for progressive_message in replay_plan.passthrough_messages:
+                                await emit_progressive_message(progressive_message, apply_delay=True)
                         else:
                             logger.info("Received a single JSON object. Creating a DataPart.")
                             serialized = json.dumps(json_data, sort_keys=True, ensure_ascii=False)

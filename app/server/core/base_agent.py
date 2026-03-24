@@ -16,6 +16,7 @@ class BaseAgent(ABC):
         self.agent_name = "backend_orchestrator"
         self.system_prompt = ''
         self.tools = []
+        self.response_format=None
         # Subclasses set this with build_agent().
         self.agent = None
 
@@ -26,6 +27,7 @@ class BaseAgent(ABC):
             tools=self.tools,
             system_prompt=self.system_prompt,
             name=self.agent_name,
-            checkpointer=InMemorySaver()
+            checkpointer=InMemorySaver(),
+            response_format=self.response_format
         )
 # endregion Classes
