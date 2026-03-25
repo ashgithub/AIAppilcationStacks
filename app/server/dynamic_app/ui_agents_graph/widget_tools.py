@@ -79,37 +79,65 @@ def create_custom_component_tools(inline_catalog, allowed_components=None):
     def _catalog_name(item):
         return item.get("name") or item.get("widget-name", "")
 
+    def _normalize_name(value: str) -> str:
+        return str(value or "").strip().lower()
+
+    def _build_merged_custom_catalog() -> list[dict]:
+        merged: list[dict] = []
+        seen: set[str] = set()
+
+        for item in inline_catalog or []:
+            if not isinstance(item, dict):
+                continue
+            name = _catalog_name(item)
+            normalized = _normalize_name(name)
+            if not normalized:
+                continue
+            merged.append(item)
+            seen.add(normalized)
+
+        for item in CUSTOM_CATALOG:
+            if not isinstance(item, dict):
+                continue
+            name = _catalog_name(item)
+            normalized = _normalize_name(name)
+            if not normalized or normalized in seen:
+                continue
+            merged.append(item)
+            seen.add(normalized)
+
+        return merged
+
+    merged_catalog = _build_merged_custom_catalog()
+    allowed_lookup = {_normalize_name(comp) for comp in (allowed_components or []) if _normalize_name(comp)}
+
     @tool()
     async def get_custom_component_catalog() -> str:
         """Returns the list of available custom component names"""
-        if allowed_components:
-            allowed_lookup = {name.lower() for name in allowed_components}
+        if allowed_lookup:
             component_names = [
                 _catalog_name(item)
-                for item in inline_catalog
-                if _catalog_name(item) and _catalog_name(item).lower() in allowed_lookup
+                for item in merged_catalog
+                if _catalog_name(item) and _normalize_name(_catalog_name(item)) in allowed_lookup
             ]
         else:
-            component_names = [
-                _catalog_name(item)
-                for item in inline_catalog
-                if _catalog_name(item)
-            ]
+            component_names = [_catalog_name(item) for item in merged_catalog if _catalog_name(item)]
         return json.dumps({"available_components": component_names})
 
     @tool()
     async def get_custom_component_example(component_name: str) -> str:
         """Return the A2UI example schema for a custom component."""
-        if allowed_components and component_name.lower() not in [comp.lower() for comp in allowed_components]:
+        normalized_target = _normalize_name(component_name)
+        if allowed_lookup and normalized_target not in allowed_lookup:
             return f"Component '{component_name}' is not in the allowed list: {allowed_components}"
 
-        for item in inline_catalog:
+        for item in merged_catalog:
             item_name = item.get("name") or item.get("widget-name", "")
-            if item_name.lower() == component_name.lower():
+            if _normalize_name(item_name) == normalized_target:
                 return item.get("schema", str(item))
 
         for cat in CUSTOM_CATALOG:
-            if cat["widget-name"].lower() == component_name.lower():
+            if _normalize_name(cat["widget-name"]) == normalized_target:
                 return cat["schema"]
 
         return f"No example found for custom component '{component_name}'"

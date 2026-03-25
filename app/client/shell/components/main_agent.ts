@@ -95,6 +95,12 @@ export class DynamicModule extends LitElement {
   accessor #lastMessages: v0_8.Types.ServerToClientMessage[] = [];
 
   @state()
+  accessor #seenBeginRenderSurfaces = new Set<string>();
+
+  @state()
+  accessor #realComponentIdsBySurface = new Map<string, Set<string>>();
+
+  @state()
   accessor #processingSurfaces = false;
 
   @state()
@@ -151,6 +157,8 @@ export class DynamicModule extends LitElement {
       this.status = []
       this.#processor.clearSurfaces();
       this.#lastMessages = [];
+      this.#seenBeginRenderSurfaces = new Set<string>();
+      this.#realComponentIdsBySurface = new Map<string, Set<string>>();
       this.#startStopwatch();
     }
   };
@@ -523,7 +531,8 @@ export class DynamicModule extends LitElement {
     if (this.#activeRequestId && event.clientRequestId && event.clientRequestId !== this.#activeRequestId) return;
     const normalized = event.normalized;
 
-    const newMessages: v0_8.Types.ServerToClientMessage[] = normalized?.uiMessages || [];
+    const incomingMessages: v0_8.Types.ServerToClientMessage[] = normalized?.uiMessages || [];
+    const newMessages = this.#filterRegressiveUiMessages(incomingMessages);
     if (newMessages.length > 0) {
       // As soon as we receive the first UI delta, switch from request loader
       // to the progressive surface renderer.
@@ -537,6 +546,81 @@ export class DynamicModule extends LitElement {
       this.#stopLoadingAnimation();
       this.#processingSurfaces = false;
     }
+  }
+
+  #isLoadingTextComponent(component: any): boolean {
+    if (!component || typeof component !== "object") return false;
+    const wrapper = component.component;
+    if (!wrapper || typeof wrapper !== "object") return false;
+    const text = wrapper.Text;
+    if (!text || typeof text !== "object") return false;
+    const textValue = text.text;
+    if (!textValue || typeof textValue !== "object") return false;
+    const literal = textValue.literalString;
+    return typeof literal === "string" && literal.startsWith("Loading ");
+  }
+
+  #filterRegressiveUiMessages(
+    messages: v0_8.Types.ServerToClientMessage[]
+  ): v0_8.Types.ServerToClientMessage[] {
+    const filtered: v0_8.Types.ServerToClientMessage[] = [];
+
+    for (const message of messages) {
+      const anyMessage: any = message as any;
+
+      if (anyMessage.beginRendering && typeof anyMessage.beginRendering === "object") {
+        const surfaceId = String(anyMessage.beginRendering.surfaceId || "");
+        if (surfaceId && this.#seenBeginRenderSurfaces.has(surfaceId) && this.#lastMessages.length > 0) {
+          console.log("Ignoring regressive beginRendering replay for surface:", surfaceId);
+          continue;
+        }
+        if (surfaceId) {
+          this.#seenBeginRenderSurfaces.add(surfaceId);
+        }
+        filtered.push(message);
+        continue;
+      }
+
+      if (anyMessage.surfaceUpdate && typeof anyMessage.surfaceUpdate === "object") {
+        const surfaceId = String(anyMessage.surfaceUpdate.surfaceId || "");
+        const components = Array.isArray(anyMessage.surfaceUpdate.components)
+          ? anyMessage.surfaceUpdate.components
+          : [];
+        const realComponentIds = this.#realComponentIdsBySurface.get(surfaceId) || new Set<string>();
+
+        const allLoading = components.length > 0 && components.every((component: any) => this.#isLoadingTextComponent(component));
+        const touchesRealComponent = components.some(
+          (component: any) =>
+            component &&
+            typeof component === "object" &&
+            typeof component.id === "string" &&
+            realComponentIds.has(component.id)
+        );
+        if (allLoading && touchesRealComponent) {
+          console.log("Ignoring regressive loading-only surfaceUpdate replay for surface:", surfaceId);
+          continue;
+        }
+
+        for (const component of components) {
+          if (!component || typeof component !== "object" || typeof component.id !== "string") {
+            continue;
+          }
+          if (!this.#isLoadingTextComponent(component)) {
+            realComponentIds.add(component.id);
+          }
+        }
+        if (surfaceId) {
+          this.#realComponentIdsBySurface.set(surfaceId, realComponentIds);
+        }
+
+        filtered.push(message);
+        continue;
+      }
+
+      filtered.push(message);
+    }
+
+    return filtered;
   }
   // #endregion Streaming And Parsing
 

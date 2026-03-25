@@ -81,6 +81,9 @@ class UIParallelFragmentMergeAgent:
             return message
 
         raw_data = update.get("data")
+        if raw_data is None and isinstance(update.get("updates"), dict):
+            raw_data = update.get("updates")
+            update.pop("updates", None)
         if isinstance(raw_data, dict):
             update["contents"] = [
                 UIParallelFragmentMergeAgent._encode_value_entry(str(key), value)
@@ -139,10 +142,30 @@ class UIParallelFragmentMergeAgent:
 
         ordered_messages: list[dict[str, Any]] = []
         step_map: list[dict[str, Any]] = []
+        component_state_by_surface: dict[str, dict[str, dict[str, Any]]] = {}
 
         # Shell always first.
         for message in shell_messages:
-            ordered_messages.append(message)
+            surface_update = message.get("surfaceUpdate") if isinstance(message, dict) else None
+            if isinstance(surface_update, dict):
+                surface_id = str(surface_update.get("surfaceId") or default_surface_id)
+                components = surface_update.get("components", [])
+                if not isinstance(components, list):
+                    components = []
+                by_id = component_state_by_surface.setdefault(surface_id, {})
+                for component in components:
+                    if isinstance(component, dict) and isinstance(component.get("id"), str):
+                        by_id[str(component["id"])] = component
+                ordered_messages.append(
+                    {
+                        "surfaceUpdate": {
+                            "surfaceId": surface_id,
+                            "components": list(by_id.values()),
+                        }
+                    }
+                )
+            else:
+                ordered_messages.append(message)
             step_map.append({"step": len(ordered_messages), "source": "shell"})
 
         # Worker package order by priority and expected complexity.
@@ -150,7 +173,26 @@ class UIParallelFragmentMergeAgent:
             component_messages, data_messages = self._split_component_and_data(fragment.surface_messages)
 
             for message in component_messages:
-                ordered_messages.append(message)
+                surface_update = message.get("surfaceUpdate") if isinstance(message, dict) else None
+                if isinstance(surface_update, dict):
+                    surface_id = str(surface_update.get("surfaceId") or default_surface_id)
+                    components = surface_update.get("components", [])
+                    if not isinstance(components, list):
+                        components = []
+                    by_id = component_state_by_surface.setdefault(surface_id, {})
+                    for component in components:
+                        if isinstance(component, dict) and isinstance(component.get("id"), str):
+                            by_id[str(component["id"])] = component
+                    ordered_messages.append(
+                        {
+                            "surfaceUpdate": {
+                                "surfaceId": surface_id,
+                                "components": list(by_id.values()),
+                            }
+                        }
+                    )
+                else:
+                    ordered_messages.append(message)
                 step_map.append({"step": len(ordered_messages), "source": fragment.package_id, "kind": "component"})
 
             for message in data_messages:

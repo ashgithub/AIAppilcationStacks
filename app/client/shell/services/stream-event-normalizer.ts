@@ -94,12 +94,35 @@ function isServerToClientMessage(value: unknown): value is v0_8.Types.ServerToCl
   }
 
   const candidate = value as Record<string, unknown>;
-  return Boolean(
-    candidate.beginRendering ||
-      candidate.surfaceUpdate ||
-      candidate.dataModelUpdate ||
-      candidate.deleteSurface
-  );
+  const beginRendering = candidate.beginRendering as Record<string, unknown> | undefined;
+  if (beginRendering && typeof beginRendering === "object") {
+    if (typeof beginRendering.surfaceId === "string" && typeof beginRendering.root === "string") {
+      return true;
+    }
+  }
+
+  const surfaceUpdate = candidate.surfaceUpdate as Record<string, unknown> | undefined;
+  if (surfaceUpdate && typeof surfaceUpdate === "object") {
+    if (typeof surfaceUpdate.surfaceId === "string" && Array.isArray(surfaceUpdate.components)) {
+      return true;
+    }
+  }
+
+  const dataModelUpdate = candidate.dataModelUpdate as Record<string, unknown> | undefined;
+  if (dataModelUpdate && typeof dataModelUpdate === "object") {
+    if (typeof dataModelUpdate.surfaceId === "string" && Array.isArray(dataModelUpdate.contents)) {
+      return true;
+    }
+  }
+
+  const deleteSurface = candidate.deleteSurface as Record<string, unknown> | undefined;
+  if (deleteSurface && typeof deleteSurface === "object") {
+    if (typeof deleteSurface.surfaceId === "string") {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function extractTextFromPart(part: StreamPart): string[] {
