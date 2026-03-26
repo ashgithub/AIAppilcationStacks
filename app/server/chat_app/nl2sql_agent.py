@@ -24,6 +24,7 @@ class NL2SQLAgent(BaseAgent):
     def __init__(self):
         super().__init__()
         self.agent_name = "nl2sql_agent"
+        self.model="xai.grok-4-fast-reasoning"
         self.system_prompt = f"{SQL_SCHEMA_DESCRIPTION}\n\n" + "\n\n".join(
             f"Q: {ex['q']}\nSQL:\n{ex['sql']}" for ex in SQL_FEW_SHOT_EXAMPLES
         )

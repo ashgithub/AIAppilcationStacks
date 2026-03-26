@@ -23,6 +23,7 @@ class NL2GraphAgent(BaseAgent):
     def __init__(self):
         super().__init__()
         self.agent_name = "nl2graph_agent"
+        self.model="xai.grok-4-fast-reasoning"
         self.system_prompt = f"{GRAPH_SCHEMA_DESCRIPTION}\n\n" + "\n\n".join(
             f"Q: {ex['q']}\nPGQL:\n{ex['pgql']}" for ex in GRAPH_FEW_SHOT_EXAMPLES
         )
@@ -68,7 +69,7 @@ class NL2GraphAgent(BaseAgent):
             cached_matches = self.semantic_cache.search_similar_questions(
                 question=question,
                 top_k=2,
-                max_distance=0.18,
+                max_distance=0.4,
             )
             if cached_matches:
                 best_match = cached_matches[0]
