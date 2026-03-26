@@ -1,0 +1,2727 @@
+// Begin rendering
+{
+    "beginRendering": {
+        "root": "main-container",
+        "styles": {
+            "font": "Arial",
+            "primaryColor": "#007bff"
+        },
+        "surfaceId": "dashboard"
+    }
+}
+
+// Skeleton update
+
+{
+    "surfaceUpdate": {
+        "components": [
+            {
+                "component": {
+                    "Column": {
+                        "alignment": "stretch",
+                        "children": {
+                            "explicitList": [
+                                "title",
+                                "kpi-row",
+                                "bar-section",
+                                "table-section"
+                            ]
+                        },
+                        "distribution": "start"
+                    }
+                },
+                "id": "main-container"
+            },
+            {
+                "component": {
+                    "Row": {
+                        "alignment": "stretch",
+                        "children": {
+                            "explicitList": [
+                                "kpi-total",
+                                "kpi-average",
+                                "kpi-highest",
+                                "kpi-lowest"
+                            ]
+                        },
+                        "distribution": "spaceEvenly"
+                    }
+                },
+                "id": "kpi-row"
+            },
+            {
+                "component": {
+                    "Column": {
+                        "children": {
+                            "explicitList": [
+                                "bar-title",
+                                "bar-chart"
+                            ]
+                        }
+                    }
+                },
+                "id": "bar-section"
+            },
+            {
+                "component": {
+                    "Column": {
+                        "children": {
+                            "explicitList": [
+                                "table-title",
+                                "data-table"
+                            ]
+                        }
+                    }
+                },
+                "id": "table-section"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading bar-chart..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "bar-chart"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading bar-title..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "bar-title"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading data-table..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "data-table"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading kpi-average..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "kpi-average"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading kpi-highest..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "kpi-highest"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading kpi-lowest..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "kpi-lowest"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading kpi-total..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "kpi-total"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading table-title..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "table-title"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading title..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "title"
+            }
+        ],
+        "surfaceId": "dashboard"
+    }
+}
+
+// Components place holders
+
+{
+    "surfaceUpdate": {
+        "components": [
+            {
+                "component": {
+                    "Column": {
+                        "alignment": "stretch",
+                        "children": {
+                            "explicitList": [
+                                "title",
+                                "kpi-row",
+                                "bar-section",
+                                "table-section"
+                            ]
+                        },
+                        "distribution": "start"
+                    }
+                },
+                "id": "main-container"
+            },
+            {
+                "component": {
+                    "Row": {
+                        "alignment": "stretch",
+                        "children": {
+                            "explicitList": [
+                                "kpi-total",
+                                "kpi-average",
+                                "kpi-highest",
+                                "kpi-lowest"
+                            ]
+                        },
+                        "distribution": "spaceEvenly"
+                    }
+                },
+                "id": "kpi-row"
+            },
+            {
+                "component": {
+                    "Column": {
+                        "children": {
+                            "explicitList": [
+                                "bar-title",
+                                "bar-chart"
+                            ]
+                        }
+                    }
+                },
+                "id": "bar-section"
+            },
+            {
+                "component": {
+                    "Column": {
+                        "children": {
+                            "explicitList": [
+                                "table-title",
+                                "data-table"
+                            ]
+                        }
+                    }
+                },
+                "id": "table-section"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading bar-chart..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "bar-chart"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading bar-title..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "bar-title"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading data-table..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "data-table"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading kpi-average..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "kpi-average"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading kpi-highest..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "kpi-highest"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading kpi-lowest..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "kpi-lowest"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading kpi-total..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "kpi-total"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading table-title..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "table-title"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Top Circuits by Customers Served"
+                        },
+                        "usageHint": "h2"
+                    }
+                },
+                "id": "title"
+            }
+        ],
+        "surfaceId": "dashboard"
+    }
+}
+
+{
+    "surfaceUpdate": {
+        "components": [
+            {
+                "component": {
+                    "Column": {
+                        "alignment": "stretch",
+                        "children": {
+                            "explicitList": [
+                                "title",
+                                "kpi-row",
+                                "bar-section",
+                                "table-section"
+                            ]
+                        },
+                        "distribution": "start"
+                    }
+                },
+                "id": "main-container"
+            },
+            {
+                "component": {
+                    "Row": {
+                        "alignment": "stretch",
+                        "children": {
+                            "explicitList": [
+                                "kpi-total",
+                                "kpi-average",
+                                "kpi-highest",
+                                "kpi-lowest"
+                            ]
+                        },
+                        "distribution": "spaceEvenly"
+                    }
+                },
+                "id": "kpi-row"
+            },
+            {
+                "component": {
+                    "Column": {
+                        "children": {
+                            "explicitList": [
+                                "bar-title",
+                                "bar-chart"
+                            ]
+                        }
+                    }
+                },
+                "id": "bar-section"
+            },
+            {
+                "component": {
+                    "Column": {
+                        "children": {
+                            "explicitList": [
+                                "table-title",
+                                "data-table"
+                            ]
+                        }
+                    }
+                },
+                "id": "table-section"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading bar-chart..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "bar-chart"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading bar-title..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "bar-title"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading data-table..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "data-table"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading kpi-average..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "kpi-average"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading kpi-highest..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "kpi-highest"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading kpi-lowest..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "kpi-lowest"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading kpi-total..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "kpi-total"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading table-title..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "table-title"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Top Circuits by Customers Served"
+                        },
+                        "usageHint": "h2"
+                    }
+                },
+                "id": "title"
+            }
+        ],
+        "surfaceId": "dashboard"
+    }
+}
+
+{
+    "surfaceUpdate": {
+        "components": [
+            {
+                "component": {
+                    "Column": {
+                        "alignment": "stretch",
+                        "children": {
+                            "explicitList": [
+                                "title",
+                                "kpi-row",
+                                "bar-section",
+                                "table-section"
+                            ]
+                        },
+                        "distribution": "start"
+                    }
+                },
+                "id": "main-container"
+            },
+            {
+                "component": {
+                    "Row": {
+                        "alignment": "stretch",
+                        "children": {
+                            "explicitList": [
+                                "kpi-total",
+                                "kpi-average",
+                                "kpi-highest",
+                                "kpi-lowest"
+                            ]
+                        },
+                        "distribution": "spaceEvenly"
+                    }
+                },
+                "id": "kpi-row"
+            },
+            {
+                "component": {
+                    "Column": {
+                        "children": {
+                            "explicitList": [
+                                "bar-title",
+                                "bar-chart"
+                            ]
+                        }
+                    }
+                },
+                "id": "bar-section"
+            },
+            {
+                "component": {
+                    "Column": {
+                        "children": {
+                            "explicitList": [
+                                "table-title",
+                                "data-table"
+                            ]
+                        }
+                    }
+                },
+                "id": "table-section"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading bar-chart..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "bar-chart"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading bar-title..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "bar-title"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading data-table..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "data-table"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading kpi-average..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "kpi-average"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading kpi-highest..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "kpi-highest"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading kpi-lowest..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "kpi-lowest"
+            },
+            {
+                "component": {
+                    "KpiCard": {
+                        "dataPath": "/kpi/totalCustomers"
+                    }
+                },
+                "id": "kpi-total",
+                "weight": 1
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading table-title..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "table-title"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Top Circuits by Customers Served"
+                        },
+                        "usageHint": "h2"
+                    }
+                },
+                "id": "title"
+            }
+        ],
+        "surfaceId": "dashboard"
+    }
+}
+
+{
+    "surfaceUpdate": {
+        "components": [
+            {
+                "component": {
+                    "Column": {
+                        "alignment": "stretch",
+                        "children": {
+                            "explicitList": [
+                                "title",
+                                "kpi-row",
+                                "bar-section",
+                                "table-section"
+                            ]
+                        },
+                        "distribution": "start"
+                    }
+                },
+                "id": "main-container"
+            },
+            {
+                "component": {
+                    "Row": {
+                        "alignment": "stretch",
+                        "children": {
+                            "explicitList": [
+                                "kpi-total",
+                                "kpi-average",
+                                "kpi-highest",
+                                "kpi-lowest"
+                            ]
+                        },
+                        "distribution": "spaceEvenly"
+                    }
+                },
+                "id": "kpi-row"
+            },
+            {
+                "component": {
+                    "Column": {
+                        "children": {
+                            "explicitList": [
+                                "bar-title",
+                                "bar-chart"
+                            ]
+                        }
+                    }
+                },
+                "id": "bar-section"
+            },
+            {
+                "component": {
+                    "Column": {
+                        "children": {
+                            "explicitList": [
+                                "table-title",
+                                "data-table"
+                            ]
+                        }
+                    }
+                },
+                "id": "table-section"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading bar-chart..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "bar-chart"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading bar-title..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "bar-title"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading data-table..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "data-table"
+            },
+            {
+                "component": {
+                    "KpiCard": {
+                        "dataPath": "/kpi/averageCustomers"
+                    }
+                },
+                "id": "kpi-average",
+                "weight": 1
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading kpi-highest..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "kpi-highest"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading kpi-lowest..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "kpi-lowest"
+            },
+            {
+                "component": {
+                    "KpiCard": {
+                        "dataPath": "/kpi/totalCustomers"
+                    }
+                },
+                "id": "kpi-total",
+                "weight": 1
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading table-title..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "table-title"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Top Circuits by Customers Served"
+                        },
+                        "usageHint": "h2"
+                    }
+                },
+                "id": "title"
+            }
+        ],
+        "surfaceId": "dashboard"
+    }
+}
+
+{
+    "surfaceUpdate": {
+        "components": [
+            {
+                "component": {
+                    "Column": {
+                        "alignment": "stretch",
+                        "children": {
+                            "explicitList": [
+                                "title",
+                                "kpi-row",
+                                "bar-section",
+                                "table-section"
+                            ]
+                        },
+                        "distribution": "start"
+                    }
+                },
+                "id": "main-container"
+            },
+            {
+                "component": {
+                    "Row": {
+                        "alignment": "stretch",
+                        "children": {
+                            "explicitList": [
+                                "kpi-total",
+                                "kpi-average",
+                                "kpi-highest",
+                                "kpi-lowest"
+                            ]
+                        },
+                        "distribution": "spaceEvenly"
+                    }
+                },
+                "id": "kpi-row"
+            },
+            {
+                "component": {
+                    "Column": {
+                        "children": {
+                            "explicitList": [
+                                "bar-title",
+                                "bar-chart"
+                            ]
+                        }
+                    }
+                },
+                "id": "bar-section"
+            },
+            {
+                "component": {
+                    "Column": {
+                        "children": {
+                            "explicitList": [
+                                "table-title",
+                                "data-table"
+                            ]
+                        }
+                    }
+                },
+                "id": "table-section"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading bar-chart..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "bar-chart"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading bar-title..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "bar-title"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading data-table..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "data-table"
+            },
+            {
+                "component": {
+                    "KpiCard": {
+                        "dataPath": "/kpi/averageCustomers"
+                    }
+                },
+                "id": "kpi-average",
+                "weight": 1
+            },
+            {
+                "component": {
+                    "KpiCard": {
+                        "dataPath": "/kpi/highestCircuit"
+                    }
+                },
+                "id": "kpi-highest",
+                "weight": 1
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading kpi-lowest..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "kpi-lowest"
+            },
+            {
+                "component": {
+                    "KpiCard": {
+                        "dataPath": "/kpi/totalCustomers"
+                    }
+                },
+                "id": "kpi-total",
+                "weight": 1
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading table-title..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "table-title"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Top Circuits by Customers Served"
+                        },
+                        "usageHint": "h2"
+                    }
+                },
+                "id": "title"
+            }
+        ],
+        "surfaceId": "dashboard"
+    }
+}
+
+{
+    "surfaceUpdate": {
+        "components": [
+            {
+                "component": {
+                    "Column": {
+                        "alignment": "stretch",
+                        "children": {
+                            "explicitList": [
+                                "title",
+                                "kpi-row",
+                                "bar-section",
+                                "table-section"
+                            ]
+                        },
+                        "distribution": "start"
+                    }
+                },
+                "id": "main-container"
+            },
+            {
+                "component": {
+                    "Row": {
+                        "alignment": "stretch",
+                        "children": {
+                            "explicitList": [
+                                "kpi-total",
+                                "kpi-average",
+                                "kpi-highest",
+                                "kpi-lowest"
+                            ]
+                        },
+                        "distribution": "spaceEvenly"
+                    }
+                },
+                "id": "kpi-row"
+            },
+            {
+                "component": {
+                    "Column": {
+                        "children": {
+                            "explicitList": [
+                                "bar-title",
+                                "bar-chart"
+                            ]
+                        }
+                    }
+                },
+                "id": "bar-section"
+            },
+            {
+                "component": {
+                    "Column": {
+                        "children": {
+                            "explicitList": [
+                                "table-title",
+                                "data-table"
+                            ]
+                        }
+                    }
+                },
+                "id": "table-section"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading bar-chart..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "bar-chart"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading bar-title..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "bar-title"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading data-table..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "data-table"
+            },
+            {
+                "component": {
+                    "KpiCard": {
+                        "dataPath": "/kpi/averageCustomers"
+                    }
+                },
+                "id": "kpi-average",
+                "weight": 1
+            },
+            {
+                "component": {
+                    "KpiCard": {
+                        "dataPath": "/kpi/highestCircuit"
+                    }
+                },
+                "id": "kpi-highest",
+                "weight": 1
+            },
+            {
+                "component": {
+                    "KpiCard": {
+                        "dataPath": "/kpi/lowestCircuit"
+                    }
+                },
+                "id": "kpi-lowest",
+                "weight": 1
+            },
+            {
+                "component": {
+                    "KpiCard": {
+                        "dataPath": "/kpi/totalCustomers"
+                    }
+                },
+                "id": "kpi-total",
+                "weight": 1
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading table-title..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "table-title"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Top Circuits by Customers Served"
+                        },
+                        "usageHint": "h2"
+                    }
+                },
+                "id": "title"
+            }
+        ],
+        "surfaceId": "dashboard"
+    }
+}
+
+{
+    "surfaceUpdate": {
+        "components": [
+            {
+                "component": {
+                    "Column": {
+                        "alignment": "stretch",
+                        "children": {
+                            "explicitList": [
+                                "title",
+                                "kpi-row",
+                                "bar-section",
+                                "table-section"
+                            ]
+                        },
+                        "distribution": "start"
+                    }
+                },
+                "id": "main-container"
+            },
+            {
+                "component": {
+                    "Row": {
+                        "alignment": "stretch",
+                        "children": {
+                            "explicitList": [
+                                "kpi-total",
+                                "kpi-average",
+                                "kpi-highest",
+                                "kpi-lowest"
+                            ]
+                        },
+                        "distribution": "spaceEvenly"
+                    }
+                },
+                "id": "kpi-row"
+            },
+            {
+                "component": {
+                    "Column": {
+                        "children": {
+                            "explicitList": [
+                                "bar-title",
+                                "bar-chart"
+                            ]
+                        }
+                    }
+                },
+                "id": "bar-section"
+            },
+            {
+                "component": {
+                    "Column": {
+                        "children": {
+                            "explicitList": [
+                                "table-title",
+                                "data-table"
+                            ]
+                        }
+                    }
+                },
+                "id": "table-section"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading bar-chart..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "bar-chart"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Customers Served by Circuit (Bar Comparison)"
+                        },
+                        "usageHint": "h3"
+                    }
+                },
+                "id": "bar-title"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading data-table..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "data-table"
+            },
+            {
+                "component": {
+                    "KpiCard": {
+                        "dataPath": "/kpi/averageCustomers"
+                    }
+                },
+                "id": "kpi-average",
+                "weight": 1
+            },
+            {
+                "component": {
+                    "KpiCard": {
+                        "dataPath": "/kpi/highestCircuit"
+                    }
+                },
+                "id": "kpi-highest",
+                "weight": 1
+            },
+            {
+                "component": {
+                    "KpiCard": {
+                        "dataPath": "/kpi/lowestCircuit"
+                    }
+                },
+                "id": "kpi-lowest",
+                "weight": 1
+            },
+            {
+                "component": {
+                    "KpiCard": {
+                        "dataPath": "/kpi/totalCustomers"
+                    }
+                },
+                "id": "kpi-total",
+                "weight": 1
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading table-title..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "table-title"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Top Circuits by Customers Served"
+                        },
+                        "usageHint": "h2"
+                    }
+                },
+                "id": "title"
+            }
+        ],
+        "surfaceId": "dashboard"
+    }
+}
+
+{
+    "surfaceUpdate": {
+        "components": [
+            {
+                "component": {
+                    "Column": {
+                        "alignment": "stretch",
+                        "children": {
+                            "explicitList": [
+                                "title",
+                                "kpi-row",
+                                "bar-section",
+                                "table-section"
+                            ]
+                        },
+                        "distribution": "start"
+                    }
+                },
+                "id": "main-container"
+            },
+            {
+                "component": {
+                    "Row": {
+                        "alignment": "stretch",
+                        "children": {
+                            "explicitList": [
+                                "kpi-total",
+                                "kpi-average",
+                                "kpi-highest",
+                                "kpi-lowest"
+                            ]
+                        },
+                        "distribution": "spaceEvenly"
+                    }
+                },
+                "id": "kpi-row"
+            },
+            {
+                "component": {
+                    "Column": {
+                        "children": {
+                            "explicitList": [
+                                "bar-title",
+                                "bar-chart"
+                            ]
+                        }
+                    }
+                },
+                "id": "bar-section"
+            },
+            {
+                "component": {
+                    "Column": {
+                        "children": {
+                            "explicitList": [
+                                "table-title",
+                                "data-table"
+                            ]
+                        }
+                    }
+                },
+                "id": "table-section"
+            },
+            {
+                "component": {
+                    "BarGraph": {
+                        "action": {
+                            "name": "highlight_circuit"
+                        },
+                        "actionLabel": "View Details",
+                        "colorful": true,
+                        "dataPath": "/chartData",
+                        "detailsPath": "/chartDetails",
+                        "interactive": true,
+                        "labelPath": "/chartLabels",
+                        "orientation": "vertical",
+                        "title": "Customers Served Comparison"
+                    }
+                },
+                "id": "bar-chart"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Customers Served by Circuit (Bar Comparison)"
+                        },
+                        "usageHint": "h3"
+                    }
+                },
+                "id": "bar-title"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading data-table..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "data-table"
+            },
+            {
+                "component": {
+                    "KpiCard": {
+                        "dataPath": "/kpi/averageCustomers"
+                    }
+                },
+                "id": "kpi-average",
+                "weight": 1
+            },
+            {
+                "component": {
+                    "KpiCard": {
+                        "dataPath": "/kpi/highestCircuit"
+                    }
+                },
+                "id": "kpi-highest",
+                "weight": 1
+            },
+            {
+                "component": {
+                    "KpiCard": {
+                        "dataPath": "/kpi/lowestCircuit"
+                    }
+                },
+                "id": "kpi-lowest",
+                "weight": 1
+            },
+            {
+                "component": {
+                    "KpiCard": {
+                        "dataPath": "/kpi/totalCustomers"
+                    }
+                },
+                "id": "kpi-total",
+                "weight": 1
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading table-title..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "table-title"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Top Circuits by Customers Served"
+                        },
+                        "usageHint": "h2"
+                    }
+                },
+                "id": "title"
+            }
+        ],
+        "surfaceId": "dashboard"
+    }
+}
+
+{
+    "surfaceUpdate": {
+        "components": [
+            {
+                "component": {
+                    "Column": {
+                        "alignment": "stretch",
+                        "children": {
+                            "explicitList": [
+                                "title",
+                                "kpi-row",
+                                "bar-section",
+                                "table-section"
+                            ]
+                        },
+                        "distribution": "start"
+                    }
+                },
+                "id": "main-container"
+            },
+            {
+                "component": {
+                    "Row": {
+                        "alignment": "stretch",
+                        "children": {
+                            "explicitList": [
+                                "kpi-total",
+                                "kpi-average",
+                                "kpi-highest",
+                                "kpi-lowest"
+                            ]
+                        },
+                        "distribution": "spaceEvenly"
+                    }
+                },
+                "id": "kpi-row"
+            },
+            {
+                "component": {
+                    "Column": {
+                        "children": {
+                            "explicitList": [
+                                "bar-title",
+                                "bar-chart"
+                            ]
+                        }
+                    }
+                },
+                "id": "bar-section"
+            },
+            {
+                "component": {
+                    "Column": {
+                        "children": {
+                            "explicitList": [
+                                "table-title",
+                                "data-table"
+                            ]
+                        }
+                    }
+                },
+                "id": "table-section"
+            },
+            {
+                "component": {
+                    "BarGraph": {
+                        "action": {
+                            "name": "highlight_circuit"
+                        },
+                        "actionLabel": "View Details",
+                        "colorful": true,
+                        "dataPath": "/chartData",
+                        "detailsPath": "/chartDetails",
+                        "interactive": true,
+                        "labelPath": "/chartLabels",
+                        "orientation": "vertical",
+                        "title": "Customers Served Comparison"
+                    }
+                },
+                "id": "bar-chart"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Customers Served by Circuit (Bar Comparison)"
+                        },
+                        "usageHint": "h3"
+                    }
+                },
+                "id": "bar-title"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Loading data-table..."
+                        },
+                        "usageHint": "caption"
+                    }
+                },
+                "id": "data-table"
+            },
+            {
+                "component": {
+                    "KpiCard": {
+                        "dataPath": "/kpi/averageCustomers"
+                    }
+                },
+                "id": "kpi-average",
+                "weight": 1
+            },
+            {
+                "component": {
+                    "KpiCard": {
+                        "dataPath": "/kpi/highestCircuit"
+                    }
+                },
+                "id": "kpi-highest",
+                "weight": 1
+            },
+            {
+                "component": {
+                    "KpiCard": {
+                        "dataPath": "/kpi/lowestCircuit"
+                    }
+                },
+                "id": "kpi-lowest",
+                "weight": 1
+            },
+            {
+                "component": {
+                    "KpiCard": {
+                        "dataPath": "/kpi/totalCustomers"
+                    }
+                },
+                "id": "kpi-total",
+                "weight": 1
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Detailed Circuit Data"
+                        },
+                        "usageHint": "h3"
+                    }
+                },
+                "id": "table-title"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Top Circuits by Customers Served"
+                        },
+                        "usageHint": "h2"
+                    }
+                },
+                "id": "title"
+            }
+        ],
+        "surfaceId": "dashboard"
+    }
+}
+
+{
+    "surfaceUpdate": {
+        "components": [
+            {
+                "component": {
+                    "Column": {
+                        "alignment": "stretch",
+                        "children": {
+                            "explicitList": [
+                                "title",
+                                "kpi-row",
+                                "bar-section",
+                                "table-section"
+                            ]
+                        },
+                        "distribution": "start"
+                    }
+                },
+                "id": "main-container"
+            },
+            {
+                "component": {
+                    "Row": {
+                        "alignment": "stretch",
+                        "children": {
+                            "explicitList": [
+                                "kpi-total",
+                                "kpi-average",
+                                "kpi-highest",
+                                "kpi-lowest"
+                            ]
+                        },
+                        "distribution": "spaceEvenly"
+                    }
+                },
+                "id": "kpi-row"
+            },
+            {
+                "component": {
+                    "Column": {
+                        "children": {
+                            "explicitList": [
+                                "bar-title",
+                                "bar-chart"
+                            ]
+                        }
+                    }
+                },
+                "id": "bar-section"
+            },
+            {
+                "component": {
+                    "Column": {
+                        "children": {
+                            "explicitList": [
+                                "table-title",
+                                "data-table"
+                            ]
+                        }
+                    }
+                },
+                "id": "table-section"
+            },
+            {
+                "component": {
+                    "BarGraph": {
+                        "action": {
+                            "name": "highlight_circuit"
+                        },
+                        "actionLabel": "View Details",
+                        "colorful": true,
+                        "dataPath": "/chartData",
+                        "detailsPath": "/chartDetails",
+                        "interactive": true,
+                        "labelPath": "/chartLabels",
+                        "orientation": "vertical",
+                        "title": "Customers Served Comparison"
+                    }
+                },
+                "id": "bar-chart"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Customers Served by Circuit (Bar Comparison)"
+                        },
+                        "usageHint": "h3"
+                    }
+                },
+                "id": "bar-title"
+            },
+            {
+                "component": {
+                    "Table": {
+                        "columns": [
+                            {
+                                "field": "circuit",
+                                "header": "Circuit",
+                                "type": "string"
+                            },
+                            {
+                                "field": "customers",
+                                "header": "Customers Served",
+                                "type": "number"
+                            },
+                            {
+                                "field": "percentage",
+                                "header": "Percentage of Top Total",
+                                "type": "number"
+                            },
+                            {
+                                "field": "status",
+                                "header": "Status",
+                                "type": "string"
+                            },
+                            {
+                                "field": "priority",
+                                "header": "Priority",
+                                "type": "string"
+                            },
+                            {
+                                "field": "lastUpdated",
+                                "header": "Last Updated",
+                                "type": "date"
+                            }
+                        ],
+                        "dataPath": "/tableData",
+                        "detailsPath": "/tableDetails",
+                        "title": "Circuit Customers Table"
+                    }
+                },
+                "id": "data-table"
+            },
+            {
+                "component": {
+                    "KpiCard": {
+                        "dataPath": "/kpi/averageCustomers"
+                    }
+                },
+                "id": "kpi-average",
+                "weight": 1
+            },
+            {
+                "component": {
+                    "KpiCard": {
+                        "dataPath": "/kpi/highestCircuit"
+                    }
+                },
+                "id": "kpi-highest",
+                "weight": 1
+            },
+            {
+                "component": {
+                    "KpiCard": {
+                        "dataPath": "/kpi/lowestCircuit"
+                    }
+                },
+                "id": "kpi-lowest",
+                "weight": 1
+            },
+            {
+                "component": {
+                    "KpiCard": {
+                        "dataPath": "/kpi/totalCustomers"
+                    }
+                },
+                "id": "kpi-total",
+                "weight": 1
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Detailed Circuit Data"
+                        },
+                        "usageHint": "h3"
+                    }
+                },
+                "id": "table-title"
+            },
+            {
+                "component": {
+                    "Text": {
+                        "text": {
+                            "literalString": "Top Circuits by Customers Served"
+                        },
+                        "usageHint": "h2"
+                    }
+                },
+                "id": "title"
+            }
+        ],
+        "surfaceId": "dashboard"
+    }
+}
+
+// Data model update into a single time
+
+{
+    "dataModelUpdate": {
+        "contents": [
+            {
+                "key": "kpi",
+                "valueMap": [
+                    {
+                        "key": "totalCustomers",
+                        "valueMap": [
+                            {
+                                "key": "label",
+                                "valueString": "Total Customers (Top 6)"
+                            },
+                            {
+                                "key": "value",
+                                "valueNumber": 5780
+                            },
+                            {
+                                "key": "icon",
+                                "valueString": "users"
+                            },
+                            {
+                                "key": "change",
+                                "valueNumber": 5
+                            },
+                            {
+                                "key": "changeLabel",
+                                "valueString": "% growth YoY"
+                            },
+                            {
+                                "key": "color",
+                                "valueString": "blue"
+                            },
+                            {
+                                "key": "trend",
+                                "valueString": "Steady increase due to urban expansion"
+                            },
+                            {
+                                "key": "breakdown",
+                                "valueString": "Represents 65% of overall network load"
+                            },
+                            {
+                                "key": "forecast",
+                                "valueString": "Projected to reach 6200 by end of year"
+                            },
+                            {
+                                "key": "factors",
+                                "valueString": "Population growth and new developments"
+                            },
+                            {
+                                "key": "impact",
+                                "valueString": "Higher revenue potential but increased maintenance needs"
+                            },
+                            {
+                                "key": "affectedAreas",
+                                "valueString": "Urban and suburban districts"
+                            },
+                            {
+                                "key": "methodology",
+                                "valueString": "Aggregated from real-time meter data"
+                            }
+                        ]
+                    },
+                    {
+                        "key": "averageCustomers",
+                        "valueMap": [
+                            {
+                                "key": "label",
+                                "valueString": "Average per Circuit"
+                            },
+                            {
+                                "key": "value",
+                                "valueNumber": 963.33
+                            },
+                            {
+                                "key": "unit",
+                                "valueString": "customers"
+                            },
+                            {
+                                "key": "icon",
+                                "valueString": "chart-line"
+                            },
+                            {
+                                "key": "change",
+                                "valueNumber": 3
+                            },
+                            {
+                                "key": "changeLabel",
+                                "valueString": "% vs last quarter"
+                            },
+                            {
+                                "key": "color",
+                                "valueString": "green"
+                            },
+                            {
+                                "key": "trend",
+                                "valueString": "Consistent with network balancing efforts"
+                            },
+                            {
+                                "key": "breakdown",
+                                "valueString": "Top 3 circuits average 1110, bottom 3 average 817"
+                            },
+                            {
+                                "key": "forecast",
+                                "valueString": "Stable at 980 with load redistribution"
+                            },
+                            {
+                                "key": "factors",
+                                "valueString": "Infrastructure upgrades and customer migration"
+                            },
+                            {
+                                "key": "impact",
+                                "valueString": "Guides resource allocation for maintenance"
+                            },
+                            {
+                                "key": "affectedAreas",
+                                "valueString": "All served regions"
+                            },
+                            {
+                                "key": "methodology",
+                                "valueString": "Simple average of top circuits; excludes outliers"
+                            }
+                        ]
+                    },
+                    {
+                        "key": "highestCircuit",
+                        "valueMap": [
+                            {
+                                "key": "label",
+                                "valueString": "Highest Customers"
+                            },
+                            {
+                                "key": "value",
+                                "valueNumber": 1250
+                            },
+                            {
+                                "key": "unit",
+                                "valueString": "customers"
+                            },
+                            {
+                                "key": "icon",
+                                "valueString": "trophy"
+                            },
+                            {
+                                "key": "change",
+                                "valueNumber": 8
+                            },
+                            {
+                                "key": "changeLabel",
+                                "valueString": "% increase QoQ"
+                            },
+                            {
+                                "key": "color",
+                                "valueString": "gold"
+                            },
+                            {
+                                "key": "trend",
+                                "valueString": "Rapid growth from new housing developments"
+                            },
+                            {
+                                "key": "breakdown",
+                                "valueString": "70% residential, 30% commercial"
+                            },
+                            {
+                                "key": "forecast",
+                                "valueString": "Could reach 1400 with expansion"
+                            },
+                            {
+                                "key": "primaryCause",
+                                "valueString": "Urban migration and business influx"
+                            },
+                            {
+                                "key": "impact",
+                                "valueString": "Prioritizes upgrades to avoid overloads"
+                            },
+                            {
+                                "key": "affectedAreas",
+                                "valueString": "Circuit 7 core district"
+                            },
+                            {
+                                "key": "methodology",
+                                "valueString": "Peak daily active connections"
+                            }
+                        ]
+                    },
+                    {
+                        "key": "lowestCircuit",
+                        "valueMap": [
+                            {
+                                "key": "label",
+                                "valueString": "Lowest in Top 6"
+                            },
+                            {
+                                "key": "value",
+                                "valueNumber": 700
+                            },
+                            {
+                                "key": "unit",
+                                "valueString": "customers"
+                            },
+                            {
+                                "key": "icon",
+                                "valueString": "warning"
+                            },
+                            {
+                                "key": "change",
+                                "valueNumber": -2
+                            },
+                            {
+                                "key": "changeLabel",
+                                "valueString": "% decline MoM"
+                            },
+                            {
+                                "key": "color",
+                                "valueString": "orange"
+                            },
+                            {
+                                "key": "trend",
+                                "valueString": "Slight decline due to rural depopulation"
+                            },
+                            {
+                                "key": "breakdown",
+                                "valueString": "90% residential, 10% agricultural"
+                            },
+                            {
+                                "key": "forecast",
+                                "valueString": "Potential stabilization at 750 with incentives"
+                            },
+                            {
+                                "key": "primaryCause",
+                                "valueString": "Customer relocation to urban areas"
+                            },
+                            {
+                                "key": "impact",
+                                "valueString": "Lower revenue; opportunities for optimization"
+                            },
+                            {
+                                "key": "affectedAreas",
+                                "valueString": "Circuit 14 outskirts"
+                            },
+                            {
+                                "key": "methodology",
+                                "valueString": "Adjusted for seasonal variations"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "key": "chartData",
+                "valueMap": [
+                    {
+                        "key": "0",
+                        "valueNumber": 1250
+                    },
+                    {
+                        "key": "1",
+                        "valueNumber": 1100
+                    },
+                    {
+                        "key": "2",
+                        "valueNumber": 980
+                    },
+                    {
+                        "key": "3",
+                        "valueNumber": 900
+                    },
+                    {
+                        "key": "4",
+                        "valueNumber": 850
+                    },
+                    {
+                        "key": "5",
+                        "valueNumber": 700
+                    }
+                ]
+            },
+            {
+                "key": "chartLabels",
+                "valueMap": [
+                    {
+                        "key": "0",
+                        "valueString": "Circuit 7"
+                    },
+                    {
+                        "key": "1",
+                        "valueString": "Circuit 5"
+                    },
+                    {
+                        "key": "2",
+                        "valueString": "Circuit 12"
+                    },
+                    {
+                        "key": "3",
+                        "valueString": "Circuit 3"
+                    },
+                    {
+                        "key": "4",
+                        "valueString": "Circuit 9"
+                    },
+                    {
+                        "key": "5",
+                        "valueString": "Circuit 14"
+                    }
+                ]
+            },
+            {
+                "key": "chartDetails",
+                "valueMap": [
+                    {
+                        "key": "0",
+                        "valueMap": [
+                            {
+                                "key": "trend",
+                                "valueString": "Increasing 12% YoY"
+                            },
+                            {
+                                "key": "forecast",
+                                "valueString": "Expected to grow to 1400 customers"
+                            },
+                            {
+                                "key": "primaryCause",
+                                "valueString": "Urban development and housing boom"
+                            },
+                            {
+                                "key": "breakdown",
+                                "valueString": "65% residential, 25% commercial, 10% industrial"
+                            },
+                            {
+                                "key": "impact",
+                                "valueString": "Higher load on grid; requires capacity upgrades"
+                            },
+                            {
+                                "key": "severity",
+                                "valueString": "High priority for maintenance"
+                            },
+                            {
+                                "key": "affectedParties",
+                                "valueString": "1250 households and businesses in core urban area"
+                            }
+                        ]
+                    },
+                    {
+                        "key": "1",
+                        "valueMap": [
+                            {
+                                "key": "trend",
+                                "valueString": "Stable with 8% growth"
+                            },
+                            {
+                                "key": "forecast",
+                                "valueString": "Projected steady at 1150-1200"
+                            },
+                            {
+                                "key": "primaryCause",
+                                "valueString": "Business expansions in mixed-use zones"
+                            },
+                            {
+                                "key": "breakdown",
+                                "valueString": "55% residential, 35% commercial, 10% other"
+                            },
+                            {
+                                "key": "impact",
+                                "valueString": "Balanced load; efficient resource use"
+                            },
+                            {
+                                "key": "severity",
+                                "valueString": "Medium"
+                            },
+                            {
+                                "key": "affectedParties",
+                                "valueString": "1100 customers in suburban-commercial district"
+                            }
+                        ]
+                    },
+                    {
+                        "key": "2",
+                        "valueMap": [
+                            {
+                                "key": "trend",
+                                "valueString": "Moderate increase 5% QoQ"
+                            },
+                            {
+                                "key": "forecast",
+                                "valueString": "Growth to 1050 with new connections"
+                            },
+                            {
+                                "key": "primaryCause",
+                                "valueString": "Industrial park additions"
+                            },
+                            {
+                                "key": "breakdown",
+                                "valueString": "40% industrial, 50% residential, 10% commercial"
+                            },
+                            {
+                                "key": "impact",
+                                "valueString": "Potential peak demand spikes"
+                            },
+                            {
+                                "key": "severity",
+                                "valueString": "Medium"
+                            },
+                            {
+                                "key": "affectedParties",
+                                "valueString": "980 customers including factories and homes"
+                            }
+                        ]
+                    },
+                    {
+                        "key": "3",
+                        "valueMap": [
+                            {
+                                "key": "trend",
+                                "valueString": "Slight uptick 4% YoY"
+                            },
+                            {
+                                "key": "forecast",
+                                "valueString": "Stable around 950"
+                            },
+                            {
+                                "key": "primaryCause",
+                                "valueString": "Residential infill projects"
+                            },
+                            {
+                                "key": "breakdown",
+                                "valueString": "75% residential, 20% small business, 5% other"
+                            },
+                            {
+                                "key": "impact",
+                                "valueString": "Standard operational focus"
+                            },
+                            {
+                                "key": "severity",
+                                "valueString": "Low-Medium"
+                            },
+                            {
+                                "key": "affectedParties",
+                                "valueString": "900 families and local shops"
+                            }
+                        ]
+                    },
+                    {
+                        "key": "4",
+                        "valueMap": [
+                            {
+                                "key": "trend",
+                                "valueString": "Flat with minor fluctuations"
+                            },
+                            {
+                                "key": "forecast",
+                                "valueString": "Possible dip to 800 if no new builds"
+                            },
+                            {
+                                "key": "primaryCause",
+                                "valueString": "Aging infrastructure limiting expansions"
+                            },
+                            {
+                                "key": "breakdown",
+                                "valueString": "60% residential, 30% commercial, 10% vacant"
+                            },
+                            {
+                                "key": "impact",
+                                "valueString": "Opportunities for targeted upgrades"
+                            },
+                            {
+                                "key": "severity",
+                                "valueString": "Medium"
+                            },
+                            {
+                                "key": "affectedParties",
+                                "valueString": "850 customers in transitional area"
+                            }
+                        ]
+                    },
+                    {
+                        "key": "5",
+                        "valueMap": [
+                            {
+                                "key": "trend",
+                                "valueString": "Declining 3% MoM"
+                            },
+                            {
+                                "key": "forecast",
+                                "valueString": "Stabilization at 720 with retention efforts"
+                            },
+                            {
+                                "key": "primaryCause",
+                                "valueString": "Rural-to-urban customer migration"
+                            },
+                            {
+                                "key": "breakdown",
+                                "valueString": "85% residential, 15% agricultural"
+                            },
+                            {
+                                "key": "impact",
+                                "valueString": "Reduced strain but revenue concerns"
+                            },
+                            {
+                                "key": "severity",
+                                "valueString": "Low"
+                            },
+                            {
+                                "key": "affectedParties",
+                                "valueString": "700 rural households"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "key": "tableData",
+                "valueMap": [
+                    {
+                        "key": "0",
+                        "valueMap": [
+                            {
+                                "key": "circuit",
+                                "valueString": "Circuit 7"
+                            },
+                            {
+                                "key": "customers",
+                                "valueNumber": 1250
+                            },
+                            {
+                                "key": "percentage",
+                                "valueNumber": 21.62
+                            },
+                            {
+                                "key": "status",
+                                "valueString": "Active - High Load"
+                            },
+                            {
+                                "key": "priority",
+                                "valueString": "High"
+                            },
+                            {
+                                "key": "lastUpdated",
+                                "valueString": "2024-10-01T10:00:00Z"
+                            }
+                        ]
+                    },
+                    {
+                        "key": "1",
+                        "valueMap": [
+                            {
+                                "key": "circuit",
+                                "valueString": "Circuit 5"
+                            },
+                            {
+                                "key": "customers",
+                                "valueNumber": 1100
+                            },
+                            {
+                                "key": "percentage",
+                                "valueNumber": 19.03
+                            },
+                            {
+                                "key": "status",
+                                "valueString": "Active - Balanced"
+                            },
+                            {
+                                "key": "priority",
+                                "valueString": "Medium"
+                            },
+                            {
+                                "key": "lastUpdated",
+                                "valueString": "2024-10-01T09:30:00Z"
+                            }
+                        ]
+                    },
+                    {
+                        "key": "2",
+                        "valueMap": [
+                            {
+                                "key": "circuit",
+                                "valueString": "Circuit 12"
+                            },
+                            {
+                                "key": "customers",
+                                "valueNumber": 980
+                            },
+                            {
+                                "key": "percentage",
+                                "valueNumber": 16.96
+                            },
+                            {
+                                "key": "status",
+                                "valueString": "Active - Monitoring"
+                            },
+                            {
+                                "key": "priority",
+                                "valueString": "Medium"
+                            },
+                            {
+                                "key": "lastUpdated",
+                                "valueString": "2024-10-01T11:00:00Z"
+                            }
+                        ]
+                    },
+                    {
+                        "key": "3",
+                        "valueMap": [
+                            {
+                                "key": "circuit",
+                                "valueString": "Circuit 3"
+                            },
+                            {
+                                "key": "customers",
+                                "valueNumber": 900
+                            },
+                            {
+                                "key": "percentage",
+                                "valueNumber": 15.57
+                            },
+                            {
+                                "key": "status",
+                                "valueString": "Active - Stable"
+                            },
+                            {
+                                "key": "priority",
+                                "valueString": "Low-Medium"
+                            },
+                            {
+                                "key": "lastUpdated",
+                                "valueString": "2024-10-01T08:45:00Z"
+                            }
+                        ]
+                    },
+                    {
+                        "key": "4",
+                        "valueMap": [
+                            {
+                                "key": "circuit",
+                                "valueString": "Circuit 9"
+                            },
+                            {
+                                "key": "customers",
+                                "valueNumber": 850
+                            },
+                            {
+                                "key": "percentage",
+                                "valueNumber": 14.7
+                            },
+                            {
+                                "key": "status",
+                                "valueString": "Active - Review"
+                            },
+                            {
+                                "key": "priority",
+                                "valueString": "Medium"
+                            },
+                            {
+                                "key": "lastUpdated",
+                                "valueString": "2024-10-01T10:15:00Z"
+                            }
+                        ]
+                    },
+                    {
+                        "key": "5",
+                        "valueMap": [
+                            {
+                                "key": "circuit",
+                                "valueString": "Circuit 14"
+                            },
+                            {
+                                "key": "customers",
+                                "valueNumber": 700
+                            },
+                            {
+                                "key": "percentage",
+                                "valueNumber": 12.11
+                            },
+                            {
+                                "key": "status",
+                                "valueString": "Active - Low Load"
+                            },
+                            {
+                                "key": "priority",
+                                "valueString": "Low"
+                            },
+                            {
+                                "key": "lastUpdated",
+                                "valueString": "2024-10-01T09:00:00Z"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "key": "tableDetails",
+                "valueMap": [
+                    {
+                        "key": "0",
+                        "valueMap": [
+                            {
+                                "key": "rootCause",
+                                "valueString": "High due to population density"
+                            },
+                            {
+                                "key": "affectedCustomers",
+                                "valueNumber": 1250
+                            },
+                            {
+                                "key": "historicalContext",
+                                "valueString": "Grown 20% since 2022 infrastructure project"
+                            },
+                            {
+                                "key": "relationships",
+                                "valueString": "Interconnects with Circuits 5 and 12"
+                            },
+                            {
+                                "key": "nextUpdate",
+                                "valueString": "Weekly load report on 2024-10-08"
+                            },
+                            {
+                                "key": "explanation",
+                                "valueString": "Largest circuit; focus for reliability investments"
+                            }
+                        ]
+                    },
+                    {
+                        "key": "1",
+                        "valueMap": [
+                            {
+                                "key": "rootCause",
+                                "valueString": "Mixed urban-commercial growth"
+                            },
+                            {
+                                "key": "affectedCustomers",
+                                "valueNumber": 1100
+                            },
+                            {
+                                "key": "historicalContext",
+                                "valueString": "Stable since 2023 expansions"
+                            },
+                            {
+                                "key": "relationships",
+                                "valueString": "Supports overflow from Circuit 7"
+                            },
+                            {
+                                "key": "nextUpdate",
+                                "valueString": "Monthly audit on 2024-10-15"
+                            },
+                            {
+                                "key": "explanation",
+                                "valueString": "Key for commercial reliability"
+                            }
+                        ]
+                    },
+                    {
+                        "key": "2",
+                        "valueMap": [
+                            {
+                                "key": "rootCause",
+                                "valueString": "Industrial additions"
+                            },
+                            {
+                                "key": "affectedCustomers",
+                                "valueNumber": 980
+                            },
+                            {
+                                "key": "historicalContext",
+                                "valueString": "Up 10% from new factories in 2024"
+                            },
+                            {
+                                "key": "relationships",
+                                "valueString": "Linked to supply chain hubs"
+                            },
+                            {
+                                "key": "nextUpdate",
+                                "valueString": "Quarterly review on 2024-10-20"
+                            },
+                            {
+                                "key": "explanation",
+                                "valueString": "Monitors for industrial demand peaks"
+                            }
+                        ]
+                    },
+                    {
+                        "key": "3",
+                        "valueMap": [
+                            {
+                                "key": "rootCause",
+                                "valueString": "Ongoing residential builds"
+                            },
+                            {
+                                "key": "affectedCustomers",
+                                "valueNumber": 900
+                            },
+                            {
+                                "key": "historicalContext",
+                                "valueString": "Consistent since 2021"
+                            },
+                            {
+                                "key": "relationships",
+                                "valueString": "Backup for nearby circuits"
+                            },
+                            {
+                                "key": "nextUpdate",
+                                "valueString": "Bi-weekly check on 2024-10-10"
+                            },
+                            {
+                                "key": "explanation",
+                                "valueString": "Reliable for family-oriented areas"
+                            }
+                        ]
+                    },
+                    {
+                        "key": "4",
+                        "valueMap": [
+                            {
+                                "key": "rootCause",
+                                "valueString": "Transitional development phase"
+                            },
+                            {
+                                "key": "affectedCustomers",
+                                "valueNumber": 850
+                            },
+                            {
+                                "key": "historicalContext",
+                                "valueString": "Flat post-2023 renovations"
+                            },
+                            {
+                                "key": "relationships",
+                                "valueString": "Potential merge candidate with Circuit 3"
+                            },
+                            {
+                                "key": "nextUpdate",
+                                "valueString": "Status review on 2024-10-12"
+                            },
+                            {
+                                "key": "explanation",
+                                "valueString": "Area for future growth planning"
+                            }
+                        ]
+                    },
+                    {
+                        "key": "5",
+                        "valueMap": [
+                            {
+                                "key": "rootCause",
+                                "valueString": "Demographic shifts outward"
+                            },
+                            {
+                                "key": "affectedCustomers",
+                                "valueNumber": 700
+                            },
+                            {
+                                "key": "historicalContext",
+                                "valueString": "Down 5% since 2022"
+                            },
+                            {
+                                "key": "relationships",
+                                "valueString": "Remote feeder from main grid"
+                            },
+                            {
+                                "key": "nextUpdate",
+                                "valueString": "Annual assessment on 2024-11-01"
+                            },
+                            {
+                                "key": "explanation",
+                                "valueString": "Focus on retention and efficiency"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "path": "/",
+        "surfaceId": "dashboard"
+    }
+}
