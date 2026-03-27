@@ -98,6 +98,9 @@ export class DynamicModule extends LitElement {
   accessor #processingSurfaces = false;
 
   @state()
+  accessor #uiStreamingActive = false;
+
+  @state()
   accessor #loadingTextIndex = 0;
 
   @state()
@@ -120,6 +123,8 @@ export class DynamicModule extends LitElement {
   #loadingInterval: number | undefined;
   #stopwatchInterval: number | undefined;
   #snackbar: Snackbar | undefined = undefined;
+  #seenUiMessageHashes: Set<string> = new Set();
+
   #pendingSnackbarMessages: Array<{
     message: SnackbarMessage;
     replaceAll: boolean;
@@ -143,6 +148,7 @@ export class DynamicModule extends LitElement {
       this.#currentElapsedTime = 0;
       this.#totalDuration = 0;
       this.#requesting = true;
+      this.#uiStreamingActive = true;
       this.#error = null;
       this.sources = [];
       this.#startLoadingAnimation();
@@ -151,6 +157,7 @@ export class DynamicModule extends LitElement {
       this.status = []
       this.#processor.clearSurfaces();
       this.#lastMessages = [];
+      this.#seenUiMessageHashes.clear();
       this.#startStopwatch();
     }
   };
@@ -230,6 +237,46 @@ export class DynamicModule extends LitElement {
         min-height: 0;
         overflow: visible;
         max-height: none;
+      }
+
+
+      .surfaces-container {
+        position: relative;
+      }
+
+      .streaming-glass-overlay {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        border-radius: var(--radius-lg);
+        background:
+          linear-gradient(120deg,
+            var(--surface-secondary) 0%,
+            var(--surface-elevated) 35%,
+            var(--module-agent-active) 50%,
+            var(--surface-secondary) 100%);
+        backdrop-filter: blur(2px) saturate(1.1);
+        -webkit-backdrop-filter: blur(2px) saturate(1.1);
+        border: 1px solid var(--border-secondary);
+        box-shadow: inset 0 0 0 1px var(--border-subtle);
+        animation: glassSweep 2.2s ease-in-out infinite;
+        z-index: 1;
+      }
+
+      .streaming-glass-overlay::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          var(--module-agent-active) 35%,
+          var(--module-chat-active) 50%,
+          var(--module-agent-active) 65%,
+          transparent 100%
+        );
+        transform: translateX(-120%);
+        animation: shimmerPass 1.8s ease-in-out infinite;
       }
         
       .surfaces {
@@ -369,6 +416,31 @@ export class DynamicModule extends LitElement {
           transform: rotate(360deg);
         }
       }
+
+
+      @keyframes shimmerPass {
+        0% {
+          transform: translateX(-120%);
+          opacity: 0.15;
+        }
+        50% {
+          opacity: 0.45;
+        }
+        100% {
+          transform: translateX(120%);
+          opacity: 0.1;
+        }
+      }
+
+      @keyframes glassSweep {
+        0%,
+        100% {
+          opacity: 0.22;
+        }
+        50% {
+          opacity: 0.45;
+        }
+      }
     `,
   ]
   // #endregion Styles
@@ -480,6 +552,7 @@ export class DynamicModule extends LitElement {
 
       if (isFinal || state === 'failed') {
         this.#requesting = false;
+        this.#uiStreamingActive = false;
         this.#stopLoadingAnimation();
       }
     }
@@ -523,7 +596,17 @@ export class DynamicModule extends LitElement {
     if (this.#activeRequestId && event.clientRequestId && event.clientRequestId !== this.#activeRequestId) return;
     const normalized = event.normalized;
 
-    const newMessages: v0_8.Types.ServerToClientMessage[] = normalized?.uiMessages || [];
+    const incomingMessages: v0_8.Types.ServerToClientMessage[] = normalized?.uiMessages || [];
+    const newMessages: v0_8.Types.ServerToClientMessage[] = [];
+    for (const message of incomingMessages) {
+      const hash = JSON.stringify(message);
+      if (this.#seenUiMessageHashes.has(hash)) {
+        continue;
+      }
+      this.#seenUiMessageHashes.add(hash);
+      newMessages.push(message);
+    }
+
     if (newMessages.length > 0) {
       // As soon as we receive the first UI delta, switch from request loader
       // to the progressive surface renderer.
@@ -716,6 +799,7 @@ export class DynamicModule extends LitElement {
     }
 
     return html`<div class="surfaces-container">
+      ${this.#uiStreamingActive ? html`<div class="streaming-glass-overlay" aria-hidden="true"></div>` : nothing}
       <section class="surfaces">
         ${repeat(
       this.#processor.getSurfaces(),

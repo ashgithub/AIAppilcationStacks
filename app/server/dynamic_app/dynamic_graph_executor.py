@@ -347,6 +347,33 @@ def _build_progressive_messages(
     return progressive
 
 
+def _is_pre_progressive_sequence(messages: list[dict[str, Any]]) -> bool:
+    """
+    Detect payloads that already contain ordered progressive updates.
+    Parallel UI assembler already emits:
+    beginRendering -> skeleton surfaceUpdate -> N surfaceUpdate deltas -> dataModelUpdate.
+    Re-transforming that sequence creates reset/flicker behavior on the client.
+    """
+    surface_update_count = 0
+    begin_count = 0
+    seen_surfaces: set[str] = set()
+
+    for message in messages:
+        begin = message.get("beginRendering")
+        if isinstance(begin, dict):
+            begin_count += 1
+
+        surface_update = message.get("surfaceUpdate")
+        if isinstance(surface_update, dict):
+            surface_update_count += 1
+            surface_id = surface_update.get("surfaceId")
+            if isinstance(surface_id, str):
+                seen_surfaces.add(surface_id)
+
+    # A single surface with multiple surface updates is already progressive.
+    return begin_count >= 1 and surface_update_count >= 2 and len(seen_surfaces) <= 1
+
+
 #region Executor
 class DynamicGraphExecutor(AgentExecutor):
     """Executor for the full dynamic graph pipeline."""
@@ -512,11 +539,24 @@ class DynamicGraphExecutor(AgentExecutor):
                         json_data = json.loads(json_string_cleaned)
 
                         if isinstance(json_data, list):
-                            logger.info(f"Found {len(json_data)} final A2UI message(s). Replaying progressively.")
-                            progressive_messages = _build_progressive_messages(
-                                [message for message in json_data if isinstance(message, dict)],
-                                component_chunk_size=self.progressive_component_chunk_size,
-                            )
+                            ordered_messages = [
+                                message for message in json_data if isinstance(message, dict)
+                            ]
+                            if _is_pre_progressive_sequence(ordered_messages):
+                                progressive_messages = ordered_messages
+                                logger.info(
+                                    "Found %s final A2UI message(s) already progressive. Replaying as-is.",
+                                    len(progressive_messages),
+                                )
+                            else:
+                                logger.info(
+                                    "Found %s final A2UI message(s) requiring progressive transformation.",
+                                    len(ordered_messages),
+                                )
+                                progressive_messages = _build_progressive_messages(
+                                    ordered_messages,
+                                    component_chunk_size=self.progressive_component_chunk_size,
+                                )
                             total_steps = len(progressive_messages)
 
                             for index, progressive_message in enumerate(progressive_messages):
