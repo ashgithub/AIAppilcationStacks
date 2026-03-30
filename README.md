@@ -4,240 +4,307 @@ A comprehensive demonstration project showcasing the evolution of application de
 
 ## Overview
 
-This project demonstrates three distinct approaches to building modern applications:
+This project demonstrates three approaches to building modern applications over the same outage and energy domain:
 
 ### Traditional App
-A conventional web application with static UI components and predefined workflows, representing the pre-AI era of application development.
+A conventional web application with static UI components and predefined workflows.
 
 ### LLM App
 A conversational interface powered by Large Language Models (LLMs), enabling natural language interactions for information retrieval and assistance.
 
 ### Agentic App
-An intelligent application that leverages AI agents to dynamically generate, modify, and adapt user interfaces in real-time through the A2UI (Agent-to-UI) protocol, representing the future of adaptive software systems.
+An intelligent application that leverages AI agents to dynamically generate, modify, and adapt user interfaces in real time through the A2UI (Agent-to-UI) protocol.
 
-> [!IMPORTANT] 
-> For MAC/Linux, delete `package-lock.json` and `node_modules` before installation (prevents Windows dependency usage).
+## Local Notices And Compatibility
+
+> [!IMPORTANT]
+> For macOS/Linux, if dependencies were previously installed on Windows, delete `package-lock.json` and `node_modules` before reinstalling.
 >
-> If using Mac/Linux try looking at [compatibility readme](./MAC-LINUX.md) to fix errors
-> Remove the usage of `shx` package if errors persist.
-> Start clean dependencies installation specially for client.
+> If errors persist, check [MAC-LINUX.md](./MAC-LINUX.md) and start with a clean client dependency install.
 >
-> Langfuse host: [host](https://apps.research-lab.ugbu.oraclepdemos.com/langfuse/organization/cmmwz8eo00138wp07y72jd9dh)
+> The project currently uses `shx` in client scripts. If cross-platform errors continue, review/remediate `shx` usage as described in [MAC-LINUX.md](./MAC-LINUX.md).
+
+- Langfuse host (project reference): [host](https://apps.research-lab.ugbu.oraclepdemos.com/langfuse/organization/cmmwz8eo00138wp07y72jd9dh)
+
+## Prerequisites
+
+- Node.js 20+ and `npm`
+- Python 3.13+
+- `uv` package manager
+- Git
+- OCI account and credentials with Generative AI access (required for real LLM/agent execution)
+- Oracle DB credentials/wallet (required for NL2SQL/RAG flows)
 
 ## Quick Start
 
-Now need to install the python package first on AIAppilcationStacks\libs\agent_sdks\python>uv sync
-AIAppilcationStacks\libs\agent_sdks\python>uv pip install -e .
+This is the fastest complete setup for the full demo.
 
-Then sync the server dependencies
-
-1. **Setup libraries:**
+1. Install the local Python SDK used by server (`a2ui-agent` path dependency):
    ```bash
-   # Build renderers
-   cd libs/renderers/web_core && npm install && npm run build
-   cd ../lit && npm install && npm run build
+   cd libs/agent_sdks/python
+   uv sync
+   uv pip install -e .
    ```
 
-2. **Setup server:**
+2. Build renderer libraries:
+   ```bash
+   cd ../../renderers/web_core
+   npm install
+   npm run build
+
+   cd ../lit
+   npm install
+   npm run build
+   ```
+
+3. Configure and install server dependencies:
    ```bash
    cd ../../../app/server
    uv sync
-   cp .env.example .env  # Configure OCI credentials
+   cp .env.example .env
    ```
 
-3. **Setup client:**
+4. Install client dependencies:
    ```bash
    cd ../client
    npm install
    ```
 
-4. **Run both services:**
+5. Run both services from `app/client`:
    ```bash
-   npm run demo:edge  # Runs both client and server concurrently
+   npm run demo:edge
    ```
-5. Access the application at `http://localhost:5173`
-6. Try some queries from the [DEMO](./DEMO.md) section
+
+6. Access the app at `http://localhost:5173`
+
+7. Try queries from [DEMO.md](./DEMO.md)
+
+## Environment Setup Notes (Server)
+
+From `app/server/.env.example`, configure values like:
+
+```env
+COMPARTMENT_ID=<your-compartment-id>
+AUTH_PROFILE=<oci-config-profile>
+SERVICE_ENDPOINT=https://inference.generativeai.us-chicago-1.oci.oraclecloud.com
+
+DB_PASSWORD=<your-password>
+DB_WALLET_PATH=<absolute-path-to-wallet>
+DB_WALLET_PASSWORD=<wallet-password>
+DB_USER=<db-user>
+DB_DSN=<db-dsn>
+```
+
+Optional runtime mode:
+- `uv run __main__.py --mock` starts credential-free mock executors for UI testing.
+
+## Module Explanations
+
+### Traditional Module
+- Static, predefined payload-driven UI.
+- Main server provider: `app/server/traditional_app/data_provider.py`
+- Endpoints:
+  - `GET /traditional`
+  - `GET /traditional/energy`
+  - `GET /traditional/trends`
+  - `GET /traditional/timeline`
+  - `GET /traditional/industry`
+
+### Chat Module (LLM)
+- A2A-backed conversational pipeline for outage and energy analysis.
+- Main modules:
+  - `app/server/chat_app/main_llm.py`
+  - `app/server/chat_app/llm_executor.py`
+  - `app/server/chat_app/nl2sql_agent.py`
+  - `app/server/chat_app/rag_tool.py`
+- Endpoint root: `POST /llm/*`
+
+### Agent Module (Dynamic UI)
+- Multi-agent graph that generates structured UI and custom widgets.
+- Main orchestration modules:
+  - `app/server/dynamic_app/dynamic_agents_graph.py`
+  - `app/server/dynamic_app/dynamic_graph_executor.py`
+  - `app/server/dynamic_app/back_agents_graph/`
+  - `app/server/dynamic_app/ui_agents_graph/`
+- Prompt/schema/config modules:
+  - `app/server/core/dynamic_app/prompts/`
+  - `app/server/core/dynamic_app/schemas/`
+  - `app/server/core/dynamic_app/a2a_config_provider.py`
+- Widget schemas include:
+  - `kpi`, `line_graph`, `bar_graph`, `table`, `map`, `timeline`
+- Endpoint root: `POST /agent/*`
+- Runtime control endpoints:
+  - `GET/POST/DELETE /agent/config`
+- Semantic cache endpoints:
+  - `GET /agent/cache/semantic`
+  - `DELETE /agent/cache/semantic`
 
 ## Architecture
 
-The application stack consists of three main components:
-
 ### Client Application (`app/client/`)
 - Built with TypeScript and Lit web components
-- Provides three interactive modules: Traditional, Chat, and Dynamic Agent interfaces
-- Communicates with the server via HTTP/WebSocket for real-time updates
-- Uses A2UI protocol for dynamic UI generation and modification
+- Includes three runtime modules: `Traditional`, `Chat`, and `Agent`
+- Uses HTTP/A2A communication with server endpoints
+- Includes custom A2UI components under `app/client/shell/ui/custom-components/`
 
 ### Server Application (`app/server/`)
-- Python-based backend using FastAPI and Starlette
-- Implements A2A (Agent-to-Agent) protocol for inter-agent communication
-- Hosts two primary agents:
-  - **Restaurant Agent**: Dynamic agent for restaurant discovery and recommendations
-  - **Outage & Energy LLM Agent**: Specialized LLM agent for power outage and energy data analysis
-- Integrates with OCI Generative AI services for LLM capabilities
+- Python backend built with Starlette + A2A SDK
+- Mounts and serves:
+  - `/agent` (dynamic graph agent)
+  - `/llm` (LLM agent)
+  - `/traditional*` (traditional REST payloads)
+  - `/rag_docs/*` (static RAG source documents)
+- Supports mock mode for credential-free UI testing
 
 ### Libraries (`libs/`)
-- **Renderers**: Web component renderers for UI elements (Lit and Web Core)
-- **A2A Agents**: Agent-to-Agent communication protocols and implementations
-- **Specifications**: A2UI protocol definitions and schemas
+- `libs/agent_sdks/python`: local A2UI agent SDK package (`a2ui-agent`)
+- `libs/renderers/web_core`: renderer core
+- `libs/renderers/lit`: Lit renderer package
+- `libs/specification`: A2UI specification versions (`v0_8`, `v0_9`) and tests/eval tools
 
 ## Technology Stack
 
 ### Frontend
-- **TypeScript**: Type-safe JavaScript development
-- **Lit**: Lightweight web component library
-- **Vite**: Fast build tool and development server
-- **MapLibre GL**: Open-source mapping library
+- TypeScript
+- Lit
+- Vite
+- MapLibre GL
 
 ### Backend
-- **Python 3.13+**: Core programming language
-- **FastAPI/Starlette**: Modern async web frameworks
-- **LangChain**: LLM integration and orchestration
-- **OCI Generative AI**: Cloud-based AI services
-- **A2A SDK**: Agent-to-Agent communication protocol
+- Python 3.13+
+- Starlette/FastAPI ecosystem
+- LangChain
+- OCI Generative AI
+- A2A SDK
+- Oracle DB (`oracledb`)
 
 ### Development Tools
-- **UV**: Fast Python package manager
-- **NPM/PNPM**: JavaScript package management
-- **Git**: Version control
+- UV
+- npm
+- Git
 
-## Prerequisites
+## Run Client (Detailed)
 
-- **Node.js** (v18+)
-- **Python** (3.13+)
-- **UV** Python package manager
-- **NPM** or **PNPM** package manager
-- **Git** for version control
-- **OCI Account** with Generative AI access (for LLM features)
-
-## Run client
-
-Make sure to have `npm` package manager and NodeJS itself
-
-1. set up the renderers:
-
-Navigate to [libs/renderers/web_core](./libs/renderers/web_core/) and run:
+From `libs/renderers/web_core`:
 
 ```bash
 npm install
 npm run build
 ```
 
-Do the same on [libs/renderers/lit](./libs/renderers/lit/) and run:
+From `libs/renderers/lit`:
 
 ```bash
 npm install
 npm run build
 ```
 
-2. With the render ready, now go to [app/client](./app/client/) and run the shell:
+From `app/client`:
 
 ```bash
 npm install
 npm run serve:shell
 ```
 
-the terminal should open the port `5173` on local
+Expected local URL is usually `http://localhost:5173`.
 
-```bash
-✅ Ran 2 scripts and skipped 0 in 1.9s.     
-✅ Ran 0 scripts and skipped 1 in 0s.       
-[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+## Run Server (Detailed)
 
-  VITE v7.3.1  ready in 407 ms
-
-  ➜  Local:   http://localhost:5173/
-  ➜  Network: use --host to expose
-```
-
-This is running on **DEV** mode
-
-## Run server
-
-Enter the server folder [server](./app/server/)
-Set up the environment, make sure to have `uv` manager installed.
-
-Install dependencies with:
+From `app/server`:
 
 ```bash
 uv sync
 
-#activate the virtual environment
+# Activate virtual env (optional but useful)
+# Windows PowerShell
+.venv\Scripts\Activate.ps1
 
-#windows
-source .venv/Scripts/activate
-
-#Linux
+# macOS/Linux
 source .venv/bin/activate
 ```
 
-Make sure to have the [.env](./app/server/) file created and with valid credentials that have access to OCI GenAI services.
-Check out the `.env.example` as reference
-
-Now run the server:
+Create/configure `.env` (use `.env.example` as reference), then run:
 
 ```bash
 uv run __main__.py
 ```
 
-Should open server connection at `10002`
+Default server URL: `http://localhost:10002`
+
+Alternative run modes:
 
 ```bash
-INFO:oci.circuit_breaker:Default Auth client Circuit breaker strategy enabled
-INFO:     Started server process [24020]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://localhost:10002 (Press CTRL+C to quit)
+uv run __main__.py --host localhost --port 10002 --mock
 ```
-
-Access the application at `http://localhost:5173`
 
 ## API Endpoints
 
-### Server Endpoints
-- `GET/POST/DELETE /agent/config` - Dynamic agent configuration
-- `/agent/*` - Restaurant agent endpoints
-- `/llm/*` - Outage & Energy LLM agent endpoints
+### Agent + Config
+- `GET /agent/config`
+- `POST /agent/config`
+- `DELETE /agent/config`
+- `GET /agent/cache/semantic`
+- `DELETE /agent/cache/semantic`
+- `POST /agent/*`
 
-### Client Features
-- **Traditional Module**: Static UI with predefined components
-- **Chat Module**: LLM-powered conversational interface
-- **Dynamic Module**: Agent-driven adaptive UI generation
+### LLM
+- `POST /llm/*`
+
+### Traditional
+- `GET /traditional`
+- `GET /traditional/energy`
+- `GET /traditional/trends`
+- `GET /traditional/timeline`
+- `GET /traditional/industry`
+
+### RAG Docs
+- `GET /rag_docs/*`
 
 ## Development
 
 ### Project Structure
-```
+
+```text
 app/
-├── client/          # Frontend TypeScript/Lit application
-│   └── shell/       # Main application shell and components
-└── server/          # Backend Python/FastAPI application
-    ├── chat_app/    # LLM chat functionality
-    ├── core/        # Core utilities and schemas
-    ├── dynamic_app/ # Agent orchestration
-    └── traditional_app/ # Static app data providers
+|-- client/
+|   `-- shell/                       # Main shell and module views
+`-- server/
+    |-- __main__.py                  # Server entrypoint
+    |-- chat_app/                    # LLM executor + tools (RAG + NL2SQL)
+    |-- dynamic_app/                 # Dynamic multi-agent graph orchestration
+    |-- traditional_app/             # Traditional payload providers
+    |-- core/                        # Shared prompts/schemas/providers
+    `-- database/                    # DB connections and semantic cache
 
 libs/
-├── renderers/       # UI component renderers
-├── a2a_agents/      # Agent-to-Agent protocol implementations
-└── specification/   # A2UI protocol specifications
+|-- agent_sdks/python/               # Local a2ui-agent package
+|-- renderers/web_core/              # Renderer core
+|-- renderers/lit/                   # Lit renderer
+`-- specification/                   # A2UI specs, tests, and eval tools
 ```
 
 ### Adding New Components
-1. Create component in `app/client/shell/components/`
-2. Register in `app/client/shell/ui/custom-components/register-components.ts`
-3. Import in main app file
+1. Create component in `app/client/shell/components/` or `app/client/shell/ui/custom-components/`
+2. Register custom components in `app/client/shell/ui/custom-components/register-components.ts`
+3. Wire the component into the target module view
 
 ### Extending Agents
-1. Define agent capabilities in `app/server/core/dynamic_app/`
-2. Implement agent logic in `app/server/dynamic_app/`
-3. Add routing in `app/server/__main__.py`
+1. Define/update capabilities and schema providers in `app/server/core/dynamic_app/`
+2. Implement or adjust graph logic in `app/server/dynamic_app/`
+3. Ensure routing/mount points in `app/server/__main__.py` are aligned
 
 ## Testing
 
 ### Server Tests
+
 ```bash
 cd app/server
 uv pip install -e ".[dev]"
-uv run pytest tests/ -v
+uv run pytest tests -v
 ```
+
+## Extra References
+
+- Demo prompts: [DEMO.md](./DEMO.md)
+- Cross-platform notes: [MAC-LINUX.md](./MAC-LINUX.md)
+- Server-specific guide: [app/server/README.md](./app/server/README.md)
