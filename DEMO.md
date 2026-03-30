@@ -25,9 +25,9 @@ This file includes different options to test out the LLM and Agent applications 
 2. RAG queries:
     - How do disaster response manuals address communication during outages? (text)
     - Create a timeline visualization of FEMA assistance steps for electrical outages (timeline most)
-    - How can we identify and evaluate risks according to mexican guidelines?
+    - Give me some diagrams on how can we identify and evaluate risks according to mexican guidelines?
 3. DB + RAG queries (mixed):
-    - Map outage locations and overlay EPA recommended response zones (map dashboard)
+    - Map the outage locations and show also EPA recommended response zones (map dashboard)
     - Generate a dashboard showing work order priorities with referenced manual safety protocols (Not working - orchestrator decided not to call)
 
 ### Side by side comparison

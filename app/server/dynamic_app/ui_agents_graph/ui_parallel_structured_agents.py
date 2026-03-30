@@ -8,6 +8,7 @@ import asyncio
 import logging
 from dataclasses import dataclass
 from typing import Any
+from typing import get_args, get_origin
 
 from langchain.messages import AIMessage, HumanMessage
 
@@ -38,6 +39,8 @@ from dynamic_app.ui_agents_graph.widget_tools import (
 )
 
 MAX_PARALLEL_WIDGETS = 4
+MAX_WIDGET_GENERATION_ATTEMPTS = 2
+MAX_RETRY_PAYLOAD_PREVIEW = 1200
 logger = logging.getLogger(__name__)
 
 
@@ -121,6 +124,205 @@ def _extract_structured_result(response: Any, model_cls: Any) -> Any | None:
                         exc,
                     )
 
+    return None
+
+
+def _extract_response_content(response: Any) -> Any:
+    if isinstance(response, dict):
+        structured = response.get("structured_response")
+        if structured is not None:
+            return structured
+        messages = response.get("messages") or []
+        if messages:
+            return getattr(messages[-1], "content", None)
+        return None
+    if isinstance(response, AIMessage):
+        return response.content
+    return response
+
+
+def _extract_first_json_object(raw_text: str) -> str | None:
+    if not isinstance(raw_text, str):
+        return None
+    start = raw_text.find("{")
+    if start == -1:
+        return None
+    depth = 0
+    in_string = False
+    escape = False
+    for index in range(start, len(raw_text)):
+        char = raw_text[index]
+        if in_string:
+            if escape:
+                escape = False
+            elif char == "\\":
+                escape = True
+            elif char == '"':
+                in_string = False
+            continue
+        if char == '"':
+            in_string = True
+            continue
+        if char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return raw_text[start : index + 1]
+    return None
+
+
+def _parse_json_loose(raw: Any) -> dict[str, Any] | None:
+    if isinstance(raw, dict):
+        return raw
+    if not isinstance(raw, str):
+        return None
+
+    candidate = raw.strip()
+    if not candidate:
+        return None
+    if candidate.startswith("```"):
+        candidate = candidate.strip("`")
+        if candidate.lower().startswith("json"):
+            candidate = candidate[4:].strip()
+    try:
+        loaded = json.loads(candidate)
+        if isinstance(loaded, dict):
+            return loaded
+    except Exception:
+        pass
+
+    object_slice = _extract_first_json_object(raw)
+    if not object_slice:
+        return None
+    try:
+        loaded = json.loads(object_slice)
+        if isinstance(loaded, dict):
+            return loaded
+    except Exception:
+        return None
+    return None
+
+
+def _coerce_for_annotation(value: Any, annotation: Any) -> Any:
+    origin = get_origin(annotation)
+    args = get_args(annotation)
+    if origin in (list, list[Any]):
+        if value is None:
+            return []
+        if isinstance(value, list):
+            return value
+        if isinstance(value, tuple):
+            return list(value)
+        return [value]
+    if origin in (dict, dict[Any, Any]):
+        if isinstance(value, dict):
+            return value
+        return {}
+    if origin is None and annotation in (list, dict):
+        if annotation is list:
+            if isinstance(value, list):
+                return value
+            return []
+        if annotation is dict:
+            if isinstance(value, dict):
+                return value
+            return {}
+    if origin is None and annotation is str:
+        if value is None:
+            return ""
+        return str(value)
+    if origin is None and annotation in (int, float):
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            match = re.search(r"-?\d+(?:\.\d+)?", value)
+            if match:
+                try:
+                    return float(match.group(0)) if annotation is float else int(float(match.group(0)))
+                except Exception:
+                    return 0
+        return 0
+    if origin is None and annotation is bool:
+        return bool(value)
+    if origin is None and annotation is Any:
+        return value
+    if origin is None and hasattr(annotation, "model_fields"):
+        if isinstance(value, dict):
+            return _coerce_payload_generic(annotation, value)
+        return {}
+    if origin is not None and type(None) in args:
+        inner_types = [arg for arg in args if arg is not type(None)]
+        if value is None:
+            return None
+        for inner in inner_types:
+            coerced = _coerce_for_annotation(value, inner)
+            if coerced is not None:
+                return coerced
+        return value
+    return value
+
+
+def _coerce_payload_generic(model_cls: Any, payload: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        payload = {}
+    normalized: dict[str, Any] = {}
+    for field_name, field_info in model_cls.model_fields.items():
+        if field_name in payload:
+            normalized[field_name] = _coerce_for_annotation(
+                payload.get(field_name), field_info.annotation
+            )
+            continue
+        if field_info.default_factory is not None:
+            try:
+                normalized[field_name] = field_info.default_factory()
+            except Exception:
+                normalized[field_name] = None
+            continue
+        if field_info.default is not None:
+            normalized[field_name] = field_info.default
+            continue
+    return normalized
+
+
+def _default_from_json_schema(schema: Any) -> Any:
+    if not isinstance(schema, dict):
+        return None
+    if "default" in schema:
+        return schema["default"]
+    if "anyOf" in schema and isinstance(schema["anyOf"], list):
+        for option in schema["anyOf"]:
+            if isinstance(option, dict) and option.get("type") == "null":
+                continue
+            candidate = _default_from_json_schema(option)
+            if candidate is not None:
+                return candidate
+    schema_type = schema.get("type")
+    if schema_type == "object":
+        properties = schema.get("properties") or {}
+        required = set(schema.get("required") or [])
+        output: dict[str, Any] = {}
+        for key, prop_schema in properties.items():
+            if key in required or "default" in (prop_schema or {}):
+                output[key] = _default_from_json_schema(prop_schema)
+        return output
+    if schema_type == "array":
+        items_schema = schema.get("items", {})
+        min_items = schema.get("minItems", 0) or 0
+        count = max(1, int(min_items)) if min_items else 1
+        return [_default_from_json_schema(items_schema) for _ in range(count)]
+    if schema_type == "string":
+        if "enum" in schema and schema["enum"]:
+            return schema["enum"][0]
+        return ""
+    if schema_type == "number":
+        return 0.0
+    if schema_type == "integer":
+        return 0
+    if schema_type == "boolean":
+        return False
+    if "enum" in schema and schema["enum"]:
+        return schema["enum"][0]
     return None
 
 
@@ -318,6 +520,87 @@ class UIWidgetStructuredAgent(BaseAgent):
             "Card": CardWidgetOutput,
         }
         self._agent_registry: dict[str, Any] = {}
+        self._freeform_agent = self.build_agent()
+
+    def _build_minimal_widget_output(self, widget_name: str, model_cls: Any) -> Any:
+        schema = model_cls.model_json_schema() if hasattr(model_cls, "model_json_schema") else {}
+        seed_payload = _default_from_json_schema(schema) or {}
+        if isinstance(seed_payload, dict):
+            if "title" in model_cls.model_fields and not seed_payload.get("title"):
+                seed_payload["title"] = f"{widget_name} data"
+        try:
+            return model_cls.model_validate(seed_payload)
+        except Exception:
+            coerced = _coerce_payload_generic(model_cls, seed_payload if isinstance(seed_payload, dict) else {})
+            try:
+                return model_cls.model_validate(coerced)
+            except Exception:
+                return None
+
+    def _build_retry_prompt(
+        self,
+        widget_name: str,
+        data_context: str,
+        previous_payload: str,
+        previous_error: str,
+    ) -> str:
+        return (
+            f"{build_widget_structured_prompt(widget_name, data_context)}\n\n"
+            "Retry request: the previous response was invalid for the schema.\n"
+            "Generate a corrected response.\n"
+            f"Previous payload (possibly invalid):\n{previous_payload}\n\n"
+            f"Validation/parsing error:\n{previous_error}\n\n"
+            "Output must be only schema-valid JSON content."
+        )
+
+    def _validate_widget_output(
+        self, model_cls: Any, candidate: Any
+    ) -> tuple[Any | None, str | None]:
+        if candidate is None:
+            return None, "Candidate payload is empty."
+        if isinstance(candidate, model_cls):
+            return candidate, None
+        try:
+            validated = model_cls.model_validate(candidate)
+            return validated, None
+        except Exception as first_exc:
+            if isinstance(candidate, dict):
+                try:
+                    coerced = _coerce_payload_generic(model_cls, candidate)
+                    validated = model_cls.model_validate(coerced)
+                    return validated, None
+                except Exception as second_exc:
+                    return None, f"{first_exc}; after generic coercion: {second_exc}"
+            return None, str(first_exc)
+
+    async def _generate_widget_freeform(
+        self,
+        widget_name: str,
+        model_cls: Any,
+        data_context: str,
+        previous_payload: str,
+        previous_error: str,
+    ) -> tuple[Any | None, str | None]:
+        schema_keys = list((model_cls.model_json_schema() or {}).get("properties", {}).keys())
+        strict_prompt = (
+            "Return ONLY a valid JSON object for the requested widget schema.\n"
+            "No markdown, no comments, no prose.\n"
+            f"Widget: {widget_name}\n"
+            f"Required top-level keys: {', '.join(schema_keys)}\n"
+            f"Data context:\n{data_context}\n\n"
+            "Correction context (previous invalid attempt):\n"
+            f"Payload:\n{previous_payload}\n\n"
+            f"Error:\n{previous_error}\n"
+        )
+        response = await self._freeform_agent.ainvoke(
+            {"messages": [HumanMessage(content=strict_prompt)]}
+        )
+        raw = _extract_response_content(response)
+        payload = _parse_json_loose(raw)
+        if payload is None:
+            return None, f"Freeform parse failed. Preview={str(raw)[:MAX_RETRY_PAYLOAD_PREVIEW]}"
+        validated, error = self._validate_widget_output(model_cls, payload)
+        return validated, error
 
     async def generate_widget(self, widget_name: str, data_context: str) -> Any:
         canonical_name = _normalize_widget_name(widget_name)
@@ -329,33 +612,87 @@ class UIWidgetStructuredAgent(BaseAgent):
         if agent is None:
             agent = self.build_agent(response_format=model_cls)
             self._agent_registry[canonical_name] = agent
-        response = await agent.ainvoke(
-            {
-                "messages": [
-                    HumanMessage(
-                        content=build_widget_structured_prompt(
-                            canonical_name,
-                            data_context,
-                        )
+        last_payload_preview = "<empty>"
+        last_error = "Unknown validation error."
+
+        for attempt in range(1, MAX_WIDGET_GENERATION_ATTEMPTS + 1):
+            if attempt == 1:
+                prompt = build_widget_structured_prompt(canonical_name, data_context)
+            else:
+                prompt = self._build_retry_prompt(
+                    canonical_name, data_context, last_payload_preview, last_error
+                )
+            try:
+                response = await agent.ainvoke({"messages": [HumanMessage(content=prompt)]})
+                structured = _extract_structured_result(response, model_cls)
+                if structured is not None:
+                    logger.info(
+                        "Widget success | widget=%s model=%s attempt=%s",
+                        canonical_name,
+                        model_cls.__name__,
+                        attempt,
                     )
-                ]
-            }
+                    return structured
+
+                raw = _extract_response_content(response)
+                candidate = _parse_json_loose(raw) if isinstance(raw, str) else raw
+                validated, validation_error = self._validate_widget_output(model_cls, candidate)
+                if validated is not None:
+                    logger.info(
+                        "Widget success after loose parse | widget=%s model=%s attempt=%s",
+                        canonical_name,
+                        model_cls.__name__,
+                        attempt,
+                    )
+                    return validated
+
+                last_payload_preview = str(raw)[:MAX_RETRY_PAYLOAD_PREVIEW]
+                last_error = validation_error or "Structured extraction failed."
+                logger.warning(
+                    "Widget attempt failed validation | widget=%s model=%s attempt=%s error=%s",
+                    canonical_name,
+                    model_cls.__name__,
+                    attempt,
+                    last_error,
+                )
+            except Exception as exc:
+                last_error = str(exc)
+                last_payload_preview = "<unavailable due to structured generation exception>"
+                logger.warning(
+                    "Widget structured generation exception | widget=%s model=%s attempt=%s error=%s",
+                    canonical_name,
+                    model_cls.__name__,
+                    attempt,
+                    exc,
+                )
+
+        recovered, recovery_error = await self._generate_widget_freeform(
+            canonical_name,
+            model_cls,
+            data_context,
+            previous_payload=last_payload_preview,
+            previous_error=last_error,
         )
-        structured = _extract_structured_result(response, model_cls)
-        if structured is None:
-            logger.warning(
-                "Widget structured extraction failed | widget=%s model=%s context_len=%s",
-                canonical_name,
-                model_cls.__name__,
-                len(data_context),
-            )
-        else:
+        if recovered is not None:
             logger.info(
-                "Widget success | widget=%s model=%s",
+                "Widget recovered via general post-retry check | widget=%s model=%s",
                 canonical_name,
                 model_cls.__name__,
             )
-        return structured
+            return recovered
+
+        logger.warning(
+            "General post-retry check failed | widget=%s model=%s error=%s",
+            canonical_name,
+            model_cls.__name__,
+            recovery_error,
+        )
+        logger.error(
+            "Widget fallback exhausted; returning minimal payload | widget=%s model=%s",
+            canonical_name,
+            model_cls.__name__,
+        )
+        return self._build_minimal_widget_output(canonical_name, model_cls)
 
 
 class ParallelUIStructuredAssembler:

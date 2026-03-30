@@ -124,7 +124,6 @@ export class DynamicModule extends LitElement {
   #stopwatchInterval: number | undefined;
   #snackbar: Snackbar | undefined = undefined;
   #seenUiMessageHashes: Set<string> = new Set();
-  #sourceTabTarget = "source-doc-viewer";
 
   #pendingSnackbarMessages: Array<{
     message: SnackbarMessage;
@@ -673,7 +672,7 @@ export class DynamicModule extends LitElement {
     return html`
       <stat-bar
         .title=${this.title}
-        .time=${this.#totalDuration > 0 ? `${this.#totalDuration.toFixed(2)}s` : ((this.#currentElapsedTime !== null) ? `${(this.#currentElapsedTime / 1000).toFixed(2)}s` : '0.00s')}
+        .time=${this.#totalDuration > 0 ? `${this.#totalDuration.toFixed(2)}` : ((this.#currentElapsedTime !== null) ? `${(this.#currentElapsedTime / 1000).toFixed(2)}` : '0.00')}
         .tokens=${this.tokenCount ? `${this.tokenCount}`: '0'}
         .configUrl=${this.config.serverUrl + '/config'}
         .configType=${'agent'}
@@ -752,10 +751,19 @@ export class DynamicModule extends LitElement {
   #openSourceInNamedTab(event: MouseEvent, source: string) {
     event.preventDefault();
     const url = this.#getSourceUrl(source);
-    const opened = window.open(url, this.#sourceTabTarget);
+    const opened = window.open(url, this.#getSourceTabTarget(source));
     if (opened) {
       opened.focus();
     }
+  }
+
+  #getSourceTabTarget(source: string): string {
+    const normalized = source.trim().toLowerCase();
+    let hash = 0;
+    for (let i = 0; i < normalized.length; i++) {
+      hash = ((hash << 5) - hash + normalized.charCodeAt(i)) | 0;
+    }
+    return `source-doc-${Math.abs(hash)}`;
   }
 
   #getCurrentLoadingText(defaultText: string) {

@@ -92,8 +92,8 @@ export class StatBar extends LitElement {
       <div class="stat-bar">
         <div class="title">${this.title}</div>
         <div class="status-data">
-          ${this.time ? html`<div class="time">Time ${this.time}</div>` : ""}
-          ${this.tokens ? html`<div class="tokens">Tokens ${formattedTokens}</div>` : ""}
+          ${this.time ? html`<div class="time">🕐 ${this.time} sec</div>` : ""}
+          ${this.tokens ? html`<div class="tokens">🎫 ${formattedTokens} Tokens</div>` : ""}
           ${this.configUrl
             ? html`<div class="config">
                 <agent-config-canvas

@@ -56,7 +56,6 @@ export class ChatModule extends LitElement {
   accessor #activeRequestId: string | null = null;
 
   private defaultServerUrl = SERVER_URLS.llm;
-  #sourceTabTarget = "source-doc-viewer";
 
   #onStreamingEvent = (event: Event) => {
     const customEvent = event as CustomEvent;
@@ -542,7 +541,7 @@ export class ChatModule extends LitElement {
     return html`
       <stat-bar
         .title=${this.title}
-        .time=${this.#totalDuration > 0 ? `${this.#totalDuration.toFixed(2)}s` : '0.00s'}
+        .time=${this.#totalDuration > 0 ? `${this.#totalDuration.toFixed(2)}` : '0.00'}
         .tokens=${this.tokenCount ? `${this.tokenCount}`: '0'}
         .configUrl=${'/llm_config'}
         .configType=${'llm'}
@@ -615,10 +614,19 @@ export class ChatModule extends LitElement {
   #openSourceInNamedTab(event: MouseEvent, source: string) {
     event.preventDefault();
     const url = this.#getSourceUrl(source);
-    const opened = window.open(url, this.#sourceTabTarget);
+    const opened = window.open(url, this.#getSourceTabTarget(source));
     if (opened) {
       opened.focus();
     }
+  }
+
+  #getSourceTabTarget(source: string): string {
+    const normalized = source.trim().toLowerCase();
+    let hash = 0;
+    for (let i = 0; i < normalized.length; i++) {
+      hash = ((hash << 5) - hash + normalized.charCodeAt(i)) | 0;
+    }
+    return `source-doc-${Math.abs(hash)}`;
   }
   // #endregion Render
 }

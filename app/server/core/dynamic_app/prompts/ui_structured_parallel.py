@@ -129,5 +129,8 @@ Requirements:
 - Include rich contextual details when available, but avoid unnecessary complexity.
 - Keep output compatible with A2UI valueMap/valueString/valueNumber style conversion.
 - Ensure fields align with the requested widget schema and data cardinality constraints.
+- Return valid JSON-compatible values only (no flattened key/value token lists).
+- Never truncate JSON or cut off strings.
+- For arrays of objects (for example KPI `data` or Table `rows`), each element must be a full object.
 - Return ONLY structured output for the requested widget type.
 """

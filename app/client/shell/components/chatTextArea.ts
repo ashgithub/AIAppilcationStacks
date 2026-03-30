@@ -146,7 +146,7 @@ export class ChatInput extends LitElement {
             Send to Chat
           </button>
           <button class="btn btn-secondary" @click=${this.handleSubmit} title="Send to Both Modules">
-            Send to Both
+            Send to Both (Enter)
           </button>
           <button class="btn btn-outline-agent" @click=${this.handleSubmitAgent} title="Send to Agent Module">
             Send to Agent
