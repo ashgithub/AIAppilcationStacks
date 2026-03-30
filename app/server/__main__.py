@@ -38,6 +38,7 @@ from database.semantic_cache import (
     GraphSemanticCache,
     get_nl2graph_semantic_cache_summary,
 )
+from database.connections import RAGDBConnection
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -257,6 +258,13 @@ def main(host, port, mock):
         main_app.mount("/llm", llm_app)
         # endregion
         # endregion
+
+        # Warm up DB connection so first user request avoids connection setup latency.
+        try:
+            RAGDBConnection().warmup_connection()
+            logger.info("Database connection warm-up complete")
+        except Exception as warmup_exc:
+            logger.warning(f"Database warm-up skipped due to error: {warmup_exc}")
 
         import uvicorn
         uvicorn.run(main_app, host=host, port=port)
