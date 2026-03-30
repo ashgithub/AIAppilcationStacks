@@ -7,11 +7,7 @@ from langchain.tools import tool
 from langfuse import propagate_attributes
 
 from database.connections import RAGDBConnection
-from database.semantic_cache import (
-    GraphSemanticCache,
-    clear_nl2graph_semantic_cache,
-    reset_nl2graph_semantic_cache,
-)
+from database.semantic_cache import GraphSemanticCache
 from core.base_agent import BaseAgent
 from core.langfuse_tracing import (
     LangfuseTracingProvider,
@@ -266,18 +262,4 @@ async def call_graphDB(query: str) -> str:
         return result['output']
     except Exception as e:
         return f"There was an error with the Graph DB tool: {e}"
-#endregion
-
-
-#region Developer Utilities
-def reset_graphdb_semantic_cache() -> str:
-    """Developer helper: drop/recreate semantic cache table for clean tests."""
-    reset_nl2graph_semantic_cache()
-    return "NL2Graph semantic cache reset completed."
-
-
-def clear_graphdb_semantic_cache() -> str:
-    """Developer helper: delete all cached rows while keeping table."""
-    clear_nl2graph_semantic_cache()
-    return "NL2Graph semantic cache clear completed."
 #endregion

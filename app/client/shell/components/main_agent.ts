@@ -124,6 +124,7 @@ export class DynamicModule extends LitElement {
   #stopwatchInterval: number | undefined;
   #snackbar: Snackbar | undefined = undefined;
   #seenUiMessageHashes: Set<string> = new Set();
+  #sourceTabTarget = "source-doc-viewer";
 
   #pendingSnackbarMessages: Array<{
     message: SnackbarMessage;
@@ -693,8 +694,7 @@ export class DynamicModule extends LitElement {
             <a
               class="source-link"
               href=${this.#getSourceUrl(source)}
-              target="_blank"
-              rel="noopener noreferrer"
+              @click=${(event: MouseEvent) => this.#openSourceInNamedTab(event, source)}
               title=${`Open source document: ${source}`}
             >${source}</a>${index < this.sources.length - 1 ? ", " : ""}
           `)}
@@ -747,6 +747,15 @@ export class DynamicModule extends LitElement {
     const sourceFile = source.split(/[\\/]/).pop()?.trim() || source.trim();
     const origin = getServerOrigin(this.config.serverUrl);
     return `${origin}/rag_docs/${encodeURIComponent(sourceFile)}`;
+  }
+
+  #openSourceInNamedTab(event: MouseEvent, source: string) {
+    event.preventDefault();
+    const url = this.#getSourceUrl(source);
+    const opened = window.open(url, this.#sourceTabTarget);
+    if (opened) {
+      opened.focus();
+    }
   }
 
   #getCurrentLoadingText(defaultText: string) {

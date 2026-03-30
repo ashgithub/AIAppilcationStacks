@@ -56,6 +56,7 @@ export class ChatModule extends LitElement {
   accessor #activeRequestId: string | null = null;
 
   private defaultServerUrl = SERVER_URLS.llm;
+  #sourceTabTarget = "source-doc-viewer";
 
   #onStreamingEvent = (event: Event) => {
     const customEvent = event as CustomEvent;
@@ -566,8 +567,7 @@ export class ChatModule extends LitElement {
                       <a
                         class="source-link"
                         href=${this.#getSourceUrl(source)}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        @click=${(event: MouseEvent) => this.#openSourceInNamedTab(event, source)}
                         title=${`Open source document: ${source}`}
                       >${source}</a>${index < msg.sources!.length - 1 ? ", " : ""}
                     `)}
@@ -609,6 +609,15 @@ export class ChatModule extends LitElement {
       return `${serverBase.origin}/rag_docs/${encodeURIComponent(sourceFile)}`;
     } catch {
       return `/rag_docs/${encodeURIComponent(sourceFile)}`;
+    }
+  }
+
+  #openSourceInNamedTab(event: MouseEvent, source: string) {
+    event.preventDefault();
+    const url = this.#getSourceUrl(source);
+    const opened = window.open(url, this.#sourceTabTarget);
+    if (opened) {
+      opened.focus();
     }
   }
   // #endregion Render

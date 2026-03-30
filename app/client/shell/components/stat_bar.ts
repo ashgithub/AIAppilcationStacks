@@ -1,6 +1,7 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { AppConfigType, ConfigData } from "../configs/types.js";
+import { formatTokenCountCompact } from "../services/number-format.js";
 import { designTokensCSS } from "../theme/design-tokens.js";
 
 import "./config_canvas.js";
@@ -21,7 +22,7 @@ export class StatBar extends LitElement {
   accessor configUrl = "";
 
   @property({ type: String })
-  accessor configType: AppConfigType = 'agent';
+  accessor configType: AppConfigType = "agent";
 
   @property({ type: Object })
   accessor configData: ConfigData = {};
@@ -45,7 +46,7 @@ export class StatBar extends LitElement {
       border-radius: var(--radius-sm);
     }
 
-    .status-data{
+    .status-data {
       display: flex;
       flex-direction: row;
       gap: var(--space-xs);
@@ -74,25 +75,35 @@ export class StatBar extends LitElement {
       background: transparent;
       border-radius: var(--radius-sm);
       color: var(--text-primary);
-      }
-      
-      .config {
-        display: flex;
-        align-items: center;
+    }
+
+    .config {
+      display: flex;
+      align-items: center;
     }
   `;
   // #endregion Styles
 
   // #region Render
   render() {
+    const formattedTokens = formatTokenCountCompact(this.tokens || "0");
+
     return html`
       <div class="stat-bar">
-      <div class="title">${this.title}</div>
-      <div class="status-data">
-        ${this.time ? html`<div class="time">🕐 ${this.time}</div>` : ''}
-        ${this.tokens ? html`<div class="tokens">🎟️ ${this.tokens} tokens</div>` : ''}
-        ${this.configUrl ? html`<div class="config"><agent-config-canvas .serverURL=${this.configUrl} .configType=${this.configType} .configData=${this.configData}></agent-config-canvas></div>` : ''}
-      </div>
+        <div class="title">${this.title}</div>
+        <div class="status-data">
+          ${this.time ? html`<div class="time">Time ${this.time}</div>` : ""}
+          ${this.tokens ? html`<div class="tokens">Tokens ${formattedTokens}</div>` : ""}
+          ${this.configUrl
+            ? html`<div class="config">
+                <agent-config-canvas
+                  .serverURL=${this.configUrl}
+                  .configType=${this.configType}
+                  .configData=${this.configData}
+                ></agent-config-canvas>
+              </div>`
+            : ""}
+        </div>
       </div>
     `;
   }

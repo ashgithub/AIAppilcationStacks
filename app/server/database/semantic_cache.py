@@ -115,26 +115,20 @@ class GraphSemanticCache:
                 cur.execute(insert_stmt, [question[:3900], pgql, answer_preview[:3900], embedding])
             conn.commit()
 
-    def clear_cache(self):
+    def clear_cache(self) -> int:
         """Delete all cache entries and keep table structure."""
         self._ensure_table()
         with self.db_conn.get_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute(f"TRUNCATE TABLE {self.table_name}")
+                cur.execute(f"SELECT COUNT(1) FROM {self.table_name}")
+                deleted_rows = int(cur.fetchone()[0] or 0)
+                cur.execute(f"DELETE FROM {self.table_name}")
             conn.commit()
+        return deleted_rows
 
-    def reset_cache(self):
-        """Drop and recreate semantic cache table (developer reset helper)."""
-        with self.db_conn.get_connection() as conn:
-            with conn.cursor() as cur:
-                try:
-                    cur.execute(f"DROP TABLE {self.table_name} PURGE")
-                    conn.commit()
-                except Exception as exc:
-                    if "ORA-00942" not in str(exc):
-                        raise
-        self._table_ready = False
-        self._ensure_table()
+    def reset_cache(self) -> int:
+        """Reset cache data safely by clearing rows only."""
+        return self.clear_cache()
 
     def cache_count(self) -> int:
         self._ensure_table()
@@ -143,6 +137,55 @@ class GraphSemanticCache:
                 cur.execute(f"SELECT COUNT(1) FROM {self.table_name}")
                 count = cur.fetchone()[0]
         return int(count)
+
+    def get_cache_summary(self, limit: int = 25) -> dict[str, Any]:
+        """Return safe summary information and a preview of cached entries."""
+        self._ensure_table()
+        safe_limit = max(1, min(int(limit), 100))
+        summary: dict[str, Any] = {
+            "table_name": self.table_name,
+            "total_entries": 0,
+            "oldest_entry_at": None,
+            "newest_entry_at": None,
+            "entries": [],
+        }
+
+        with self.db_conn.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    f"""
+                        SELECT COUNT(1), MIN(created_at), MAX(created_at)
+                        FROM {self.table_name}
+                    """
+                )
+                count_row = cur.fetchone()
+                summary["total_entries"] = int(count_row[0] or 0)
+                summary["oldest_entry_at"] = _coerce_db_text(count_row[1])
+                summary["newest_entry_at"] = _coerce_db_text(count_row[2])
+
+                cur.execute(
+                    f"""
+                        SELECT id, question, created_at
+                        FROM {self.table_name}
+                        ORDER BY created_at DESC
+                        FETCH FIRST {safe_limit} ROWS ONLY
+                    """
+                )
+                rows = cur.fetchall()
+
+        entries: list[dict[str, Any]] = []
+        for row in rows:
+            entries.append(
+                {
+                    "id": int(row[0]),
+                    "question": (_coerce_db_text(row[1]) or "").strip(),
+                    "created_at": _coerce_db_text(row[2]),
+                }
+            )
+
+        summary["entries"] = entries
+        summary["entries_returned"] = len(entries)
+        return summary
 
 
 class SQLSemanticCache:
@@ -237,26 +280,20 @@ class SQLSemanticCache:
                 cur.execute(insert_stmt, [question[:3900], sql_query, answer_preview[:3900], embedding])
             conn.commit()
 
-    def clear_cache(self):
+    def clear_cache(self) -> int:
         """Delete all cache entries and keep table structure."""
         self._ensure_table()
         with self.db_conn.get_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute(f"TRUNCATE TABLE {self.table_name}")
+                cur.execute(f"SELECT COUNT(1) FROM {self.table_name}")
+                deleted_rows = int(cur.fetchone()[0] or 0)
+                cur.execute(f"DELETE FROM {self.table_name}")
             conn.commit()
+        return deleted_rows
 
-    def reset_cache(self):
-        """Drop and recreate semantic cache table (developer reset helper)."""
-        with self.db_conn.get_connection() as conn:
-            with conn.cursor() as cur:
-                try:
-                    cur.execute(f"DROP TABLE {self.table_name} PURGE")
-                    conn.commit()
-                except Exception as exc:
-                    if "ORA-00942" not in str(exc):
-                        raise
-        self._table_ready = False
-        self._ensure_table()
+    def reset_cache(self) -> int:
+        """Reset cache, clearing rows only."""
+        return self.clear_cache()
 
     def cache_count(self) -> int:
         self._ensure_table()
@@ -266,30 +303,7 @@ class SQLSemanticCache:
                 count = cur.fetchone()[0]
         return int(count)
 
-
-def reset_nl2graph_semantic_cache():
-    """Developer utility: drop and recreate NL2Graph semantic cache table."""
+def get_nl2graph_semantic_cache_summary(limit: int = 25) -> dict[str, Any]:
+    """Read-only utility to inspect NL2Graph semantic cache usage."""
     cache = GraphSemanticCache()
-    cache.reset_cache()
-    logger.info("NL2Graph semantic cache was reset.")
-
-
-def clear_nl2graph_semantic_cache():
-    """Developer utility: clear NL2Graph semantic cache table rows."""
-    cache = GraphSemanticCache()
-    cache.clear_cache()
-    logger.info("NL2Graph semantic cache rows were cleared.")
-
-
-def reset_nl2sql_semantic_cache():
-    """Developer utility: drop and recreate NL2SQL semantic cache table."""
-    cache = SQLSemanticCache()
-    cache.reset_cache()
-    logger.info("NL2SQL semantic cache was reset.")
-
-
-def clear_nl2sql_semantic_cache():
-    """Developer utility: clear NL2SQL semantic cache table rows."""
-    cache = SQLSemanticCache()
-    cache.clear_cache()
-    logger.info("NL2SQL semantic cache rows were cleared.")
+    return cache.get_cache_summary(limit=limit)

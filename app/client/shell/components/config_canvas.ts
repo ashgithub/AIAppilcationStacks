@@ -1,7 +1,22 @@
-import { LitElement, html, css } from "lit"
+import { LitElement, html, css, PropertyValues } from "lit"
 import { customElement, property, state } from "lit/decorators.js"
 import { AppConfigType, ConfigData, AgentAppConfig, LLMConfig, TraditionalConfig, EnhancedAgentAppConfig, ToolAssignments } from "../configs/types.js"
 import { designTokensCSS, buttonStyles, colors, radius, spacing } from "../theme/design-tokens.js"
+
+type SemanticCacheEntry = {
+  id: number;
+  question: string;
+  created_at: string | null;
+};
+
+type SemanticCacheSummary = {
+  table_name: string;
+  total_entries: number;
+  oldest_entry_at: string | null;
+  newest_entry_at: string | null;
+  entries_returned: number;
+  entries: SemanticCacheEntry[];
+};
 
 // #region Component
 @customElement("agent-config-canvas")
@@ -20,6 +35,12 @@ export class AgentConfigCanvas extends LitElement {
   @state() accessor activeTab: string = '';
 
   @state() accessor responseMessage = "";
+
+  @state() accessor semanticCacheSummary: SemanticCacheSummary | null = null;
+
+  @state() accessor semanticCacheLoading = false;
+
+  @state() accessor semanticCacheBusy = false;
 
   // #region Field Handlers
   private handleAgentToolChange(agentName: string, tool: string, checked: boolean) {
@@ -52,6 +73,78 @@ export class AgentConfigCanvas extends LitElement {
     const traditionalConfig = this.configData as TraditionalConfig;
     traditionalConfig[field] = value;
     this.configData = { ...traditionalConfig };
+  }
+
+  protected updated(changedProperties: PropertyValues<this>) {
+    super.updated(changedProperties);
+
+    if (changedProperties.has("open") && this.open && this.configType === "agent") {
+      this.activeTab = "__semantic_cache__";
+      void this.fetchSemanticCacheSummary();
+    }
+
+    if (
+      changedProperties.has("activeTab") &&
+      this.open &&
+      this.configType === "agent" &&
+      this.activeTab === "__semantic_cache__"
+    ) {
+      void this.fetchSemanticCacheSummary();
+    }
+  }
+
+  private getSemanticCacheUrl(): string {
+    if (!this.serverURL || this.configType !== "agent") return "";
+    if (this.serverURL.endsWith("/config")) {
+      return `${this.serverURL.slice(0, -"/config".length)}/cache/semantic`;
+    }
+    return `${this.serverURL}/cache/semantic`;
+  }
+
+  private formatCacheTimestamp(value: string | null | undefined): string {
+    if (!value) return "n/a";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString();
+  }
+
+  private async fetchSemanticCacheSummary(): Promise<void> {
+    const cacheUrl = this.getSemanticCacheUrl();
+    if (!cacheUrl) return;
+
+    this.semanticCacheLoading = true;
+    try {
+      const response = await fetch(`${cacheUrl}?limit=10`);
+      const result = await response.json();
+      if (!response.ok || result.status !== "success") {
+        throw new Error(result.message || "Failed to load semantic cache");
+      }
+      this.semanticCacheSummary = result.cache as SemanticCacheSummary;
+    } catch (error) {
+      this.responseMessage = `Error: ${error instanceof Error ? error.message : "Unknown error"}`;
+    } finally {
+      this.semanticCacheLoading = false;
+    }
+  }
+
+  private async clearSemanticCache(): Promise<void> {
+    const cacheUrl = this.getSemanticCacheUrl();
+    if (!cacheUrl) return;
+
+    this.semanticCacheBusy = true;
+    try {
+      const response = await fetch(cacheUrl, { method: "DELETE" });
+      const result = await response.json();
+      if (!response.ok || result.status !== "success") {
+        throw new Error(result.message || "Failed to clear semantic cache");
+      }
+      this.responseMessage = `Semantic cache cleared (${result.deleted_rows ?? 0} rows removed).`;
+      await this.fetchSemanticCacheSummary();
+    } catch (error) {
+      this.responseMessage = `Error: ${error instanceof Error ? error.message : "Unknown error"}`;
+    } finally {
+      this.semanticCacheBusy = false;
+    }
   }
   // #endregion Field Handlers
 
@@ -168,7 +261,7 @@ export class AgentConfigCanvas extends LitElement {
 
     .sidebar-content {
       flex: 1;
-      overflow-y: hidden;
+      overflow-y: auto;
       padding: var(--space-lg);
     }
 
@@ -361,6 +454,53 @@ export class AgentConfigCanvas extends LitElement {
       border: 1px solid var(--color-error);
       color: var(--color-error);
     }
+
+    .cache-section {
+      border-top: 1px solid var(--agent-bg-secondary);
+      margin-top: var(--space-lg);
+      padding-top: var(--space-lg);
+    }
+
+    .cache-actions {
+      display: flex;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-sm);
+    }
+
+    .cache-summary {
+      margin: 0 0 var(--space-sm) 0;
+      color: var(--text-secondary);
+      font-size: var(--font-size-xs);
+      line-height: 1.5;
+    }
+
+    .cache-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .cache-item {
+      background: var(--agent-bg-secondary);
+      border-radius: var(--radius-sm);
+      padding: var(--space-sm);
+      font-size: var(--font-size-xs);
+    }
+
+    .cache-item-query {
+      color: var(--text-primary);
+      font-weight: var(--font-weight-medium);
+      margin: 0 0 var(--space-xs) 0;
+      overflow-wrap: anywhere;
+    }
+
+    .cache-item-meta {
+      color: var(--text-secondary);
+      margin: 0;
+    }
   `
   // #endregion Styles
 
@@ -455,27 +595,76 @@ export class AgentConfigCanvas extends LitElement {
         title = "Agent Configuration";
         const enhancedConfig = this.configData as EnhancedAgentAppConfig;
         const agentNames = enhancedConfig?.agents ? Object.keys(enhancedConfig.agents) : [];
+        const cacheTabId = "__semantic_cache__";
+        const tabs = [cacheTabId, ...agentNames];
 
-        if (!this.activeTab && agentNames.length > 0) {
-          this.activeTab = agentNames[0];
+        if (!this.activeTab && tabs.length > 0) {
+          this.activeTab = tabs[0];
+        }
+
+        if (this.activeTab && !tabs.includes(this.activeTab) && tabs.length > 0) {
+          this.activeTab = tabs[0];
         }
 
         const activeAgent = enhancedConfig?.agents?.[this.activeTab];
+        const activeTabIsCache = this.activeTab === cacheTabId;
 
         content = html`
-          ${agentNames.length > 0 ? html`
+          ${tabs.length > 0 ? html`
             <div class="tabs">
-              ${agentNames.map(agentName => html`
+              ${tabs.map(tabName => html`
                 <button
-                  class="btn btn-pill btn-secondary ${this.activeTab === agentName ? 'active' : ''}"
-                  @click=${() => this.activeTab = agentName}
+                  class="btn btn-pill btn-secondary ${this.activeTab === tabName ? 'active' : ''}"
+                  @click=${() => this.activeTab = tabName}
                 >
-                  ${agentName.replace(/_/g, ' ')}
+                  ${tabName === cacheTabId ? "Cache" : tabName.replace(/_/g, ' ')}
                 </button>
               `)}
             </div>
 
-            ${activeAgent ? html`
+            ${activeTabIsCache ? html`
+              <div class="cache-section">
+                <h4>Semantic Cache</h4>
+                <p class="tools-description">Safe controls for NL2Graph cache rows only.</p>
+                <div class="cache-actions">
+                  <button
+                    class="btn btn-secondary"
+                    @click=${() => this.fetchSemanticCacheSummary()}
+                    ?disabled=${this.semanticCacheLoading || this.semanticCacheBusy}
+                  >
+                    ${this.semanticCacheLoading ? "Loading..." : "Refresh"}
+                  </button>
+                  <button
+                    class="btn btn-danger"
+                    @click=${() => this.clearSemanticCache()}
+                    ?disabled=${this.semanticCacheLoading || this.semanticCacheBusy}
+                  >
+                    ${this.semanticCacheBusy ? "Clearing..." : "Clear Cache"}
+                  </button>
+                </div>
+
+                ${this.semanticCacheSummary ? html`
+                  <p class="cache-summary">
+                    Entries: ${this.semanticCacheSummary.total_entries}
+                    | Table: ${this.semanticCacheSummary.table_name}
+                    | Oldest: ${this.formatCacheTimestamp(this.semanticCacheSummary.oldest_entry_at)}
+                    | Newest: ${this.formatCacheTimestamp(this.semanticCacheSummary.newest_entry_at)}
+                  </p>
+                  ${this.semanticCacheSummary.entries.length > 0 ? html`
+                    <ul class="cache-list">
+                      ${this.semanticCacheSummary.entries.map((entry) => html`
+                        <li class="cache-item">
+                          <p class="cache-item-query">${entry.question || "(empty question)"}</p>
+                          <p class="cache-item-meta">
+                            id=${entry.id} | created=${this.formatCacheTimestamp(entry.created_at)}
+                          </p>
+                        </li>
+                      `)}
+                    </ul>
+                  ` : html`<p class="cache-summary">No cached queries found.</p>`}
+                ` : html`<p class="cache-summary">No cache data loaded yet.</p>`}
+              </div>
+            ` : activeAgent ? html`
               <div class="form-group">
                 <label>Model</label>
                 <select

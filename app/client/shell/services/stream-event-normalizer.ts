@@ -186,7 +186,7 @@ function pickMetadataFromFinalTextParts(textParts: string[]) {
 
   for (let i = textParts.length - 1; i >= 0; i -= 1) {
     const parsedSources = tryParseSourcesMetadata(textParts[i]);
-    if (parsedSources.length > 0) {
+    if (parsedSources !== null) {
       sources = parsedSources;
       used.add(i);
       break;
@@ -251,7 +251,7 @@ function tryParseSuggestionsMetadata(value: string): string[] {
   return [];
 }
 
-function tryParseSourcesMetadata(value: string): string[] {
+function tryParseSourcesMetadata(value: string): string[] | null {
   try {
     const parsed = JSON.parse(value);
     if (Array.isArray(parsed)) {
@@ -260,7 +260,7 @@ function tryParseSourcesMetadata(value: string): string[] {
   } catch {
     // Ignore. Metadata parser should remain strict.
   }
-  return [];
+  return null;
 }
 
 export function normalizeStreamingEvent(raw: unknown): NormalizedStreamingEvent {
