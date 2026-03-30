@@ -1,0 +1,330 @@
+INFO:dynamic_app.ui_agents_graph.ui_parallel_structured_agents:Planner success | summary_len=61 widget_count=2 widgets=['KpiCard', 'Table']
+INFO:dynamic_app.ui_agents_graph.ui_parallel_structured_agents:Parallel assembler execution tasks | count=2 widgets=['KpiCard', 'Table']
+INFO:dynamic_app.ui_agents_graph.ui_parallel_structured_agents:Shell success | root_id=root-layout title=Assets in Tracking Condition section_titles=2 use_card_sections=False layout=Column
+INFO:dynamic_app.ui_agents_graph.ui_parallel_structured_agents:Shell components built | component_count=9 assistant_text_len=150
+ERROR:dynamic_app.ui_agents_graph.ui_parallel_structured_agents:Widget generation raised exception | widget=KpiCard slot=Tracking Count
+Traceback (most recent call last):
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\.venv\Lib\site-packages\langchain\agents\structured_output.py", line 98, in _parse_with_schema
+    return adapter.validate_python(data)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\.venv\Lib\site-packages\pydantic\type_adapter.py", line 441, in validate_python   
+    return self.validator.validate_python(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        object,
+        ^^^^^^^
+    ...<6 lines>...
+        by_name=by_name,
+        ^^^^^^^^^^^^^^^^
+    )
+    ^
+pydantic_core._pydantic_core.ValidationError: 17 validation errors for KpiWidgetOutput
+data.2
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='keyavg_score', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.3
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='label', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.4
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='Average Condition Score', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.5
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='value3.56', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.6
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='unit', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.7
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='score', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.8
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='change', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.9
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.10
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='changeLabel', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.11
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.12
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='icon', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.13
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='trending_down', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.14
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='color', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.15
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='orange', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.16
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='details', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.17
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='range3.3 to 3.9', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.18
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='recommendationMonitor cl...ely to prevent failures', input_type=str] 
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\.venv\Lib\site-packages\langchain\agents\factory.py", line 1044, in _handle_model_output
+    structured_response = provider_strategy_binding.parse(output)
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\.venv\Lib\site-packages\langchain\agents\structured_output.py", line 420, in parse
+    return _parse_with_schema(self.schema, self.schema_kind, data)
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\.venv\Lib\site-packages\langchain\agents\structured_output.py", line 102, in _parse_with_schema
+    raise ValueError(msg) from e
+ValueError: Failed to parse data to KpiWidgetOutput: 17 validation errors for KpiWidgetOutput
+data.2
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='keyavg_score', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.3
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='label', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.4
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='Average Condition Score', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.5
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='value3.56', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.6
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='unit', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.7
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='score', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.8
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='change', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.9
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.10
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='changeLabel', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.11
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.12
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='icon', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.13
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='trending_down', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.14
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='color', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.15
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='orange', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.16
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='details', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.17
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='range3.3 to 3.9', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.18
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='recommendationMonitor cl...ely to prevent failures', input_type=str] 
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\dynamic_app\ui_agents_graph\ui_parallel_structured_agents.py", line 332, in generate_widget
+    response = await agent.ainvoke(
+               ^^^^^^^^^^^^^^^^^^^^
+    ...<10 lines>...
+    )
+    ^
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\.venv\Lib\site-packages\langgraph\pregel\main.py", line 3462, in ainvoke
+    async for chunk in self.astream(
+    ...<29 lines>...
+            chunks.append(chunk)
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\.venv\Lib\site-packages\langgraph\pregel\main.py", line 3111, in astream
+    async for _ in runner.atick(
+    ...<16 lines>...
+            yield o
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\.venv\Lib\site-packages\langgraph\pregel\_runner.py", line 304, in atick
+    await arun_with_retry(
+    ...<15 lines>...
+    )
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\.venv\Lib\site-packages\langgraph\pregel\_retry.py", line 211, in arun_with_retry 
+    return await task.proc.ainvoke(task.input, config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\.venv\Lib\site-packages\langgraph\_internal\_runnable.py", line 705, in ainvoke   
+    input = await asyncio.create_task(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        step.ainvoke(input, config, **kwargs), context=context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\.venv\Lib\site-packages\langgraph\_internal\_runnable.py", line 473, in ainvoke   
+    ret = await self.afunc(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\.venv\Lib\site-packages\langchain\agents\factory.py", line 1349, in amodel_node   
+    model_response = await _execute_model_async(request)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\.venv\Lib\site-packages\langchain\agents\factory.py", line 1326, in _execute_model_async
+    handled_output = _handle_model_output(output, effective_response_format)
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\.venv\Lib\site-packages\langchain\agents\factory.py", line 1050, in _handle_model_output
+    raise validation_error from exc
+langchain.agents.structured_output.StructuredOutputValidationError: Failed to parse structured output for tool 'KpiWidgetOutput': Failed to parse data to KpiWidgetOutput: 17 validation errors for KpiWidgetOutput
+data.2
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='keyavg_score', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.3
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='label', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.4
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='Average Condition Score', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.5
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='value3.56', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.6
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='unit', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.7
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='score', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.8
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='change', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.9
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.10
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='changeLabel', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.11
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.12
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='icon', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.13
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='trending_down', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.14
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='color', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.15
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='orange', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.16
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='details', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.17
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='range3.3 to 3.9', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type
+data.18
+  Input should be a valid dictionary or instance of KpiCardItem [type=model_type, input_value='recommendationMonitor cl...ely to prevent failures', input_type=str] 
+    For further information visit https://errors.pydantic.dev/2.12/v/model_type.
+During task with name 'model' and id 'c45e31ad-6747-2eef-73ce-a58b9688cdef'
+ERROR:dynamic_app.ui_agents_graph.ui_parallel_structured_agents:Widget generation raised exception | widget=Table slot=Asset Details
+Traceback (most recent call last):
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\.venv\Lib\site-packages\langchain\agents\structured_output.py", line 410, in parse
+    data = json.loads(raw_text)
+  File "C:\Users\Cristopher Hdz\AppData\Roaming\uv\python\cpython-3.13.5-windows-x86_64-none\Lib\json\__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "C:\Users\Cristopher Hdz\AppData\Roaming\uv\python\cpython-3.13.5-windows-x86_64-none\Lib\json\decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Cristopher Hdz\AppData\Roaming\uv\python\cpython-3.13.5-windows-x86_64-none\Lib\json\decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Unterminated string starting at: line 1 column 1214 (char 1213)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\.venv\Lib\site-packages\langchain\agents\factory.py", line 1044, in _handle_model_output
+    structured_response = provider_strategy_binding.parse(output)
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\.venv\Lib\site-packages\langchain\agents\structured_output.py", line 417, in parse
+    raise ValueError(msg) from e
+ValueError: Native structured output expected valid JSON for TableWidgetOutput, but parsing failed: Unterminated string starting at: line 1 column 1214 (char 1213).
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\dynamic_app\ui_agents_graph\ui_parallel_structured_agents.py", line 332, in generate_widget
+    response = await agent.ainvoke(
+               ^^^^^^^^^^^^^^^^^^^^
+    ...<10 lines>...
+    )
+    ^
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\.venv\Lib\site-packages\langgraph\pregel\main.py", line 3462, in ainvoke
+    async for chunk in self.astream(
+    ...<29 lines>...
+            chunks.append(chunk)
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\.venv\Lib\site-packages\langgraph\pregel\main.py", line 3111, in astream
+    async for _ in runner.atick(
+    ...<16 lines>...
+            yield o
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\.venv\Lib\site-packages\langgraph\pregel\_runner.py", line 304, in atick
+    await arun_with_retry(
+    ...<15 lines>...
+    )
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\.venv\Lib\site-packages\langgraph\pregel\_retry.py", line 211, in arun_with_retry 
+    return await task.proc.ainvoke(task.input, config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\.venv\Lib\site-packages\langgraph\_internal\_runnable.py", line 705, in ainvoke   
+    input = await asyncio.create_task(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        step.ainvoke(input, config, **kwargs), context=context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\.venv\Lib\site-packages\langgraph\_internal\_runnable.py", line 473, in ainvoke   
+    ret = await self.afunc(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\.venv\Lib\site-packages\langchain\agents\factory.py", line 1349, in amodel_node   
+    model_response = await _execute_model_async(request)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\.venv\Lib\site-packages\langchain\agents\factory.py", line 1326, in _execute_model_async
+    handled_output = _handle_model_output(output, effective_response_format)
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\.venv\Lib\site-packages\langchain\agents\factory.py", line 1050, in _handle_model_output
+    raise validation_error from exc
+langchain.agents.structured_output.StructuredOutputValidationError: Failed to parse structured output for tool 'TableWidgetOutput': Native structured output expected valid JSON for TableWidgetOutput, but parsing failed: Unterminated string starting at: line 1 column 1214 (char 1213)..
+During task with name 'model' and id '8f210112-3f49-6cf3-2f5d-26ec05aa3342'
+WARNING:dynamic_app.ui_agents_graph.ui_parallel_structured_agents:No merged data contents were generated for this response | tasks=2
+INFO:dynamic_app.ui_agents_graph.ui_parallel_structured_agents:Parallel assembler final payload | messages=2 data_entries=0 surface_id=dashboard root_id=root-layout
+INFO:dynamic_app.dynamic_agents_graph:Captured UI candidate message | node=GRAPH name=parallel_structured_ui_assembly has_a2ui=True len=1812
+ERROR:opentelemetry.context:Failed to detach context
+Traceback (most recent call last):
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\.venv\Lib\site-packages\opentelemetry\context\__init__.py", line 155, in detach   
+    _RUNTIME_CONTEXT.detach(token)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Users\Cristopher Hdz\Documents\projects\AIAppilcationStacks\app\server\.venv\Lib\site-packages\opentelemetry\context\contextvars_context.py", line 53, in detach
+    self._current_context.reset(token)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+ValueError: <Token var=<ContextVar name='current_context' default={} at 0x00000125DE564EA0> at 0x000001259666F100> was created in a different Context
+INFO:dynamic_app.dynamic_agents_graph:Final response selection | ai_messages=7 ui_selected=True ui_len=1812 fallback_len=122
+INFO:oci_openai.oci_openai:Initialized OciUserPrincipalAuth with refresh interval: 3600 seconds
+INFO:dynamic_app.dynamic_graph_executor:Splitting final response into text and UI parts.
+INFO:dynamic_app.dynamic_graph_executor:Found 2 final A2UI message(s) requiring progressive transformation.
+INFO:dynamic_app.dynamic_graph_executor:--- FINAL PARTS TO BE SENT ---
+INFO:dynamic_app.dynamic_graph_executor:  - Part 0: Type = <class 'a2a.types.TextPart'>
+INFO:dynamic_app.dynamic_graph_executor:    - Text: This dashboard displays assets with condition scores below 4, indicating they require monitoring. Review counts and details for proactive maintenance....
+INFO:dynamic_app.dynamic_graph_executor:  - Part 1: Type = <class 'a2a.types.TextPart'>
+INFO:dynamic_app.dynamic_graph_executor:    - Text: suggestions_agent response:
+{"suggested_questions":["Details on high criticali...
+
+Agent metadata:
+
+            model_id: ,
+            total_tokens_on_call: 0,
+            aggregated_total_tokens: 69...
+INFO:dynamic_app.dynamic_graph_executor:  - Part 2: Type = <class 'a2a.types.TextPart'>
+INFO:dynamic_app.dynamic_graph_executor:    - Text: 6987...
+INFO:dynamic_app.dynamic_graph_executor:  - Part 3: Type = <class 'a2a.types.TextPart'>
+INFO:dynamic_app.dynamic_graph_executor:    - Text: {"suggested_questions":["What do condition scores mean?","How to update asset conditions?","Show top assets by risk?"]}...
+INFO:dynamic_app.dynamic_graph_executor:  - Part 4: Type = <class 'a2a.types.TextPart'>
+INFO:dynamic_app.dynamic_graph_executor:    - Text: []...
+INFO:dynamic_app.dynamic_graph_executor:-----------------------------

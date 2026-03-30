@@ -6,7 +6,11 @@ from langchain.agents import create_agent
 from langchain.messages import HumanMessage, AIMessage
 from typing import List
 
-from dynamic_app.ui_agents_graph.widget_tools import get_native_component_example, create_custom_component_tools
+from dynamic_app.ui_agents_graph.widget_tools import (
+    get_native_component_catalog,
+    get_native_component_example,
+    create_custom_component_tools,
+)
 from core.gen_ai_provider import GenAIProvider
 from core.dynamic_app.schema_utils import load_a2ui_schema
 from core.dynamic_app.dynamic_struct import DynamicGraphState
@@ -44,9 +48,10 @@ class UIAssemblyAgent:
         try:
             parsed = json.loads(data)
             if isinstance(parsed, dict) and 'widgets' in parsed:
-                return [widget.get('name', '').lower() for widget in parsed['widgets']]
+                component_names = [widget.get('name', '') for widget in parsed['widgets']]
+                return [name for name in component_names if isinstance(name, str) and name.strip()]
         except (json.JSONDecodeError, TypeError):
-            return ['bar-graph']
+            return ['BarGraph']
     #endregion
 
     #region Setup
@@ -71,7 +76,12 @@ class UIAssemblyAgent:
     def _build_agent(self):
         return create_agent(
             model=self._client,
-            tools=[self.get_custom_component_example_tool, get_native_component_example],
+            tools=[
+                self.get_custom_component_catalog_tool,
+                self.get_custom_component_example_tool,
+                get_native_component_catalog,
+                get_native_component_example,
+            ],
             system_prompt=self.system_prompt,
             name=self.agent_name
         )

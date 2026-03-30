@@ -34,12 +34,23 @@ registerShellComponents();
 import { AppConfig } from "../configs/types.js";
 import { config as restaurantConfig } from "../configs/restaurant.js";
 import { agentConfig } from "../configs/agent_config.js";
+import { parseSuggestionsList } from "../services/stream-event-normalizer.js";
+import { getServerOrigin, SERVER_URLS } from "../services/server-endpoints.js";
+import { appendStatusWithTiming, getGenericStreamStatus } from "../services/stream-status.js";
+
+import { marked } from "marked";
 
 // #region Component
 @customElement("dynamic-module")
 export class DynamicModule extends LitElement {
   @provide({ context: UI.Context.themeContext })
   accessor theme: v0_8.Types.Theme = uiTheme;
+
+  @provide({ context: UI.Context.markdown })
+  accessor markdownRenderer: v0_8.Types.MarkdownRenderer = async (md, _options) => {
+    return marked.parse(md) as string;
+  };
+
 
   @consume({ context: routerContext })
   accessor router!: A2UIRouter;
@@ -87,6 +98,9 @@ export class DynamicModule extends LitElement {
   accessor #processingSurfaces = false;
 
   @state()
+  accessor #uiStreamingActive = false;
+
+  @state()
   accessor #loadingTextIndex = 0;
 
   @state()
@@ -101,15 +115,52 @@ export class DynamicModule extends LitElement {
   @state()
   accessor #totalDuration: number = 0;
 
+  @state()
+  accessor #activeRequestId: string | null = null;
+
   // #region Internal Services
   #processor = v0_8.Data.createSignalA2uiMessageProcessor();
   #loadingInterval: number | undefined;
   #stopwatchInterval: number | undefined;
   #snackbar: Snackbar | undefined = undefined;
+  #seenUiMessageHashes: Set<string> = new Set();
+
   #pendingSnackbarMessages: Array<{
     message: SnackbarMessage;
     replaceAll: boolean;
   }> = [];
+
+  #onStreamingEvent = (event: Event) => {
+    const customEvent = event as CustomEvent;
+    const streamingEvent = customEvent.detail;
+    this.updateStatusFromStreamingEvent(streamingEvent);
+    this.processMessages(streamingEvent);
+  };
+
+  #onMessageSent = (event: Event) => {
+    const customEvent = event as CustomEvent;
+    const sentEvent = customEvent.detail;
+
+    if (sentEvent.serverUrl === this.config.serverUrl) {
+      this.#activeRequestId = sentEvent.requestId || null;
+      this.#startTime = sentEvent.timestamp;
+      this.#elapsedTime = null;
+      this.#currentElapsedTime = 0;
+      this.#totalDuration = 0;
+      this.#requesting = true;
+      this.#uiStreamingActive = true;
+      this.#error = null;
+      this.sources = [];
+      this.#startLoadingAnimation();
+      this.#lastUserQuestion = sentEvent.message || '';
+      console.log("Query sent on agent")
+      this.status = []
+      this.#processor.clearSurfaces();
+      this.#lastMessages = [];
+      this.#seenUiMessageHashes.clear();
+      this.#startStopwatch();
+    }
+  };
   // #endregion Internal Services
 
   // #region Styles
@@ -186,6 +237,46 @@ export class DynamicModule extends LitElement {
         min-height: 0;
         overflow: visible;
         max-height: none;
+      }
+
+
+      .surfaces-container {
+        position: relative;
+      }
+
+      .streaming-glass-overlay {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        border-radius: var(--radius-lg);
+        background:
+          linear-gradient(120deg,
+            var(--surface-secondary) 0%,
+            var(--surface-elevated) 35%,
+            var(--module-agent-active) 50%,
+            var(--surface-secondary) 100%);
+        backdrop-filter: blur(2px) saturate(1.1);
+        -webkit-backdrop-filter: blur(2px) saturate(1.1);
+        border: 1px solid var(--border-secondary);
+        box-shadow: inset 0 0 0 1px var(--border-subtle);
+        animation: glassSweep 2.2s ease-in-out infinite;
+        z-index: 1;
+      }
+
+      .streaming-glass-overlay::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          var(--module-agent-active) 35%,
+          var(--module-chat-active) 50%,
+          var(--module-agent-active) 65%,
+          transparent 100%
+        );
+        transform: translateX(-120%);
+        animation: shimmerPass 1.8s ease-in-out infinite;
       }
         
       .surfaces {
@@ -325,6 +416,31 @@ export class DynamicModule extends LitElement {
           transform: rotate(360deg);
         }
       }
+
+
+      @keyframes shimmerPass {
+        0% {
+          transform: translateX(-120%);
+          opacity: 0.15;
+        }
+        50% {
+          opacity: 0.45;
+        }
+        100% {
+          transform: translateX(120%);
+          opacity: 0.1;
+        }
+      }
+
+      @keyframes glassSweep {
+        0%,
+        100% {
+          opacity: 0.22;
+        }
+        50% {
+          opacity: 0.45;
+        }
+      }
     `,
   ]
   // #endregion Styles
@@ -344,30 +460,19 @@ export class DynamicModule extends LitElement {
     );
 
     if (this.router) {
-      this.router.addEventListener('streaming-event', (event: any) => {
-        const streamingEvent = event.detail;
-        this.updateStatusFromStreamingEvent(streamingEvent);
-        this.processMessages(streamingEvent);
-      });
-
-      this.router.addEventListener('message-sent', (event: any) => {
-        const sentEvent = event.detail;
-        if (sentEvent.serverUrl === this.config.serverUrl) {
-          this.#startTime = sentEvent.timestamp;
-          this.#elapsedTime = null;
-          this.#currentElapsedTime = 0;
-          this.#totalDuration = 0;
-          this.#requesting = true;
-          this.#error = null;
-          this.sources = [];
-          this.#startLoadingAnimation();
-          this.#lastUserQuestion = sentEvent.message || '';
-          console.log("Query sent on agent")
-          this.status = []
-          this.#startStopwatch();
-        }
-      });
+      this.router.removeEventListener('streaming-event', this.#onStreamingEvent);
+      this.router.removeEventListener('message-sent', this.#onMessageSent);
+      this.router.addEventListener('streaming-event', this.#onStreamingEvent);
+      this.router.addEventListener('message-sent', this.#onMessageSent);
     }
+  }
+
+  disconnectedCallback() {
+    if (this.router) {
+      this.router.removeEventListener('streaming-event', this.#onStreamingEvent);
+      this.router.removeEventListener('message-sent', this.#onMessageSent);
+    }
+    super.disconnectedCallback();
   }
   // #endregion Lifecycle
 
@@ -416,33 +521,20 @@ export class DynamicModule extends LitElement {
   // TODO: move this mapping logic into a typed router helper.
   private updateStatusFromStreamingEvent(event: any) {
     if (event.serverUrl !== this.config.serverUrl) return;
+    if (this.#activeRequestId && event.clientRequestId && event.clientRequestId !== this.#activeRequestId) return;
+    const normalized = event.normalized;
 
     if (event.kind === 'status-update') {
-      const status = event.status;
-      const isFinal = event.final;
-      const state = status?.state;
-      const hasMessage = status?.message?.parts?.length > 0;
+      const isFinal = normalized?.isFinal || false;
+      const state = normalized?.state;
+      const serverMessage = normalized?.statusText || "No text content";
 
-      const serverState: Array<any> = hasMessage ? event.status.message.parts : [{ "text": "Server did not send any message parts" }];
-      const serverMessage = serverState[0].text || "No text content"
-
-      console.log("server message", serverState);
+      console.log("server message", normalized?.textParts || []);
 
       if (isFinal) {
-        const textParts = serverState
-          .filter((part: any) => part.kind === "text")
-          .map((part: any) => part.text);
-        const metadataTail = textParts.slice(-4);
-
-        if (metadataTail[1]) {
-          this.tokenCount = metadataTail[1];
-        }
-
-        if (metadataTail[2]) {
-          this.suggestions = metadataTail[2];
-        }
-
-        this.sources = this.#parseSources(metadataTail[3] || "[]");
+        this.tokenCount = normalized?.tokenCount || "";
+        this.suggestions = normalized?.suggestionsRaw || "";
+        this.sources = normalized?.sources || [];
       }
 
       if (state == 'failed') {
@@ -453,72 +545,37 @@ export class DynamicModule extends LitElement {
         }
       }
 
-      if (hasMessage && this.#startTime) {
+      if ((normalized?.textParts?.length || normalized?.uiMessages?.length) && this.#startTime) {
         this.#elapsedTime = Date.now() - this.#startTime;
         this.#stopStopwatch();
       }
 
       if (isFinal || state === 'failed') {
         this.#requesting = false;
+        this.#uiStreamingActive = false;
         this.#stopLoadingAnimation();
       }
     }
     else if (event.kind === 'task') {
       console.log("Task management event received")
     }
-    else if (event.kind === 'message') {
-      this.#addStatusWithDuration("Direct message received", event.kind);
-    }
     else {
-      this.#addStatusWithDuration(`Event type: ${event.kind || 'unknown'}`, event.kind);
+      const generic = getGenericStreamStatus(event.kind);
+      if (generic) {
+        this.#addStatusWithDuration(generic.message, generic.type);
+      }
     }
   }
   // Compute step duration from the previous status timestamp.
   #addStatusWithDuration(message: string, type: string) {
-    const now = Date.now();
-    const lastStatus = this.status[this.status.length - 1];
-    const duration = lastStatus ? (now - lastStatus.timestamp) / 1000 : 0;
-
-    if (lastStatus && lastStatus.message === message && lastStatus.type === type) {
-      return;
-    }
-
-    this.status = [...this.status, {
-      timestamp: now,
-      duration: duration,
-      message,
-      type
-    }];
-
-    if (this.#startTime) {
-      this.#totalDuration = (now - this.#startTime) / 1000;
-    }
+    const update = appendStatusWithTiming(this.status, message, type, this.#startTime);
+    this.status = update.status;
+    this.#totalDuration = update.totalDuration;
   }
 
   // Accept JSON suggestions or plain text split by newline/comma.
   #parseSuggestions(suggestionsText: string): string[] {
-    try {
-      const parsed = JSON.parse(suggestionsText);
-      if (parsed && Array.isArray(parsed.suggested_questions)) {
-        return parsed.suggested_questions;
-      }
-    } catch {
-      let suggestions = suggestionsText
-        .split(/\n/)
-        .map(s => s.trim())
-        .filter(s => s.length > 0);
-
-      if (suggestions.length === 1) {
-        suggestions = suggestions[0]
-          .split(/[,;]/)
-          .map(s => s.trim())
-          .filter(s => s.length > 0);
-      }
-
-      return suggestions.map(s => s.replace(/^(\d+[\.\)]\s*|[-Ã¢â‚¬Â¢]\s*)/, '').trim());
-    }
-
-    return [];
+    return parseSuggestionsList(suggestionsText);
   }
 
   async #handleSuggestionClick(suggestion: string) {
@@ -528,7 +585,7 @@ export class DynamicModule extends LitElement {
     try {
       this.suggestions = "";
       this.sources = [];
-      this.router.sendTextMessage(this.config.serverUrl, suggestion.trim());
+      this.router.sendTextMessage(this.config.serverUrl || SERVER_URLS.agent, suggestion.trim());
     } catch (error) {
       console.error("Failed to send suggestion:", error);
     }
@@ -536,29 +593,32 @@ export class DynamicModule extends LitElement {
 
   private processMessages(event: any) {
     if (event.serverUrl !== this.config.serverUrl) return;
+    if (this.#activeRequestId && event.clientRequestId && event.clientRequestId !== this.#activeRequestId) return;
+    const normalized = event.normalized;
 
-    if (event.kind === "status-update" && event.status?.message?.parts) {
-      const newMessages: v0_8.Types.ServerToClientMessage[] = [];
-      for (const part of event.status.message.parts) {
-        if (part.kind === 'data') {
-          const data = part.data;
-          if (Array.isArray(data)) {
-            newMessages.push(...data);
-          } else {
-            newMessages.push(data);
-          }
-        }
+    const incomingMessages: v0_8.Types.ServerToClientMessage[] = normalized?.uiMessages || [];
+    const newMessages: v0_8.Types.ServerToClientMessage[] = [];
+    for (const message of incomingMessages) {
+      const hash = JSON.stringify(message);
+      if (this.#seenUiMessageHashes.has(hash)) {
+        continue;
       }
+      this.#seenUiMessageHashes.add(hash);
+      newMessages.push(message);
+    }
 
-      if (newMessages.length > 0) {
-        this.#processingSurfaces = true;
-        this.#startLoadingAnimation();
-        this.#lastMessages = newMessages;
-        this.#processor.clearSurfaces();
-        this.#processor.processMessages(this.#lastMessages);
-        this.#stopLoadingAnimation();
-        this.#processingSurfaces = false;
+    if (newMessages.length > 0) {
+      // As soon as we receive the first UI delta, switch from request loader
+      // to the progressive surface renderer.
+      if (this.#requesting) {
+        this.#requesting = false;
       }
+      this.#processingSurfaces = true;
+      this.#startLoadingAnimation();
+      this.#lastMessages = [...this.#lastMessages, ...newMessages];
+      this.#processor.processMessages(newMessages);
+      this.#stopLoadingAnimation();
+      this.#processingSurfaces = false;
     }
   }
   // #endregion Streaming And Parsing
@@ -612,7 +672,7 @@ export class DynamicModule extends LitElement {
     return html`
       <stat-bar
         .title=${this.title}
-        .time=${this.#totalDuration > 0 ? `${this.#totalDuration.toFixed(2)}s` : ((this.#currentElapsedTime !== null) ? `${(this.#currentElapsedTime / 1000).toFixed(2)}s` : '0.00s')}
+        .time=${this.#totalDuration > 0 ? `${this.#totalDuration.toFixed(2)}` : ((this.#currentElapsedTime !== null) ? `${(this.#currentElapsedTime / 1000).toFixed(2)}` : '0.00')}
         .tokens=${this.tokenCount ? `${this.tokenCount}`: '0'}
         .configUrl=${this.config.serverUrl + '/config'}
         .configType=${'agent'}
@@ -633,8 +693,7 @@ export class DynamicModule extends LitElement {
             <a
               class="source-link"
               href=${this.#getSourceUrl(source)}
-              target="_blank"
-              rel="noopener noreferrer"
+              @click=${(event: MouseEvent) => this.#openSourceInNamedTab(event, source)}
               title=${`Open source document: ${source}`}
             >${source}</a>${index < this.sources.length - 1 ? ", " : ""}
           `)}
@@ -685,13 +744,26 @@ export class DynamicModule extends LitElement {
 
   #getSourceUrl(source: string): string {
     const sourceFile = source.split(/[\\/]/).pop()?.trim() || source.trim();
+    const origin = getServerOrigin(this.config.serverUrl);
+    return `${origin}/rag_docs/${encodeURIComponent(sourceFile)}`;
+  }
 
-    try {
-      const serverBase = new URL(this.config.serverUrl || window.location.origin);
-      return `${serverBase.origin}/rag_docs/${encodeURIComponent(sourceFile)}`;
-    } catch {
-      return `/rag_docs/${encodeURIComponent(sourceFile)}`;
+  #openSourceInNamedTab(event: MouseEvent, source: string) {
+    event.preventDefault();
+    const url = this.#getSourceUrl(source);
+    const opened = window.open(url, this.#getSourceTabTarget(source));
+    if (opened) {
+      opened.focus();
     }
+  }
+
+  #getSourceTabTarget(source: string): string {
+    const normalized = source.trim().toLowerCase();
+    let hash = 0;
+    for (let i = 0; i < normalized.length; i++) {
+      hash = ((hash << 5) - hash + normalized.charCodeAt(i)) | 0;
+    }
+    return `source-doc-${Math.abs(hash)}`;
   }
 
   #getCurrentLoadingText(defaultText: string) {
@@ -744,6 +816,7 @@ export class DynamicModule extends LitElement {
     }
 
     return html`<div class="surfaces-container">
+      ${this.#uiStreamingActive ? html`<div class="streaming-glass-overlay" aria-hidden="true"></div>` : nothing}
       <section class="surfaces">
         ${repeat(
       this.#processor.getSurfaces(),
@@ -817,7 +890,7 @@ export class DynamicModule extends LitElement {
     if (!this.router) return;
     try {
       await this.router.sendA2UIMessage(
-        this.config.serverUrl || "http://localhost:10002",
+        this.config.serverUrl || SERVER_URLS.agent,
         message
       );
     } catch (err) {

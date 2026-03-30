@@ -46,4 +46,4 @@ url = "https://pypi.org/simple"
 default = true
 
 [tool.uv.sources]
-a2ui-agent = { path = "../../libs/a2a_agents/python/a2ui_agent", editable = true }
+a2ui-agent = { path = "../../libs/agent_sdks/python", editable = true }

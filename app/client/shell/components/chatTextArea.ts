@@ -3,6 +3,7 @@ import { customElement, state } from "lit/decorators.js"
 import { consume } from "@lit/context"
 import { routerContext, A2UIRouter } from "../services/a2ui-router.js"
 import { designTokensCSS, buttonStyles } from "../theme/design-tokens.js"
+import { SERVER_URLS } from "../services/server-endpoints.js";
 
 // #region Component
 @customElement("chat-input")
@@ -13,8 +14,8 @@ export class ChatInput extends LitElement {
   @state()
   accessor #inputValue = ""
 
-  private llmDefaultServer = "http://localhost:10002/llm";
-  private agentDefaultServer = "http://localhost:10002/agent";
+  private llmDefaultServer = SERVER_URLS.llm;
+  private agentDefaultServer = SERVER_URLS.agent;
 
   // #region Styles
   static styles = css`
@@ -145,7 +146,7 @@ export class ChatInput extends LitElement {
             Send to Chat
           </button>
           <button class="btn btn-secondary" @click=${this.handleSubmit} title="Send to Both Modules">
-            Send to Both
+            Send to Both (Enter)
           </button>
           <button class="btn btn-outline-agent" @click=${this.handleSubmitAgent} title="Send to Agent Module">
             Send to Agent

@@ -3,7 +3,8 @@ import { customElement, state } from "lit/decorators.js"
 import { provide } from "@lit/context"
 import { a2uiRouter, routerContext } from "./services/a2ui-router.js"
 import { designTokensCSS, buttonStyles, colors, radius, spacing } from "./theme/design-tokens.js"
-import "./components/main_traditional"
+import { SERVER_URLS } from "./services/server-endpoints.js";
+import "./components/main_traditional.js"
 import "./components/chatTextArea"
 import "./components/main_agent"
 import "./components/main_chat"
@@ -169,7 +170,7 @@ export class AppContainer extends LitElement {
                 @change=${(e: Event) => {
                   this.showingTraditional = (e.target as HTMLInputElement).checked;
                   if (this.showingTraditional) {
-                    this.router.resetSession("http://localhost:10002/traditional");
+                    this.router.resetSession(SERVER_URLS.traditional);
                   }
                 }}
               />
@@ -183,7 +184,7 @@ export class AppContainer extends LitElement {
                 @change=${(e: Event) => {
                   this.showingChat = (e.target as HTMLInputElement).checked;
                   if (this.showingChat) {
-                    this.router.resetSession("http://localhost:10002/llm");
+                    this.router.resetSession(SERVER_URLS.llm);
                   }
                 }}
               />
@@ -197,7 +198,7 @@ export class AppContainer extends LitElement {
                 @change=${(e: Event) => {
                   this.showingAgent = (e.target as HTMLInputElement).checked;
                   if (this.showingAgent) {
-                    this.router.resetSession("http://localhost:10002");
+                    this.router.resetSession(SERVER_URLS.agent);
                   }
                 }}
               />

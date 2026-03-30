@@ -9,6 +9,9 @@ import "./stat_bar.js"
 import "./status_drawer.js"
 import { chatConfig } from "../configs/chat_config.js"
 import { designTokensCSS, colors, radius } from "../theme/design-tokens.js"
+import { parseSuggestionsList } from "../services/stream-event-normalizer.js";
+import { SERVER_URLS } from "../services/server-endpoints.js";
+import { appendStatusWithTiming, getGenericStreamStatus } from "../services/stream-status.js";
 
 // #region Component
 @customElement("chat-module")
@@ -49,7 +52,10 @@ export class ChatModule extends LitElement {
   @state()
   accessor #elapsedTime: number | null = null;
 
-  private defaultServerUrl = "http://localhost:10002/llm";
+  @state()
+  accessor #activeRequestId: string | null = null;
+
+  private defaultServerUrl = SERVER_URLS.llm;
 
   #onStreamingEvent = (event: Event) => {
     const customEvent = event as CustomEvent;
@@ -65,6 +71,7 @@ export class ChatModule extends LitElement {
     }
 
     this.#startTime = sentEvent.timestamp;
+    this.#activeRequestId = sentEvent.requestId || null;
     this.#elapsedTime = null;
     this.#totalDuration = 0;
     this.tokenCount = "";
@@ -110,51 +117,42 @@ export class ChatModule extends LitElement {
   // #region Streaming
   private processStreamingEvent(event: any) {
     if (event.serverUrl !== this.defaultServerUrl) return;
+    if (this.#activeRequestId && event.clientRequestId && event.clientRequestId !== this.#activeRequestId) return;
+    const normalized = event.normalized;
 
     if (event.kind === 'status-update') {
-      const status = event.status;
-      const isFinal = event.final;
-      const state = status?.state;
-      const hasMessage = status?.message?.parts?.length > 0;
-
-      const serverState: Array<any> = hasMessage ? event.status.message.parts : [{ "text": "Server did not send any message parts" }];
-      const serverMessage = serverState[0].text || "No text content"
+      const isFinal = normalized?.isFinal || false;
+      const state = normalized?.state;
+      const serverMessage = normalized?.statusText || "No text content";
 
       console.log("process state", state);
-      console.log("server message", serverState);
-      const messageSources = isFinal ? this.#parseSources(serverState[4]?.text || "[]") : [];
+      console.log("server message", normalized?.textParts || []);
+      const messageSources = isFinal ? (normalized?.sources || []) : [];
 
       this.#resetStatusIfNewTurnFromStream(serverMessage, isFinal);
 
-      if (isFinal && serverState[2]?.text) {
-        this.tokenCount = serverState[2].text;
+      if (isFinal && normalized?.tokenCount) {
+        this.tokenCount = normalized.tokenCount;
       }
 
-      if (hasMessage) {
-        for (const part of status.message.parts) {
-          if (part.kind === 'text') {
-            if (isFinal && this.#pendingResponse) {
-              this.messages = [...this.messages, {
-                role: 'agent',
-                content: serverMessage,
-                sources: messageSources,
-                timestamp: Date.now()
-              }];
-              this.#pendingResponse = false;
-              this.#requestScrollToBottom();
-            }
-            
-            // Skip final echo; only incremental updates are useful in the log.
-            if(!isFinal){
-              this.#addStatusWithDuration(serverMessage, event.kind);
-            }
-            
-            if (isFinal && serverState[3]?.text) {
-              this.suggestions = serverState[3].text;
-            }
-            break;
-          }
-        }
+      if (isFinal && this.#pendingResponse) {
+        this.messages = [...this.messages, {
+          role: 'agent',
+          content: normalized?.responseText || serverMessage,
+          sources: messageSources,
+          timestamp: Date.now()
+        }];
+        this.#pendingResponse = false;
+        this.#requestScrollToBottom();
+      }
+
+      // Skip final echo; only incremental updates are useful in the log.
+      if (!isFinal) {
+        this.#addStatusWithDuration(serverMessage, event.kind);
+      }
+
+      if (isFinal && normalized?.suggestionsRaw) {
+        this.suggestions = normalized.suggestionsRaw;
       }
 
       if (state === 'failed') {
@@ -162,7 +160,7 @@ export class ChatModule extends LitElement {
         this.#pendingResponse = false;
       }
 
-      if (hasMessage && this.#startTime) {
+      if ((normalized?.textParts?.length || normalized?.uiMessages?.length) && this.#startTime) {
         this.#elapsedTime = Date.now() - this.#startTime;
       }
 
@@ -173,11 +171,11 @@ export class ChatModule extends LitElement {
     else if (event.kind === 'task') {
       console.log("Task management event received")
     }
-    else if (event.kind === 'message') {
-      this.#addStatusWithDuration("Direct message received", event.kind);
-    }
     else {
-      this.#addStatusWithDuration(`Event type: ${event.kind || 'unknown'}`, event.kind || 'unknown');
+      const generic = getGenericStreamStatus(event.kind);
+      if (generic) {
+        this.#addStatusWithDuration(generic.message, generic.type);
+      }
     }
   }
   // #endregion Streaming
@@ -185,24 +183,9 @@ export class ChatModule extends LitElement {
   // #region Parsing And Timing
   // Duration is measured from the previous status timestamp.
   #addStatusWithDuration(message: string, type: string) {
-    const now = Date.now();
-    const lastStatus = this.status[this.status.length - 1];
-    const duration = lastStatus ? (now - lastStatus.timestamp) / 1000 : 0;
-
-    if (lastStatus && lastStatus.message === message && lastStatus.type === type) {
-      return;
-    }
-    
-    this.status = [...this.status, {
-      timestamp: now,
-      duration: duration,
-      message,
-      type
-    }];
-    
-    if (this.#startTime) {
-      this.#totalDuration = (now - this.#startTime) / 1000;
-    }
+    const update = appendStatusWithTiming(this.status, message, type, this.#startTime);
+    this.status = update.status;
+    this.#totalDuration = update.totalDuration;
   }
 
   #resetStatusForNewRequest() {
@@ -234,26 +217,7 @@ export class ChatModule extends LitElement {
 
   // Accept JSON suggestions or plain text split by newline/comma.
   #parseSuggestions(suggestionsText: string): string[] {
-    try {
-      const parsed = JSON.parse(suggestionsText);
-      if (parsed && Array.isArray(parsed.suggested_questions)) {
-        return parsed.suggested_questions;
-      }
-    } catch (e) {
-      let suggestions = suggestionsText
-        .split(/\n/)
-        .map(s => s.trim())
-        .filter(s => s.length > 0);
-  
-      if (suggestions.length === 1) {
-        suggestions = suggestions[0]
-          .split(/[,;]/)
-          .map(s => s.trim())
-          .filter(s => s.length > 0);
-      }
-  
-      return suggestions.map(s => s.replace(/^(\d+[\.\)]\s*|[-•]\s*)/, '').trim());
-    }
+    return parseSuggestionsList(suggestionsText);
   }
   // #endregion Parsing And Timing
 
@@ -577,7 +541,7 @@ export class ChatModule extends LitElement {
     return html`
       <stat-bar
         .title=${this.title}
-        .time=${this.#totalDuration > 0 ? `${this.#totalDuration.toFixed(2)}s` : '0.00s'}
+        .time=${this.#totalDuration > 0 ? `${this.#totalDuration.toFixed(2)}` : '0.00'}
         .tokens=${this.tokenCount ? `${this.tokenCount}`: '0'}
         .configUrl=${'/llm_config'}
         .configType=${'llm'}
@@ -602,8 +566,7 @@ export class ChatModule extends LitElement {
                       <a
                         class="source-link"
                         href=${this.#getSourceUrl(source)}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        @click=${(event: MouseEvent) => this.#openSourceInNamedTab(event, source)}
                         title=${`Open source document: ${source}`}
                       >${source}</a>${index < msg.sources!.length - 1 ? ", " : ""}
                     `)}
@@ -646,6 +609,24 @@ export class ChatModule extends LitElement {
     } catch {
       return `/rag_docs/${encodeURIComponent(sourceFile)}`;
     }
+  }
+
+  #openSourceInNamedTab(event: MouseEvent, source: string) {
+    event.preventDefault();
+    const url = this.#getSourceUrl(source);
+    const opened = window.open(url, this.#getSourceTabTarget(source));
+    if (opened) {
+      opened.focus();
+    }
+  }
+
+  #getSourceTabTarget(source: string): string {
+    const normalized = source.trim().toLowerCase();
+    let hash = 0;
+    for (let i = 0; i < normalized.length; i++) {
+      hash = ((hash << 5) - hash + normalized.charCodeAt(i)) | 0;
+    }
+    return `source-doc-${Math.abs(hash)}`;
   }
   // #endregion Render
 }

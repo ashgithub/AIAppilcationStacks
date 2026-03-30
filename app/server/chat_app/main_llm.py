@@ -53,7 +53,7 @@ def extract_RAG_sources(semantic_result: str) -> list[str]:
 class OCIOutageEnergyLLM:
     """LLM agent that handles outage and energy requests."""
 
-    SUPPORTED_CONTENT_TYPES = ["text", "text/plain", "text/event-stream"]
+    SUPPORTED_CONTENT_TYPES = ["text", "text/plain", "text/event-stream", "application/json+a2ui"]
 
     #region Setup
     def __init__(self, langfuse_client: Langfuse):
@@ -204,7 +204,9 @@ class OCIOutageEnergyLLM:
 
                             yield {
                                 "is_task_complete": False,
-                                "updates": update_text
+                                "updates": update_text,
+                                # Expose raw content for progressive downstream parsing (e.g. A2UI deltas).
+                                "content": str(getattr(latest_update, "content", "") or ""),
                             }
 
                 root_observation.update(

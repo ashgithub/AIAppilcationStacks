@@ -64,7 +64,8 @@ def extract_allowed_components(data: str) -> List[str]:
     try:
         parsed = json.loads(data)
         if isinstance(parsed, dict) and 'widgets' in parsed:
-            widget_names = [widget.get('name', '').lower() for widget in parsed['widgets']]
+            widget_names = [widget.get('name', '') for widget in parsed['widgets']]
+            widget_names = [name for name in widget_names if isinstance(name, str) and name.strip()]
             return widget_names if widget_names else None
     except (json.JSONDecodeError, TypeError):
         pass
