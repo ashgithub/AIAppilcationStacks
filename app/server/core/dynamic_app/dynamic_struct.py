@@ -1,7 +1,7 @@
 """ File to store the common pydantic classes or struct configs """
 
 # region Imports
-from typing import TypedDict, List, Optional
+from typing import Any, TypedDict, List, Optional
 from pydantic import BaseModel, Field
 from dataclasses import dataclass
 from langgraph.graph import MessagesState
@@ -18,9 +18,14 @@ class UIOrchestratorOutput(BaseModel):
     """Output from UI Orchestrator containing selected widgets."""
     widgets: List[Skill] = Field(description="List of selected UI widgets (1-3 max)")
 
-class DynamicGraphState(MessagesState):
+class DynamicGraphState(MessagesState, total=False):
     """ Class that holds the dynamic graph state """
     suggestions: str
+    parallel_data_context: str
+    parallel_widget_plan: dict[str, Any]
+    parallel_execution_tasks: list[dict[str, Any]]
+    parallel_shell_output: dict[str, Any]
+    parallel_widget_outputs: list[dict[str, Any]]
 
 # endregion Types
 

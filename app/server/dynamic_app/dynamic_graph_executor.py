@@ -2,10 +2,7 @@
 import asyncio
 import json
 import logging
-import copy
 import os
-from dataclasses import asdict
-import jsonschema
 from langfuse import Langfuse
 from typing import Any
 
@@ -27,7 +24,6 @@ from a2a.utils import (
 from a2a.utils.errors import ServerError
 from a2ui.a2a import create_a2ui_part, try_activate_a2ui_extension
 from dynamic_app.dynamic_agents_graph import DynamicGraph
-from core.dynamic_app.dynamic_struct import AgentConfig, CONFIG_SCHEMA, DEFAULT_CONFIG
 
 logger = logging.getLogger(__name__)
 
@@ -380,8 +376,6 @@ class DynamicGraphExecutor(AgentExecutor):
 
     #region Lifecycle
     def __init__(self, base_url: str, langfuse_client: Langfuse):
-        self.default_config = copy.deepcopy(DEFAULT_CONFIG)
-        self.current_config = copy.deepcopy(self.default_config)
         self.base_url = base_url
         self.langfuse_client = langfuse_client
         self.progressive_component_chunk_size = PROGRESSIVE_UI_COMPONENT_CHUNK_SIZE
@@ -396,19 +390,10 @@ class DynamicGraphExecutor(AgentExecutor):
         self._recreate_graphs()
 
     def _recreate_graphs(self):
-        """Recreate graph instances with current config"""
-        self.ui_dynamic_graph = DynamicGraph(
+        """Recreate the single parallel graph instance."""
+        self.dynamic_graph = DynamicGraph(
             base_url=self.base_url,
             langfuse_client=self.langfuse_client,
-            use_ui=True,
-            graph_configuration=self.current_config,
-            inline_catalog=None  # Will be set at execution time
-        )
-        self._dynamic_graph = DynamicGraph(
-            base_url=self.base_url,
-            langfuse_client=self.langfuse_client,
-            use_ui=False,
-            graph_configuration=self.current_config,
             inline_catalog=None
         )
     #endregion
@@ -423,15 +408,12 @@ class DynamicGraphExecutor(AgentExecutor):
 
         logger.info(f"--- Client requested extensions: {context.requested_extensions} ---")
         use_ui = try_activate_a2ui_extension(context)
-
-        if use_ui:
-            agent = self.ui_dynamic_graph
-            await agent.build_graph()
-            logger.info("--- AGENT_EXECUTOR: A2UI extension is active. Using UI agent. ---")
-        else:
-            agent = self._dynamic_graph
-            await agent.build_graph()
-            logger.info("--- AGENT_EXECUTOR: A2UI extension is not active. Using text agent. ---")
+        agent = self.dynamic_graph
+        await agent.build_graph()
+        logger.info(
+            "--- AGENT_EXECUTOR: Parallel structured graph active (A2UI extension active=%s). ---",
+            use_ui,
+        )
 
         session_id = None
         if context.message and context.message.parts:
@@ -465,10 +447,7 @@ class DynamicGraphExecutor(AgentExecutor):
                 else:
                     logger.info(f"  Part {i}: Unknown part type ({type(part.root)})")
 
-        if use_ui:
-            self.ui_dynamic_graph.inline_catalog = inline_catalog
-        else:
-            self._dynamic_graph.inline_catalog = inline_catalog
+        self.dynamic_graph.inline_catalog = inline_catalog
 
         if inline_catalog:
             logger.info(f"--- Found inline catalog with {len(inline_catalog)} components ---")
@@ -624,45 +603,5 @@ class DynamicGraphExecutor(AgentExecutor):
         self, request: RequestContext, event_queue: EventQueue
     ) -> Task | None:
         raise ServerError(error=UnsupportedOperationError())
-    #endregion
-
-    #region Config Helpers
-    def get_config(self) -> dict:
-        """Get current configuration as a serializable dictionary."""
-        return {k: asdict(v) for k, v in self.current_config.items()}
-
-    def update_config(self, new_config: dict) -> tuple[bool, str]:
-        """
-        Update configuration with validation
-        Returns (success, error_message)
-        """
-        try:
-            jsonschema.validate(instance=new_config, schema=CONFIG_SCHEMA)
-
-            config_objects = {}
-            for agent_name, agent_data in new_config.items():
-                config_objects[agent_name] = AgentConfig(**agent_data)
-
-            self.current_config = config_objects
-
-            self._recreate_graphs()
-
-            logger.info("Configuration updated successfully")
-            return True, ""
-
-        except jsonschema.ValidationError as e:
-            error_msg = f"Configuration validation failed: {e.message}"
-            logger.error(error_msg)
-            return False, error_msg
-        except Exception as e:
-            error_msg = f"Configuration update failed: {str(e)}"
-            logger.error(error_msg)
-            return False, error_msg
-
-    def reset_config(self) -> None:
-        """Reset configuration to default"""
-        self.current_config = copy.deepcopy(self.default_config)
-        self._recreate_graphs()
-        logger.info("Configuration reset to default")
     #endregion
 #endregion

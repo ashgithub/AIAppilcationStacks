@@ -12,12 +12,12 @@ from langchain.messages import HumanMessage, AIMessage, AnyMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langfuse import Langfuse
 
-from dynamic_app.ui_agents_graph.ui_orchestrator_agent import UIOrchestrator
 from dynamic_app.ui_agents_graph.ui_orchestrator_agent import SuggestionsReponseLLM
-from dynamic_app.ui_agents_graph.ui_assembly_agent import UIAssemblyAgent
-from dynamic_app.ui_agents_graph.ui_parallel_structured_agents import ParallelUIStructuredAssembler
+from dynamic_app.ui_agents_graph.ui_layout_planner import UIParallelLayoutPlannerNode
+from dynamic_app.ui_agents_graph.ui_parallel_skeleton_agent import UIParallelSkeletonNode
+from dynamic_app.ui_agents_graph.ui_parallel_widget_worker_agent import UIParallelWidgetWorkerNode
+from dynamic_app.ui_agents_graph.ui_parallel_fragment_merge_agent import UIParallelFragmentMergeAgent
 from dynamic_app.back_agents_graph.backend_orchestrator_agent import BackendOrchestratorAgent
-from core.dynamic_app.dynamic_struct import AgentConfig
 from core.dynamic_app.dynamic_struct import DynamicGraphState
 from core.langfuse_tracing import (
     LangfuseTracingProvider,
@@ -64,29 +64,22 @@ class DynamicGraph:
 
     SUPPORTED_CONTENT_TYPES = ["text", "text/plain", "text/event-stream", "application/json+a2ui"]
     CONTENT_TRUNCATION_LENGTH = 50
-    UI_RESPONSE_AGENT_NAMES = {"parallel_structured_ui_assembly", "ui_assembly"}
+    UI_RESPONSE_AGENT_NAMES = {"parallel_structured_ui_assembly"}
 
     def __init__(
         self,
         base_url: str,
         langfuse_client: Langfuse | None = None,
-        use_ui: bool = False,
-        graph_configuration: dict[str, AgentConfig] = None,
         inline_catalog: list = None,
     ):
-        self.use_ui = use_ui
-        self.graph_configuration = graph_configuration or {}
         self._inline_catalog = inline_catalog or []
         self.langfuse_client = langfuse_client
         self._backend_orchestrator = BackendOrchestratorAgent()
-        self._ui_orchestrator = UIOrchestrator()
         self._suggestions_llm = SuggestionsReponseLLM()
-        self._ui_assembly = UIAssemblyAgent(
-            base_url,
-            self._inline_catalog,
-        )
-        self._parallel_structured_ui_assembly = ParallelUIStructuredAssembler()
-        self._use_parallel_structured_ui = True
+        self._parallel_ui_layout_planner = UIParallelLayoutPlannerNode()
+        self._parallel_ui_skeleton = UIParallelSkeletonNode()
+        self._parallel_ui_widget_worker = UIParallelWidgetWorkerNode()
+        self._parallel_structured_ui_assembly = UIParallelFragmentMergeAgent()
         self._out_query = SUGGESTION_QUERY
         self.langfuse_tracing_provider = LangfuseTracingProvider(langfuse_client=langfuse_client)
 
@@ -97,8 +90,6 @@ class DynamicGraph:
     @inline_catalog.setter
     def inline_catalog(self, value):
         self._inline_catalog = value or []
-        if hasattr(self, '_ui_assembly'):
-            self._ui_assembly.inline_catalog = self._inline_catalog
 
     #region Graph Nodes
     async def aggregator(self,state:DynamicGraphState):
@@ -122,24 +113,19 @@ class DynamicGraph:
 
         graph_builder.add_edge(START, "backend_orchestrator")
 
-        if self._use_parallel_structured_ui:
-            graph_builder.add_node(
-                "parallel_structured_ui_assembly", self._parallel_structured_ui_assembly
-            )
-            graph_builder.add_edge("backend_orchestrator", "parallel_structured_ui_assembly")
-            graph_builder.add_edge("backend_orchestrator", "suggestions")
-            graph_builder.add_edge("parallel_structured_ui_assembly", "aggregator")
-            graph_builder.add_edge("suggestions", "aggregator")
-            graph_builder.add_edge("aggregator", END)
-        else:
-            graph_builder.add_node("ui_orchestrator", self._ui_orchestrator)
-            graph_builder.add_node("ui_assembly", self._ui_assembly)
-            graph_builder.add_edge("backend_orchestrator", "ui_orchestrator")
-            graph_builder.add_edge("ui_orchestrator", "ui_assembly")
-            graph_builder.add_edge("ui_orchestrator", "suggestions")
-            graph_builder.add_edge("ui_assembly", "aggregator")
-            graph_builder.add_edge("suggestions", "aggregator")
-            graph_builder.add_edge("aggregator", END)
+        graph_builder.add_node("parallel_ui_layout_planner", self._parallel_ui_layout_planner)
+        graph_builder.add_node("parallel_ui_skeleton", self._parallel_ui_skeleton)
+        graph_builder.add_node("parallel_ui_widget_worker", self._parallel_ui_widget_worker)
+        graph_builder.add_node("parallel_structured_ui_assembly", self._parallel_structured_ui_assembly)
+        graph_builder.add_edge("backend_orchestrator", "parallel_ui_layout_planner")
+        graph_builder.add_edge("backend_orchestrator", "suggestions")
+        graph_builder.add_edge("parallel_ui_layout_planner", "parallel_ui_skeleton")
+        graph_builder.add_edge("parallel_ui_layout_planner", "parallel_ui_widget_worker")
+        graph_builder.add_edge("parallel_ui_skeleton", "parallel_structured_ui_assembly")
+        graph_builder.add_edge("parallel_ui_widget_worker", "parallel_structured_ui_assembly")
+        graph_builder.add_edge("parallel_structured_ui_assembly", "aggregator")
+        graph_builder.add_edge("suggestions", "aggregator")
+        graph_builder.add_edge("aggregator", END)
 
         self._dynamic_ui_graph = graph_builder.compile(checkpointer=checkpointer)
     #endregion
@@ -276,13 +262,6 @@ class DynamicGraph:
                         continue
                     seen_message_keys.add(dedupe_key)
                     new_messages.append(message)
-
-                logger.debug(
-                    "dynamic stream chunk node=%s total_messages=%s new_messages=%s",
-                    node_name,
-                    len(messages),
-                    len(new_messages),
-                )
 
                 for latest_message in new_messages:
                     if isinstance(latest_message, HumanMessage):

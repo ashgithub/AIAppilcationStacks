@@ -147,27 +147,6 @@ def main(host, port, mock):
             allow_headers=["*"],
         )
 
-        # region Config endpoints
-        async def get_config(request: Request):
-            config = agent_executor.get_config()
-            return JSONResponse(config)
-
-        async def post_config(request: Request):
-            try:
-                data = await request.json()
-                success, error = agent_executor.update_config(data)
-                if success:
-                    return JSONResponse({"status": "success", "message": "Configuration updated"})
-                else:
-                    return JSONResponse({"status": "error", "message": error}, status_code=400)
-            except Exception as e:
-                return JSONResponse({"status": "error", "message": str(e)}, status_code=400)
-
-        async def delete_config(request: Request):
-            agent_executor.reset_config()
-            return JSONResponse({"status": "success", "message": "Configuration reset to default"})
-        # endregion
-
         # region Agent semantic cache endpoints
         async def get_agent_semantic_cache(request: Request):
             try:
@@ -238,9 +217,6 @@ def main(host, port, mock):
         # endregion
 
         # region Route registration and app mount
-        main_app.add_route("/agent/config", get_config, methods=["GET"])
-        main_app.add_route("/agent/config", post_config, methods=["POST"])
-        main_app.add_route("/agent/config", delete_config, methods=["DELETE"])
         main_app.add_route("/agent/cache/semantic", get_agent_semantic_cache, methods=["GET"])
         main_app.add_route("/agent/cache/semantic", clear_agent_semantic_cache, methods=["DELETE"])
         main_app.add_route("/traditional", get_traditional_outage, methods=["GET"])
