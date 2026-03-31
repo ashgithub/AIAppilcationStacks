@@ -1,0 +1,100 @@
+{
+    "role": "assistant",
+    "content": {
+        "surface_id": "dashboard",
+        "root_id": "root-layout",
+        "surface_title": "Assets in Tracking Condition",
+        "intro_text": "This dashboard displays assets with condition scores below 4, indicating they require monitoring. Review counts and details for proactive maintenance.",
+        "layout_component": "Column",
+        "use_card_sections": false,
+        "section_alignment": "stretch",
+        "section_distribution": "start",
+        "placeholder_usage_hint": "caption",
+        "section_titles": [
+            "Tracking Count",
+            "Asset Details"
+        ]
+    },
+    "additional_kwargs": {
+        "parsed": null,
+        "refusal": null
+    }
+}
+
+{
+    "role": "assistant",
+    "content": {
+        "title": "Assets in Tracking Condition",
+        "data": [
+            {
+                "key": "total_tracked",
+                "label": "Total Tracked Assets",
+                "value": 10,
+                "unit": "",
+                "change": null,
+                "changeLabel": null,
+                "icon": "inventory",
+                "color": null,
+                "details": {
+                    "description": "Assets requiring monitoring due to condition score < 4",
+                    "criticality_breakdown": {
+                        "high": 7,
+                        "medium": 1,
+                        "low": 2
+                    }
+                }
+            },
+            {
+                "key": "high_criticality",
+                "label": "High Criticality Assets",
+                "value": 7,
+                "unit": "",
+                "change": null,
+                "changeLabel": null,
+                "icon": "priority_high",
+                "color": "red",
+                "details": {
+                    "types": [
+                        "switch",
+                        "capacitor",
+                        "voltage_regulator",
+                        "sensor",
+                        "transformer",
+                        "recloser"
+                    ],
+                    "status": "All in service"
+                }
+            },
+            "keyavg_score",
+            "label",
+            "Average Condition Score",
+            "value3.56",
+            "unit",
+            "score",
+            "change",
+            null,
+            "changeLabel",
+            null,
+            "icon",
+            "trending_down",
+            "color",
+            "orange",
+            "details",
+            "range3.3 to 3.9",
+            "recommendationMonitor closely to prevent failures"
+        ]
+    },
+    "additional_kwargs": {
+        "parsed": null,
+        "refusal": null
+    }
+}
+
+{
+    "role": "assistant",
+    "content": "{\"title\":\"Assets in Tracking Condition\",\"columns\":[{\"header\":\"Asset ID\",\"field\":\"asset_id\",\"type\":\"string\"},{\"header\":\"Asset Type\",\"field\":\"asset_type\",\"type\":\"string\"},{\"header\":\"Condition Score\",\"field\":\"condition_score\",\"type\":\"number\"},{\"header\":\"Status\",\"field\":\"status\",\"type\":\"string\"},{\"header\":\"Criticality\",\"field\":\"criticality\",\"type\":\"string\"}],\"rows\":[{\"id\":\"GEN-5007\",\"values\":{\"asset_id\":\"GEN-5007\",\"asset_type\":\"switch\",\"condition_score\":3.4,\"status\":\"in_service\",\"criticality\":\"high\"},\"details\":{\"notes\":\"Requires monitoring due to condition score < 4\"}},\"id:G\",\"EN-5010\",\"valuesEN-5010\",\"asset_typeEN-5010\",\"capacitor\",\"condition_scoreEN-5010\",3.7,\"statusEN-5010\",\"in_service\",\"criticalityEN-5010\",\"lowEN-5010\",\"detailsEN-5010\",\"notesEN-5010\",\"Requires monitoring due to condition score < 4EN-5010EN-5013\",\"idEN-5013\",\"GEN-5013\",\"valuesEN-5013\",\"asset_idEN-5013\",\"GEN-5013\",\"asset_typeEN-5013\",\"recloser\",\"condition_scoreEN-5013\",3.3,\"statusEN-5013\",\"in_service\",\"criticalityEN-5013\",\"mediumEN-5013\",\"detailsEN-5013\",\"notesEN-5013\",\"Requires monitoring due to condition score < 4EN-5013EN-5021\",\"idEN-5021\",\"GEN-5021\",\"valuesEN-5021\",\"asset_idEN-5021\",\"GEN-5021\",\"asset_typeEN-5021\",\"capacitor\",\"condition",
+    "additional_kwargs": {
+        "parsed": null,
+        "refusal": null
+    }
+}

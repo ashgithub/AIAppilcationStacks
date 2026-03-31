@@ -541,7 +541,7 @@ export class ChatModule extends LitElement {
     return html`
       <stat-bar
         .title=${this.title}
-        .time=${this.#totalDuration > 0 ? `${this.#totalDuration.toFixed(2)}s` : '0.00s'}
+        .time=${this.#totalDuration > 0 ? `${this.#totalDuration.toFixed(2)}` : '0.00'}
         .tokens=${this.tokenCount ? `${this.tokenCount}`: '0'}
         .configUrl=${'/llm_config'}
         .configType=${'llm'}
@@ -566,8 +566,7 @@ export class ChatModule extends LitElement {
                       <a
                         class="source-link"
                         href=${this.#getSourceUrl(source)}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        @click=${(event: MouseEvent) => this.#openSourceInNamedTab(event, source)}
                         title=${`Open source document: ${source}`}
                       >${source}</a>${index < msg.sources!.length - 1 ? ", " : ""}
                     `)}
@@ -610,6 +609,24 @@ export class ChatModule extends LitElement {
     } catch {
       return `/rag_docs/${encodeURIComponent(sourceFile)}`;
     }
+  }
+
+  #openSourceInNamedTab(event: MouseEvent, source: string) {
+    event.preventDefault();
+    const url = this.#getSourceUrl(source);
+    const opened = window.open(url, this.#getSourceTabTarget(source));
+    if (opened) {
+      opened.focus();
+    }
+  }
+
+  #getSourceTabTarget(source: string): string {
+    const normalized = source.trim().toLowerCase();
+    let hash = 0;
+    for (let i = 0; i < normalized.length; i++) {
+      hash = ((hash << 5) - hash + normalized.charCodeAt(i)) | 0;
+    }
+    return `source-doc-${Math.abs(hash)}`;
   }
   // #endregion Render
 }

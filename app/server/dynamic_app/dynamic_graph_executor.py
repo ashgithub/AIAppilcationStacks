@@ -467,64 +467,38 @@ def _build_progressive_replay_plan(
             )
 
         if not ordered_progressive_state and components:
-            passthrough.append(msg)
+            progressive.append(msg)
 
-    data_messages = _build_progressive_data_messages(pending_data_updates, data_chunk_size)
-    return ProgressiveReplayPlan(
-        begin_messages=begin_messages,
-        skeleton_messages=skeleton_messages,
-        component_messages=component_messages,
-        data_messages=data_messages,
-        passthrough_messages=passthrough,
-    )
+    progressive.extend(pending_data_updates)
+    progressive.extend(passthrough)
+    return progressive
 
 
-def _extract_component_type(component: dict[str, Any]) -> str:
-    component_wrapper = component.get("component")
-    if not isinstance(component_wrapper, dict) or not component_wrapper:
-        return ""
-    return str(next(iter(component_wrapper.keys())))
+def _is_pre_progressive_sequence(messages: list[dict[str, Any]]) -> bool:
+    """
+    Detect payloads that already contain ordered progressive updates.
+    Parallel UI assembler already emits:
+    beginRendering -> skeleton surfaceUpdate -> N surfaceUpdate deltas -> dataModelUpdate.
+    Re-transforming that sequence creates reset/flicker behavior on the client.
+    """
+    surface_update_count = 0
+    begin_count = 0
+    seen_surfaces: set[str] = set()
 
+    for message in messages:
+        begin = message.get("beginRendering")
+        if isinstance(begin, dict):
+            begin_count += 1
 
-def _estimate_emit_delay_seconds(message: dict[str, Any]) -> float:
-    surface_update = message.get("surfaceUpdate")
-    if isinstance(surface_update, dict):
-        components = surface_update.get("components", [])
-        if isinstance(components, list) and components:
-            component_types = {
-                _extract_component_type(component)
-                for component in components
-                if isinstance(component, dict)
-            }
-            if component_types.intersection({"BarGraph", "LineGraph", "Table", "Map"}):
-                return 0.65
-            if component_types.intersection({"Card", "Tabs", "Modal", "List"}):
-                return 0.25
-            if component_types.intersection({"Row", "Column"}):
-                return 0.12
-            if component_types.intersection({"Text", "Icon", "Divider"}):
-                return 0.04
-        return 0.18
+        surface_update = message.get("surfaceUpdate")
+        if isinstance(surface_update, dict):
+            surface_update_count += 1
+            surface_id = surface_update.get("surfaceId")
+            if isinstance(surface_id, str):
+                seen_surfaces.add(surface_id)
 
-    data_update = message.get("dataModelUpdate")
-    if isinstance(data_update, dict):
-        contents = data_update.get("contents", [])
-        keys = []
-        if isinstance(contents, list):
-            keys = [
-                str(entry.get("key", "")).lower()
-                for entry in contents
-                if isinstance(entry, dict)
-            ]
-        if any("table" in key for key in keys):
-            return 0.75
-        if any("chart" in key or "graph" in key for key in keys):
-            return 0.55
-        if any("kpi" in key for key in keys):
-            return 0.16
-        return 0.22
-
-    return 0.1
+    # A single surface with multiple surface updates is already progressive.
+    return begin_count >= 1 and surface_update_count >= 2 and len(seen_surfaces) <= 1
 
 
 #region Executor
@@ -701,20 +675,27 @@ class DynamicGraphExecutor(AgentExecutor):
                         json_data = json.loads(json_string_cleaned)
 
                         if isinstance(json_data, list):
-                            logger.info(f"Found {len(json_data)} final A2UI message(s). Replaying progressively.")
-                            replay_plan = _build_progressive_replay_plan(
-                                [message for message in json_data if isinstance(message, dict)],
-                                component_chunk_size=self.progressive_component_chunk_size,
-                                data_chunk_size=self.progressive_data_chunk_size,
-                            )
-                            total_steps = replay_plan.total_steps
-                            emitted_step_number = 0
+                            ordered_messages = [
+                                message for message in json_data if isinstance(message, dict)
+                            ]
+                            if _is_pre_progressive_sequence(ordered_messages):
+                                progressive_messages = ordered_messages
+                                logger.info(
+                                    "Found %s final A2UI message(s) already progressive. Replaying as-is.",
+                                    len(progressive_messages),
+                                )
+                            else:
+                                logger.info(
+                                    "Found %s final A2UI message(s) requiring progressive transformation.",
+                                    len(ordered_messages),
+                                )
+                                progressive_messages = _build_progressive_messages(
+                                    ordered_messages,
+                                    component_chunk_size=self.progressive_component_chunk_size,
+                                )
+                            total_steps = len(progressive_messages)
 
-                            async def emit_progressive_message(
-                                progressive_message: dict[str, Any],
-                                apply_delay: bool = True,
-                            ) -> bool:
-                                nonlocal emitted_step_number
+                            for index, progressive_message in enumerate(progressive_messages):
                                 serialized = json.dumps(progressive_message, sort_keys=True, ensure_ascii=False)
                                 if serialized in emitted_a2ui_hashes:
                                     return False

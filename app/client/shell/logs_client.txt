@@ -1,0 +1,191 @@
+server message 
+Array(2)
+0
+: 
+"ui_parallel_orchestrator responded"
+1
+: 
+"ui_parallel_orchestrator response:\n{\"summary\":\"Assets currently in tracking condition...\n\nAgent metadata:\n\n            model_id: ,\n            total_tokens_on_call: 2656,\n            aggregated_total_tokens: 5307\n            "
+length
+: 
+2
+[[Prototype]]
+: 
+Array(0)
+main_agent.ts:533 server message 
+Array(2)
+0
+: 
+"ui_parallel_shell responded"
+1
+: 
+"ui_parallel_shell response:\n{\"surface_id\":\"dashboard\",\"root_id\":\"root-layout\",...\n\nAgent metadata:\n\n            model_id: ,\n            total_tokens_on_call: 1680,\n            aggregated_total_tokens: 6987\n            "
+length
+: 
+2
+[[Prototype]]
+: 
+Array(0)
+main_agent.ts:533 server message 
+Array(2)
+0
+: 
+"parallel_structured_ui_assembly responded"
+1
+: 
+"parallel_structured_ui_assembly response:\nThis dashboard displays assets with condition scor...\n\nAgent metadata:\n\n            model_id: ,\n            total_tokens_on_call: 0,\n            aggregated_total_tokens: 6987\n            "
+length
+: 
+2
+[[Prototype]]
+: 
+Array(0)
+main_agent.ts:533 server message 
+Array(2)
+0
+: 
+"suggestions_agent responded"
+1
+: 
+"suggestions_agent response:\n{\"suggested_questions\":[\"Details on high criticali...\n\nAgent metadata:\n\n            model_id: ,\n            total_tokens_on_call: 0,\n            aggregated_total_tokens: 6987\n            "
+length
+: 
+2
+[[Prototype]]
+: 
+Array(0)
+main_agent.ts:533 server message 
+Array(2)
+0
+: 
+"Building interface step 1/8"
+1
+: 
+"suggestions_agent response:\n{\"suggested_questions\":[\"Details on high criticali...\n\nAgent metadata:\n\n            model_id: ,\n            total_tokens_on_call: 0,\n            aggregated_total_tokens: 6987\n            "
+length
+: 
+2
+[[Prototype]]
+: 
+Array(0)
+main_agent.ts:533 server message 
+Array(2)
+0
+: 
+"Building interface step 2/8"
+1
+: 
+"suggestions_agent response:\n{\"suggested_questions\":[\"Details on high criticali...\n\nAgent metadata:\n\n            model_id: ,\n            total_tokens_on_call: 0,\n            aggregated_total_tokens: 6987\n            "
+length
+: 
+2
+[[Prototype]]
+: 
+Array(0)
+main_agent.ts:533 server message 
+Array(2)
+0
+: 
+"Building interface step 3/8"
+1
+: 
+"suggestions_agent response:\n{\"suggested_questions\":[\"Details on high criticali...\n\nAgent metadata:\n\n            model_id: ,\n            total_tokens_on_call: 0,\n            aggregated_total_tokens: 6987\n            "
+length
+: 
+2
+[[Prototype]]
+: 
+Array(0)
+main_agent.ts:533 server message 
+Array(2)
+0
+: 
+"Building interface step 4/8"
+1
+: 
+"suggestions_agent response:\n{\"suggested_questions\":[\"Details on high criticali...\n\nAgent metadata:\n\n            model_id: ,\n            total_tokens_on_call: 0,\n            aggregated_total_tokens: 6987\n            "
+length
+: 
+2
+[[Prototype]]
+: 
+Array(0)
+main_agent.ts:533 server message 
+Array(2)
+0
+: 
+"Building interface step 5/8"
+1
+: 
+"suggestions_agent response:\n{\"suggested_questions\":[\"Details on high criticali...\n\nAgent metadata:\n\n            model_id: ,\n            total_tokens_on_call: 0,\n            aggregated_total_tokens: 6987\n            "
+length
+: 
+2
+[[Prototype]]
+: 
+Array(0)
+main_agent.ts:533 server message 
+Array(2)
+0
+: 
+"Building interface step 6/8"
+1
+: 
+"suggestions_agent response:\n{\"suggested_questions\":[\"Details on high criticali...\n\nAgent metadata:\n\n            model_id: ,\n            total_tokens_on_call: 0,\n            aggregated_total_tokens: 6987\n            "
+length
+: 
+2
+[[Prototype]]
+: 
+Array(0)
+main_agent.ts:533 server message 
+Array(2)
+0
+: 
+"Building interface step 7/8"
+1
+: 
+"suggestions_agent response:\n{\"suggested_questions\":[\"Details on high criticali...\n\nAgent metadata:\n\n            model_id: ,\n            total_tokens_on_call: 0,\n            aggregated_total_tokens: 6987\n            "
+length
+: 
+2
+[[Prototype]]
+: 
+Array(0)
+main_agent.ts:533 server message 
+Array(2)
+0
+: 
+"Building interface step 8/8"
+1
+: 
+"suggestions_agent response:\n{\"suggested_questions\":[\"Details on high criticali...\n\nAgent metadata:\n\n            model_id: ,\n            total_tokens_on_call: 0,\n            aggregated_total_tokens: 6987\n            "
+length
+: 
+2
+[[Prototype]]
+: 
+Array(0)
+main_agent.ts:533 server message 
+Array(5)
+0
+: 
+"This dashboard displays assets with condition scores below 4, indicating they require monitoring. Review counts and details for proactive maintenance."
+1
+: 
+"suggestions_agent response:\n{\"suggested_questions\":[\"Details on high criticali...\n\nAgent metadata:\n\n            model_id: ,\n            total_tokens_on_call: 0,\n            aggregated_total_tokens: 6987\n            "
+2
+: 
+"6987"
+3
+: 
+"{\"suggested_questions\":[\"What do condition scores mean?\",\"How to update asset conditions?\",\"Show top assets by risk?\"]}"
+4
+: 
+"[]"
+length
+: 
+5
+[[Prototype]]
+: 
+Array(0)

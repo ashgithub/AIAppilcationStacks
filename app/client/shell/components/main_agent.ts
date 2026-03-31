@@ -104,6 +104,9 @@ export class DynamicModule extends LitElement {
   accessor #processingSurfaces = false;
 
   @state()
+  accessor #uiStreamingActive = false;
+
+  @state()
   accessor #loadingTextIndex = 0;
 
   @state()
@@ -126,6 +129,8 @@ export class DynamicModule extends LitElement {
   #loadingInterval: number | undefined;
   #stopwatchInterval: number | undefined;
   #snackbar: Snackbar | undefined = undefined;
+  #seenUiMessageHashes: Set<string> = new Set();
+
   #pendingSnackbarMessages: Array<{
     message: SnackbarMessage;
     replaceAll: boolean;
@@ -149,6 +154,7 @@ export class DynamicModule extends LitElement {
       this.#currentElapsedTime = 0;
       this.#totalDuration = 0;
       this.#requesting = true;
+      this.#uiStreamingActive = true;
       this.#error = null;
       this.sources = [];
       this.#startLoadingAnimation();
@@ -157,8 +163,7 @@ export class DynamicModule extends LitElement {
       this.status = []
       this.#processor.clearSurfaces();
       this.#lastMessages = [];
-      this.#seenBeginRenderSurfaces = new Set<string>();
-      this.#realComponentIdsBySurface = new Map<string, Set<string>>();
+      this.#seenUiMessageHashes.clear();
       this.#startStopwatch();
     }
   };
@@ -238,6 +243,46 @@ export class DynamicModule extends LitElement {
         min-height: 0;
         overflow: visible;
         max-height: none;
+      }
+
+
+      .surfaces-container {
+        position: relative;
+      }
+
+      .streaming-glass-overlay {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        border-radius: var(--radius-lg);
+        background:
+          linear-gradient(120deg,
+            var(--surface-secondary) 0%,
+            var(--surface-elevated) 35%,
+            var(--module-agent-active) 50%,
+            var(--surface-secondary) 100%);
+        backdrop-filter: blur(2px) saturate(1.1);
+        -webkit-backdrop-filter: blur(2px) saturate(1.1);
+        border: 1px solid var(--border-secondary);
+        box-shadow: inset 0 0 0 1px var(--border-subtle);
+        animation: glassSweep 2.2s ease-in-out infinite;
+        z-index: 1;
+      }
+
+      .streaming-glass-overlay::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          var(--module-agent-active) 35%,
+          var(--module-chat-active) 50%,
+          var(--module-agent-active) 65%,
+          transparent 100%
+        );
+        transform: translateX(-120%);
+        animation: shimmerPass 1.8s ease-in-out infinite;
       }
         
       .surfaces {
@@ -377,6 +422,31 @@ export class DynamicModule extends LitElement {
           transform: rotate(360deg);
         }
       }
+
+
+      @keyframes shimmerPass {
+        0% {
+          transform: translateX(-120%);
+          opacity: 0.15;
+        }
+        50% {
+          opacity: 0.45;
+        }
+        100% {
+          transform: translateX(120%);
+          opacity: 0.1;
+        }
+      }
+
+      @keyframes glassSweep {
+        0%,
+        100% {
+          opacity: 0.22;
+        }
+        50% {
+          opacity: 0.45;
+        }
+      }
     `,
   ]
   // #endregion Styles
@@ -488,6 +558,7 @@ export class DynamicModule extends LitElement {
 
       if (isFinal || state === 'failed') {
         this.#requesting = false;
+        this.#uiStreamingActive = false;
         this.#stopLoadingAnimation();
       }
     }
@@ -532,7 +603,16 @@ export class DynamicModule extends LitElement {
     const normalized = event.normalized;
 
     const incomingMessages: v0_8.Types.ServerToClientMessage[] = normalized?.uiMessages || [];
-    const newMessages = this.#filterRegressiveUiMessages(incomingMessages);
+    const newMessages: v0_8.Types.ServerToClientMessage[] = [];
+    for (const message of incomingMessages) {
+      const hash = JSON.stringify(message);
+      if (this.#seenUiMessageHashes.has(hash)) {
+        continue;
+      }
+      this.#seenUiMessageHashes.add(hash);
+      newMessages.push(message);
+    }
+
     if (newMessages.length > 0) {
       // As soon as we receive the first UI delta, switch from request loader
       // to the progressive surface renderer.
@@ -673,7 +753,7 @@ export class DynamicModule extends LitElement {
     return html`
       <stat-bar
         .title=${this.title}
-        .time=${this.#totalDuration > 0 ? `${this.#totalDuration.toFixed(2)}s` : ((this.#currentElapsedTime !== null) ? `${(this.#currentElapsedTime / 1000).toFixed(2)}s` : '0.00s')}
+        .time=${this.#totalDuration > 0 ? `${this.#totalDuration.toFixed(2)}` : ((this.#currentElapsedTime !== null) ? `${(this.#currentElapsedTime / 1000).toFixed(2)}` : '0.00')}
         .tokens=${this.tokenCount ? `${this.tokenCount}`: '0'}
         .configUrl=${this.config.serverUrl + '/config'}
         .configType=${'agent'}
@@ -694,8 +774,7 @@ export class DynamicModule extends LitElement {
             <a
               class="source-link"
               href=${this.#getSourceUrl(source)}
-              target="_blank"
-              rel="noopener noreferrer"
+              @click=${(event: MouseEvent) => this.#openSourceInNamedTab(event, source)}
               title=${`Open source document: ${source}`}
             >${source}</a>${index < this.sources.length - 1 ? ", " : ""}
           `)}
@@ -750,6 +829,24 @@ export class DynamicModule extends LitElement {
     return `${origin}/rag_docs/${encodeURIComponent(sourceFile)}`;
   }
 
+  #openSourceInNamedTab(event: MouseEvent, source: string) {
+    event.preventDefault();
+    const url = this.#getSourceUrl(source);
+    const opened = window.open(url, this.#getSourceTabTarget(source));
+    if (opened) {
+      opened.focus();
+    }
+  }
+
+  #getSourceTabTarget(source: string): string {
+    const normalized = source.trim().toLowerCase();
+    let hash = 0;
+    for (let i = 0; i < normalized.length; i++) {
+      hash = ((hash << 5) - hash + normalized.charCodeAt(i)) | 0;
+    }
+    return `source-doc-${Math.abs(hash)}`;
+  }
+
   #getCurrentLoadingText(defaultText: string) {
     const latestStatusText = this.status[this.status.length - 1]?.message;
     if (typeof latestStatusText === "string" && latestStatusText.trim().length > 0) {
@@ -800,6 +897,7 @@ export class DynamicModule extends LitElement {
     }
 
     return html`<div class="surfaces-container">
+      ${this.#uiStreamingActive ? html`<div class="streaming-glass-overlay" aria-hidden="true"></div>` : nothing}
       <section class="surfaces">
         ${repeat(
       this.#processor.getSurfaces(),

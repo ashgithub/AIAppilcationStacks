@@ -15,6 +15,7 @@ from langfuse import Langfuse
 from dynamic_app.ui_agents_graph.ui_orchestrator_agent import UIOrchestrator
 from dynamic_app.ui_agents_graph.ui_orchestrator_agent import SuggestionsReponseLLM
 from dynamic_app.ui_agents_graph.ui_assembly_agent import UIAssemblyAgent
+from dynamic_app.ui_agents_graph.ui_parallel_structured_agents import ParallelUIStructuredAssembler
 from dynamic_app.back_agents_graph.backend_orchestrator_agent import BackendOrchestratorAgent
 from core.dynamic_app.dynamic_struct import AgentConfig
 from core.dynamic_app.dynamic_struct import DynamicGraphState
@@ -63,6 +64,7 @@ class DynamicGraph:
 
     SUPPORTED_CONTENT_TYPES = ["text", "text/plain", "text/event-stream", "application/json+a2ui"]
     CONTENT_TRUNCATION_LENGTH = 50
+    UI_RESPONSE_AGENT_NAMES = {"parallel_structured_ui_assembly", "ui_assembly"}
 
     def __init__(
         self,
@@ -83,6 +85,8 @@ class DynamicGraph:
             base_url,
             self._inline_catalog,
         )
+        self._parallel_structured_ui_assembly = ParallelUIStructuredAssembler()
+        self._use_parallel_structured_ui = True
         self._out_query = SUGGESTION_QUERY
         self.langfuse_tracing_provider = LangfuseTracingProvider(langfuse_client=langfuse_client)
 
@@ -113,19 +117,29 @@ class DynamicGraph:
 
         graph_builder.add_node("backend_orchestrator", self._backend_orchestrator)
 
-        graph_builder.add_node("ui_orchestrator", self._ui_orchestrator)
-        graph_builder.add_node("ui_assembly", self._ui_assembly)
-
         graph_builder.add_node("suggestions", self._suggestions_llm)
         graph_builder.add_node("aggregator", self.aggregator)
 
         graph_builder.add_edge(START, "backend_orchestrator")
-        graph_builder.add_edge("backend_orchestrator", "ui_orchestrator")
-        graph_builder.add_edge("ui_orchestrator", "ui_assembly")
-        graph_builder.add_edge("ui_orchestrator", "suggestions")
-        graph_builder.add_edge("ui_assembly", "aggregator")
-        graph_builder.add_edge("suggestions", "aggregator")
-        graph_builder.add_edge("aggregator", END)
+
+        if self._use_parallel_structured_ui:
+            graph_builder.add_node(
+                "parallel_structured_ui_assembly", self._parallel_structured_ui_assembly
+            )
+            graph_builder.add_edge("backend_orchestrator", "parallel_structured_ui_assembly")
+            graph_builder.add_edge("backend_orchestrator", "suggestions")
+            graph_builder.add_edge("parallel_structured_ui_assembly", "aggregator")
+            graph_builder.add_edge("suggestions", "aggregator")
+            graph_builder.add_edge("aggregator", END)
+        else:
+            graph_builder.add_node("ui_orchestrator", self._ui_orchestrator)
+            graph_builder.add_node("ui_assembly", self._ui_assembly)
+            graph_builder.add_edge("backend_orchestrator", "ui_orchestrator")
+            graph_builder.add_edge("ui_orchestrator", "ui_assembly")
+            graph_builder.add_edge("ui_orchestrator", "suggestions")
+            graph_builder.add_edge("ui_assembly", "aggregator")
+            graph_builder.add_edge("suggestions", "aggregator")
+            graph_builder.add_edge("aggregator", END)
 
         self._dynamic_ui_graph = graph_builder.compile(checkpointer=checkpointer)
     #endregion
@@ -220,6 +234,8 @@ class DynamicGraph:
         request_id = uuid.uuid4().hex
         stable_session_id = str(session_id) if session_id else request_id
         final_response_content = None
+        ui_response_content = None
+        ai_message_count = 0
         model_token_count = 0
         node_name = "START"
         suggestions = ""
@@ -275,7 +291,29 @@ class DynamicGraph:
                         emitted_human_message = True
 
                     if isinstance(latest_message, AIMessage):
+                        ai_message_count += 1
                         final_response_content = latest_message.content
+                        message_name = str(getattr(latest_message, "name", "") or "")
+                        message_content = str(getattr(latest_message, "content", "") or "")
+                        if (
+                            "---a2ui_JSON---" in message_content
+                            or message_name in self.UI_RESPONSE_AGENT_NAMES
+                        ):
+                            ui_response_content = message_content
+                            logger.info(
+                                "Captured UI candidate message | node=%s name=%s has_a2ui=%s len=%s",
+                                node_name,
+                                message_name,
+                                "---a2ui_JSON---" in message_content,
+                                len(message_content),
+                            )
+                        else:
+                            logger.debug(
+                                "Captured non-UI AI message | node=%s name=%s len=%s",
+                                node_name,
+                                message_name,
+                                len(message_content),
+                            )
 
                     if isinstance(latest_message, AIMessage):
                         timeline_message, model_token_count, detailed_message = self._format_message(
@@ -302,15 +340,27 @@ class DynamicGraph:
 
                     yield updates
 
-            if final_response_content and "---a2ui_JSON---" in final_response_content:
-                text_part, json_string = final_response_content.split("---a2ui_JSON---", 1)
+            selected_final_response = ui_response_content or final_response_content
+            logger.info(
+                "Final response selection | ai_messages=%s ui_selected=%s ui_len=%s fallback_len=%s",
+                ai_message_count,
+                ui_response_content is not None,
+                len(ui_response_content or ""),
+                len(final_response_content or ""),
+            )
+
+            if selected_final_response and "---a2ui_JSON---" in selected_final_response:
+                text_part, json_string = selected_final_response.split("---a2ui_JSON---", 1)
                 final_content = f"{text_part.strip()}\n---a2ui_JSON---\n{json_string.strip()}"
             else:
-                final_content = final_response_content or "No response generated"
+                final_content = selected_final_response or "No response generated"
 
             # Fallback suggestion generation ensures response consistency.
             fall_back_suggestions_model = SuggestionModel().build_suggestion_model()
-            raw_suggestions = await fall_back_suggestions_model.ainvoke(self._out_query+f"\n\nContext for question generation:\n{final_response_content}")
+            raw_suggestions = await fall_back_suggestions_model.ainvoke(
+                self._out_query
+                + f"\n\nContext for question generation:\n{selected_final_response}"
+            )
             if not raw_suggestions:
                 raw_suggestions = SuggestedQuestions(suggested_questions=["Tell me more details about first data", "Make a summary of data given"])
             suggestions = raw_suggestions.model_dump_json()

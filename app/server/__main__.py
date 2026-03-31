@@ -36,6 +36,11 @@ from traditional_app.data_provider import (
     get_traditional_timeline_messages,
     get_traditional_industry_messages
 )
+from database.semantic_cache import (
+    GraphSemanticCache,
+    get_nl2graph_semantic_cache_summary,
+)
+from database.connections import RAGDBConnection
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -216,6 +221,33 @@ def main(host, port, mock, agent_backend):
             return JSONResponse({"status": "success", "message": "Configuration reset to default"})
         # endregion
 
+        # region Agent semantic cache endpoints
+        async def get_agent_semantic_cache(request: Request):
+            try:
+                limit_raw = request.query_params.get("limit", "25")
+                limit = max(1, min(int(limit_raw), 100))
+                summary = get_nl2graph_semantic_cache_summary(limit=limit)
+                return JSONResponse({"status": "success", "cache": summary})
+            except Exception as e:
+                logger.error(f"Error getting agent semantic cache info: {e}")
+                return JSONResponse({"status": "error", "message": "Failed to retrieve semantic cache info"}, status_code=500)
+
+        async def clear_agent_semantic_cache(request: Request):
+            try:
+                cache = GraphSemanticCache()
+                deleted_rows = cache.clear_cache()
+                return JSONResponse(
+                    {
+                        "status": "success",
+                        "message": "Semantic cache was cleared.",
+                        "deleted_rows": deleted_rows,
+                    }
+                )
+            except Exception as e:
+                logger.error(f"Error clearing agent semantic cache: {e}")
+                return JSONResponse({"status": "error", "message": "Failed to clear semantic cache"}, status_code=500)
+        # endregion
+
         # region Traditional endpoints
         async def get_traditional_outage(request: Request):
             try:
@@ -262,6 +294,8 @@ def main(host, port, mock, agent_backend):
         main_app.add_route("/agent/config", get_config, methods=["GET"])
         main_app.add_route("/agent/config", post_config, methods=["POST"])
         main_app.add_route("/agent/config", delete_config, methods=["DELETE"])
+        main_app.add_route("/agent/cache/semantic", get_agent_semantic_cache, methods=["GET"])
+        main_app.add_route("/agent/cache/semantic", clear_agent_semantic_cache, methods=["DELETE"])
         main_app.add_route("/traditional", get_traditional_outage, methods=["GET"])
         main_app.add_route("/traditional/energy", get_traditional_energy, methods=["GET"])
         main_app.add_route("/traditional/trends", get_traditional_energy_trends, methods=["GET"])
@@ -277,6 +311,13 @@ def main(host, port, mock, agent_backend):
         main_app.mount("/llm", llm_app)
         # endregion
         # endregion
+
+        # Warm up DB connection so first user request avoids connection setup latency.
+        try:
+            RAGDBConnection().warmup_connection()
+            logger.info("Database connection warm-up complete")
+        except Exception as warmup_exc:
+            logger.warning(f"Database warm-up skipped due to error: {warmup_exc}")
 
         import uvicorn
         uvicorn.run(main_app, host=host, port=port)

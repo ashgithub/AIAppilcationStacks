@@ -1,9 +1,13 @@
 import os
 import array
+import threading
+import logging
 import oracledb
 from contextlib import contextmanager
 from dotenv import load_dotenv
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 
 #region Database Connection Manager
@@ -12,6 +16,8 @@ class RAGDBConnection:
     _instance = None
     _initialized = False
     _pool = None
+    _persistent_connection = None
+    _persistent_lock = threading.RLock()
 
     #region Lifecycle
     def __new__(cls):
@@ -31,6 +37,7 @@ class RAGDBConnection:
         self._wallet_location = os.getenv("DB_WALLET_PATH")
         self._wallet_password = os.getenv("DB_WALLET_PASSWORD")
         self.table_prefix = "edge_demo"
+        self._connection_mode = os.getenv("DB_CONNECTION_MODE", "persistent").strip().lower()
     #endregion
 
     #region Pool + Connection
@@ -50,14 +57,46 @@ class RAGDBConnection:
             )
         return RAGDBConnection._pool
 
+    def _is_connection_healthy(self, conn: oracledb.Connection | None) -> bool:
+        if conn is None:
+            return False
+        try:
+            conn.ping()
+            return True
+        except Exception:
+            return False
+
+    def _get_persistent_connection(self) -> oracledb.Connection:
+        """Return a live singleton connection, reconnecting if needed."""
+        with RAGDBConnection._persistent_lock:
+            if self._is_connection_healthy(RAGDBConnection._persistent_connection):
+                return RAGDBConnection._persistent_connection
+
+            RAGDBConnection._persistent_connection = self.connect_db()
+            logger.info("Initialized persistent Oracle DB connection")
+            return RAGDBConnection._persistent_connection
+
+    def warmup_connection(self):
+        """Initialize the configured connection strategy ahead of first request."""
+        if self._connection_mode == "persistent":
+            self._get_persistent_connection()
+            return
+
+        with self.get_connection():
+            return
+
     @contextmanager
     def get_connection(self):
-        """Context manager for acquiring a connection from the pool.
-        
-        Usage:
-            with db.get_connection() as conn:
-                cols, rows = db.execute_query(conn, sql)
-        """
+        if self._connection_mode == "persistent":
+            with RAGDBConnection._persistent_lock:
+                conn = self._get_persistent_connection()
+                try:
+                    yield conn
+                finally:
+                    # Keep connection open for reuse;
+                    pass
+            return
+
         pool = self._get_pool()
         conn = pool.acquire()
         try:
@@ -83,6 +122,13 @@ class RAGDBConnection:
 
     def disconnect(self, connection: oracledb.Connection):
         connection.close()
+
+    def close_persistent_connection(self):
+        with RAGDBConnection._persistent_lock:
+            conn = RAGDBConnection._persistent_connection
+            RAGDBConnection._persistent_connection = None
+            if conn is not None:
+                conn.close()
 
     def get_cursor(self):
         self.db_connection = self.connect_db()
