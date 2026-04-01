@@ -1,9 +1,65 @@
-import { LitElement, html, css } from "lit"
+import { LitElement, html, css, svg, nothing } from "lit"
 import { customElement, state } from "lit/decorators.js"
 import { consume } from "@lit/context"
 import { routerContext, A2UIRouter } from "../services/a2ui-router.js"
-import { designTokensCSS, buttonStyles } from "../theme/design-tokens.js"
+import { designTokensCSS } from "../theme/design-tokens.js"
 import { SERVER_URLS } from "../services/server-endpoints.js";
+
+type SendTarget = "chat" | "both" | "agent";
+type QuickQueryIcon = "pin" | "warning" | "metrics" | "status" | "shield" | "report";
+
+interface QuickQuery {
+  id: string;
+  title: string;
+  description: string;
+  query: string;
+  icon: QuickQueryIcon;
+}
+
+const QUICK_QUERIES: QuickQuery[] = [
+  {
+    id: "outage-causes",
+    title: "Outage Causes",
+    description: "Shows a map and bar graph to explain outages",
+    query: "Show outage causes with map and bar graph breakdown.",
+    icon: "pin",
+  },
+  {
+    id: "latest-outage-zones",
+    title: "Latest Outage Zones",
+    description: "Display recent outage areas with severity levels",
+    query: "Show the latest outage zones with severity levels.",
+    icon: "warning",
+  },
+  {
+    id: "performance-metrics",
+    title: "Performance Metrics",
+    description: "System performance dashboard with KPIs",
+    query: "Show system performance metrics and KPI trends.",
+    icon: "metrics",
+  },
+  {
+    id: "real-time-status",
+    title: "Real-time Status",
+    description: "Live system health monitoring view",
+    query: "Give me a real-time status summary of all modules.",
+    icon: "status",
+  },
+  {
+    id: "risk-summary",
+    title: "Risk Summary",
+    description: "Summarize top risks and current mitigation priority",
+    query: "Summarize the top current outage risks and mitigation priorities.",
+    icon: "shield",
+  },
+  {
+    id: "incident-report",
+    title: "Incident Brief",
+    description: "Create a concise operational incident report",
+    query: "Create a concise incident report with impact, root cause, and next steps.",
+    icon: "report",
+  },
+];
 
 // #region Component
 @customElement("chat-input")
@@ -14,156 +70,741 @@ export class ChatInput extends LitElement {
   @state()
   accessor #inputValue = ""
 
+  @state()
+  accessor #filterTerm = ""
+
+  @state()
+  accessor #drawerOpen = false
+
+  @state()
+  accessor #activeSuggestionIndex = -1
+
+  @state()
+  accessor #defaultTarget: SendTarget = "chat"
+
   private llmDefaultServer = SERVER_URLS.llm;
   private agentDefaultServer = SERVER_URLS.agent;
+  readonly #drawerId = "quick-query-listbox";
+  private filterDebounceTimer?: number;
+
+  connectedCallback() {
+    super.connectedCallback();
+    window.addEventListener("pointerdown", this.handlePointerDownOutside);
+  }
+
+  disconnectedCallback() {
+    window.removeEventListener("pointerdown", this.handlePointerDownOutside);
+    if (this.filterDebounceTimer) {
+      window.clearTimeout(this.filterDebounceTimer);
+    }
+    super.disconnectedCallback();
+  }
 
   // #region Styles
   static styles = css`
     ${designTokensCSS}
-    ${buttonStyles}
 
     :host {
       display: block;
       width: 100%;
+      --composer-control-height: calc(var(--space-xl) + var(--space-xs));
+      --composer-gap: var(--space-xs);
     }
 
-    .input-container {
+    .composer-shell {
+      position: relative;
+      width: 100%;
+    }
+
+    .composer {
       display: flex;
-      flex-direction: column;
-      gap: var(--space-sm);
-      padding: var(--space-sm);
-      background: var(--agent-bg-secondary);
-      border-radius: var(--radius-md);
+      align-items: center;
+      gap: var(--composer-gap);
+      padding: var(--space-xs) var(--space-sm);
+      background: var(--surface-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      position: relative;
+      z-index: 2;
+    }
+
+    .quick-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+      min-width: calc(var(--space-2xl) + var(--space-lg));
+      height: var(--composer-control-height);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      background: var(--surface-secondary);
+      color: var(--agent-accent);
+      font-family: var(--font-family);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      padding: 0 var(--space-sm);
+      cursor: pointer;
+      transition: background var(--transition-normal), border-color var(--transition-normal);
+    }
+
+    .quick-toggle .label {
+      color: var(--text-secondary);
+      font-size: var(--font-size-sm);
+    }
+
+    .quick-toggle svg {
+      width: var(--font-size-sm);
+      height: var(--font-size-sm);
+    }
+
+    .quick-toggle:hover {
+      background: var(--hover-overlay);
+      border-color: var(--border-secondary);
+    }
+
+    .quick-toggle.active {
+      background: var(--active-overlay);
+      border-color: var(--agent-accent);
+    }
+
+    .input-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      height: var(--composer-control-height);
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      padding: 0 var(--space-xs);
+      background: transparent;
+      transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+    }
+
+    .input-wrap:focus-within {
+      border-color: var(--focus-ring);
+      box-shadow: 0 0 0 1px var(--focus-ring);
     }
 
     input {
       flex: 1;
-      padding: var(--space-sm) var(--space-md);
-      height: 36px;
+      height: 100%;
       font-size: var(--font-size-sm);
-      border: 1px solid var(--border-secondary);
-      border-radius: var(--radius-sm);
-      background: var(--agent-bg);
+      border: none;
+      background: transparent;
       color: var(--text-primary);
       outline: none;
       font-family: var(--font-family);
-      transition: border-color var(--transition-normal);
-    }
-
-    input:focus {
-      border-color: var(--oracle-primary);
+      line-height: var(--line-height-normal);
     }
 
     input::placeholder {
-      color: var(--text-muted);
+      color: var(--text-secondary);
     }
 
-    .send-buttons {
+    .send-targets {
       display: flex;
       gap: var(--space-xs);
-      align-items: stretch;
+      align-items: center;
+      flex-shrink: 0;
     }
 
-    .send-buttons .btn {
-      flex: 1;
+    .target-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-xs);
+      min-width: calc(var(--space-2xl) + var(--space-sm));
+      height: var(--composer-control-height);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      background: var(--surface-secondary);
+      color: var(--text-primary);
+      font-family: var(--font-family);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      line-height: var(--line-height-tight);
+      padding: 0 var(--space-sm);
+      cursor: pointer;
+      transition: background var(--transition-normal), border-color var(--transition-normal), color var(--transition-normal);
     }
 
-    .send-buttons .btn-secondary {
-      flex: 2;
+    .target-btn:hover {
+      background: var(--hover-overlay);
+      border-color: var(--border-secondary);
     }
 
-    /* Stack buttons on narrow screens */
+    .target-btn.active[data-target="chat"] {
+      background: var(--oracle-primary);
+      border-color: var(--oracle-primary);
+      color: var(--neutral-900);
+    }
+
+    .target-btn.active[data-target="both"] {
+      background: var(--chat-bg);
+      border-color: var(--chat-bg-secondary);
+      color: var(--neutral-white);
+    }
+
+    .target-btn.active[data-target="agent"] {
+      border-color: var(--agent-accent);
+      color: var(--agent-accent);
+      background: var(--module-agent-active);
+    }
+
+    .target-btn svg {
+      width: var(--font-size-sm);
+      height: var(--font-size-sm);
+    }
+
+    .target-btn:focus-visible,
+    .quick-toggle:focus-visible,
+    .row-action:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 1px var(--focus-ring);
+    }
+
+    .drawer {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: calc(100% + var(--space-xs));
+      max-height: 48vh;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+      background: var(--surface-primary);
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+      z-index: 3;
+      opacity: 0;
+      transform: translateY(var(--space-xs));
+      pointer-events: none;
+      transition: opacity var(--transition-normal), transform var(--transition-normal);
+    }
+
+    .drawer.open {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .drawer-header {
+      position: sticky;
+      top: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-sm);
+      padding: var(--space-sm);
+      background: var(--surface-primary);
+      border-bottom: 1px solid var(--border-subtle);
+      z-index: 1;
+    }
+
+    .drawer-title {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+      color: var(--text-primary);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+    }
+
+    .hint-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: calc(var(--space-md) + var(--space-xs));
+      border-radius: var(--radius-sm);
+      background: var(--surface-secondary);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
+      padding: 0 var(--space-xs);
+      font-size: var(--font-size-xs);
+      white-space: nowrap;
+    }
+
+    .listbox {
+      margin: 0;
+      padding: var(--space-xs) 0;
+      list-style: none;
+      max-height: 42vh;
+      overflow-y: auto;
+    }
+
+    .suggestion-row {
+      display: grid;
+      grid-template-columns: calc(var(--space-xl) + var(--space-xs)) minmax(0, 1fr) auto;
+      align-items: center;
+      gap: var(--space-sm);
+      width: calc(100% - (2 * var(--space-xs)));
+      margin: 0 var(--space-xs) var(--space-xs);
+      padding: var(--space-xs) var(--space-sm);
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: inherit;
+      text-align: left;
+      cursor: pointer;
+      transition: background var(--transition-fast), border-color var(--transition-fast);
+    }
+
+    .suggestion-row:hover {
+      background: var(--hover-overlay);
+      border-color: var(--border-subtle);
+    }
+
+    .suggestion-row.active {
+      background: var(--module-agent-active);
+      border-color: var(--agent-border);
+    }
+
+    .icon-box {
+      width: calc(var(--space-xl) + var(--space-xs));
+      height: calc(var(--space-xl) + var(--space-xs));
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-sm);
+      background: var(--surface-secondary);
+      color: var(--agent-accent);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .icon-box svg {
+      width: var(--font-size-base);
+      height: var(--font-size-base);
+    }
+
+    .row-title {
+      color: var(--text-primary);
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-semibold);
+      line-height: var(--line-height-tight);
+      margin-bottom: var(--space-xs);
+    }
+
+    .row-description {
+      color: var(--text-secondary);
+      font-size: var(--font-size-sm);
+      line-height: var(--line-height-normal);
+      font-weight: var(--font-weight-normal);
+    }
+
+    .row-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+    }
+
+    .row-action {
+      height: calc(var(--space-lg) + var(--space-xs));
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      padding: 0 var(--space-xs);
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-family: var(--font-family);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+    }
+
+    .row-action:hover {
+      color: var(--text-primary);
+      background: var(--hover-overlay);
+    }
+
+    .row-action[data-target="chat"] {
+      color: var(--oracle-primary);
+    }
+
+    .row-action[data-target="agent"] {
+      color: var(--agent-accent);
+    }
+
+    .empty-state {
+      margin: var(--space-xs);
+      border-radius: var(--radius-sm);
+      border: 1px dashed var(--border-secondary);
+      padding: var(--space-sm);
+      color: var(--text-secondary);
+      font-size: var(--font-size-sm);
+    }
+
     @media (max-width: 600px) {
-      .send-buttons {
-        flex-direction: column;
+      .composer {
+        align-items: center;
+        flex-wrap: wrap;
       }
-      
-      .send-buttons .btn {
-        flex: none;
+
+      .quick-toggle {
+        min-width: calc(var(--space-2xl) + var(--space-sm));
+      }
+
+      .input-wrap {
+        order: 2;
+        width: 100%;
+      }
+
+      .send-targets {
+        order: 3;
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .target-btn {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .suggestion-row {
+        grid-template-columns: calc(var(--space-xl) + var(--space-xs)) minmax(0, 1fr);
+      }
+
+      .row-actions {
+        grid-column: 1 / -1;
+        justify-content: flex-end;
+      }
+
+      .row-title {
+        font-size: var(--font-size-sm);
+      }
+
+      .row-description {
+        font-size: var(--font-size-xs);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .drawer,
+      .suggestion-row,
+      .target-btn,
+      .quick-toggle,
+      .row-action {
+        transition: none;
       }
     }
   `
   // #endregion Styles
 
   // #region Actions
-  private async handleSubmit() {
-    if (this.#inputValue.trim() && this.router) {
-      console.log("Sending message:", this.#inputValue)
-      try {
-        this.router.sendTextMessage(this.llmDefaultServer, this.#inputValue.trim());
-        this.router.sendTextMessage(this.agentDefaultServer, this.#inputValue.trim());
-        this.#inputValue = ""
-      } catch (error) {
-        console.error("Failed to send message:", error);
-      }
-    }
+  private get filteredSuggestions(): QuickQuery[] {
+    const term = this.#filterTerm.trim().toLowerCase();
+    if (!term) return QUICK_QUERIES;
+
+    const ranked = QUICK_QUERIES
+      .map((query) => {
+        const title = query.title.toLowerCase();
+        const description = query.description.toLowerCase();
+        const text = query.query.toLowerCase();
+
+        let rank = Number.POSITIVE_INFINITY;
+        if (title.startsWith(term)) rank = 0;
+        else if (title.includes(term)) rank = 1;
+        else if (description.includes(term)) rank = 2;
+        else if (text.includes(term)) rank = 3;
+
+        return { query, rank };
+      })
+      .filter((item) => item.rank !== Number.POSITIVE_INFINITY)
+      .sort((a, b) => a.rank - b.rank || a.query.title.localeCompare(b.query.title));
+
+    return ranked.map((item) => item.query);
   }
-  
-  private async handleSubmitLLM() {
-    if (this.#inputValue.trim() && this.router) {
-      console.log("Sending message:", this.#inputValue)
-      try {
-        this.router.sendTextMessage(this.llmDefaultServer, this.#inputValue.trim());
-        this.#inputValue = ""
-      } catch (error) {
-        console.error("Failed to send message:", error);
-      }
+
+  private optionId(index: number): string {
+    return `quick-option-${index}`;
+  }
+
+  private get inputElement(): HTMLInputElement | null {
+    return this.renderRoot.querySelector<HTMLInputElement>("#chat-composer-input");
+  }
+
+  private openDrawer({ focusInput = false }: { focusInput?: boolean } = {}) {
+    this.#drawerOpen = true;
+    if (this.filteredSuggestions.length > 0 && this.#activeSuggestionIndex < 0) {
+      this.#activeSuggestionIndex = 0;
+    }
+
+    if (focusInput) {
+      this.updateComplete.then(() => this.inputElement?.focus());
     }
   }
 
-  private async handleSubmitAgent() {
-    if (this.#inputValue.trim() && this.router) {
-      console.log("Sending message:", this.#inputValue)
-      try {
-        this.router.sendTextMessage(this.agentDefaultServer, this.#inputValue.trim());
-        this.#inputValue = ""
-      } catch (error) {
-        console.error("Failed to send message:", error);
-      }
+  private closeDrawer() {
+    this.#drawerOpen = false;
+    this.#activeSuggestionIndex = -1;
+  }
+
+  private scheduleFilterUpdate(nextValue: string) {
+    if (this.filterDebounceTimer) {
+      window.clearTimeout(this.filterDebounceTimer);
     }
+    this.filterDebounceTimer = window.setTimeout(() => {
+      this.#filterTerm = nextValue.trim();
+      this.#activeSuggestionIndex = this.filteredSuggestions.length > 0 ? 0 : -1;
+    }, 120);
+  }
+
+  private async sendQuery(rawQuery: string, target: SendTarget = this.#defaultTarget) {
+    const query = rawQuery.trim();
+    if (!query || !this.router) return;
+
+    try {
+      if (target === "chat" || target === "both") {
+        this.router.sendTextMessage(this.llmDefaultServer, query);
+      }
+      if (target === "agent" || target === "both") {
+        this.router.sendTextMessage(this.agentDefaultServer, query);
+      }
+      this.#inputValue = "";
+      this.#filterTerm = "";
+      this.closeDrawer();
+    } catch (error) {
+      console.error("Failed to send message:", error);
+    }
+  }
+
+  private handlePointerDownOutside = (event: PointerEvent) => {
+    if (!this.#drawerOpen) return;
+    if (!event.composedPath().includes(this)) {
+      this.closeDrawer();
+    }
+  }
+
+  private handleInputFocus() {
+    this.openDrawer();
+  }
+
+  private handleInputChange(e: Event) {
+    const nextValue = (e.target as HTMLInputElement).value;
+    this.#inputValue = nextValue;
+    this.scheduleFilterUpdate(nextValue);
+    this.openDrawer();
+  }
+
+  private moveActiveSuggestion(delta: 1 | -1) {
+    const items = this.filteredSuggestions;
+    if (!items.length) {
+      this.#activeSuggestionIndex = -1;
+      return;
+    }
+
+    if (this.#activeSuggestionIndex < 0) {
+      this.#activeSuggestionIndex = delta > 0 ? 0 : items.length - 1;
+      return;
+    }
+
+    this.#activeSuggestionIndex =
+      (this.#activeSuggestionIndex + delta + items.length) % items.length;
   }
 
   private handlePressKey(e: KeyboardEvent) {
-    // Enter -> both, Cmd/Ctrl+Enter -> chat(LLM), Alt+Enter -> agent
+    if (e.key === "Escape") {
+      if (this.#drawerOpen) {
+        e.preventDefault();
+        this.closeDrawer();
+      }
+      return;
+    }
+
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      if (!this.#drawerOpen) this.openDrawer();
+      e.preventDefault();
+      this.moveActiveSuggestion(e.key === "ArrowDown" ? 1 : -1);
+      return;
+    }
+
     if (e.key !== "Enter") return;
 
     e.preventDefault();
 
-    if (e.altKey) {
-      this.handleSubmitAgent();
-      return;
-    }
-
     if (e.ctrlKey || e.metaKey) {
-      this.handleSubmitLLM();
+      this.sendQuery(this.#inputValue, this.#defaultTarget);
       return;
     }
 
-    this.handleSubmit();
+    if (this.#drawerOpen && this.#activeSuggestionIndex >= 0) {
+      const selected = this.filteredSuggestions[this.#activeSuggestionIndex];
+      if (selected) {
+        this.sendQuery(selected.query, this.#defaultTarget);
+        return;
+      }
+    }
+
+    this.sendQuery(this.#inputValue, this.#defaultTarget);
+  }
+
+  private handleQuickToggle() {
+    if (this.#drawerOpen) {
+      this.closeDrawer();
+      return;
+    }
+    this.openDrawer({ focusInput: true });
+  }
+
+  private handleTargetClick(target: SendTarget) {
+    this.#defaultTarget = target;
+    this.sendQuery(this.#inputValue, target);
+  }
+
+  private handleRowSend(item: QuickQuery, target: SendTarget = this.#defaultTarget) {
+    this.sendQuery(item.query, target);
+  }
+
+  private renderIcon(icon: QuickQueryIcon) {
+    switch (icon) {
+      case "pin":
+        return svg`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>`;
+      case "warning":
+        return svg`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.3 3.9-8 13.8A2 2 0 0 0 4 20.7h16a2 2 0 0 0 1.7-3l-8-13.8a2 2 0 0 0-3.4 0Z"></path><path d="M12 9v5"></path><path d="M12 18h.01"></path></svg>`;
+      case "metrics":
+        return svg`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V9"></path><path d="M10 20V4"></path><path d="M16 20v-7"></path><path d="M22 20H2"></path></svg>`;
+      case "status":
+        return svg`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m13 2-9 12h6l-1 8 9-12h-6z"></path></svg>`;
+      case "shield":
+        return svg`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v6c0 5 3.4 8.6 7 10 3.6-1.4 7-5 7-10V6z"></path><path d="m9.5 12 2 2 3-3.5"></path></svg>`;
+      case "report":
+      default:
+        return svg`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2h8l4 4v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z"></path><path d="M16 2v4h4"></path><path d="M9 12h6"></path><path d="M9 16h6"></path></svg>`;
+    }
+  }
+
+  private renderTargetButton(target: SendTarget, label: string, withIcon = false) {
+    const isActive = this.#defaultTarget === target;
+    return html`
+      <button
+        type="button"
+        class="target-btn ${isActive ? "active" : ""}"
+        data-target=${target}
+        @click=${() => this.handleTargetClick(target)}
+        aria-pressed=${isActive ? "true" : "false"}
+      >
+        ${withIcon
+          ? html`<span aria-hidden="true">${this.renderIcon("report")}</span>`
+          : nothing}
+        ${label}
+      </button>
+    `;
   }
   // #endregion Actions
 
   // #region Render
   render() {
+    const suggestions = this.filteredSuggestions;
+    const hasMatches = suggestions.length > 0;
+    const label = this.#filterTerm.length > 0 ? "Matching queries" : "Suggested queries";
+
     return html`
-      <div class="input-container">
-        <input
-          type="text"
-          .value=${this.#inputValue}
-          @input=${(e: Event) => (this.#inputValue = (e.target as HTMLInputElement).value)}
-          @keydown=${this.handlePressKey}
-          placeholder="Show me latest outage zones..."
-        />
-        <div class="send-buttons">
-          <button class="btn btn-outline-chat" @click=${this.handleSubmitLLM} title="Send to Chat Module">
-            Send to Chat (Ctrl + Enter)
+      <div class="composer-shell">
+        <div class="drawer ${this.#drawerOpen ? "open" : ""}" aria-hidden=${this.#drawerOpen ? "false" : "true"}>
+          <div class="drawer-header">
+            <span class="drawer-title">
+              <span aria-hidden="true">${this.renderIcon("status")}</span>
+              ${label}
+            </span>
+            <span class="hint-chip">&uarr;&darr; to navigate</span>
+          </div>
+
+          <ul class="listbox" id=${this.#drawerId} role="listbox" aria-label=${label}>
+            ${hasMatches
+              ? suggestions.map(
+                  (item, index) => html`
+                    <li
+                      id=${this.optionId(index)}
+                      class="suggestion-row ${this.#activeSuggestionIndex === index ? "active" : ""}"
+                      role="option"
+                      aria-selected=${this.#activeSuggestionIndex === index ? "true" : "false"}
+                      @mouseenter=${() => (this.#activeSuggestionIndex = index)}
+                      @click=${() => this.handleRowSend(item)}
+                    >
+                      <span class="icon-box" aria-hidden="true">${this.renderIcon(item.icon)}</span>
+                      <span>
+                        <div class="row-title">${item.title}</div>
+                        <div class="row-description">${item.description}</div>
+                      </span>
+                      <span class="row-actions">
+                        <button
+                          type="button"
+                          class="row-action"
+                          data-target="chat"
+                          @click=${(e: Event) => {
+                            e.stopPropagation();
+                            this.handleRowSend(item, "chat");
+                          }}
+                        >
+                          Chat
+                        </button>
+                        <button
+                          type="button"
+                          class="row-action"
+                          data-target="both"
+                          @click=${(e: Event) => {
+                            e.stopPropagation();
+                            this.handleRowSend(item, "both");
+                          }}
+                        >
+                          Both
+                        </button>
+                        <button
+                          type="button"
+                          class="row-action"
+                          data-target="agent"
+                          @click=${(e: Event) => {
+                            e.stopPropagation();
+                            this.handleRowSend(item, "agent");
+                          }}
+                        >
+                          Agent
+                        </button>
+                      </span>
+                    </li>
+                  `,
+                )
+              : html`
+                  <li class="empty-state" role="option" aria-selected="false">
+                    <div>No matching queries</div>
+                    <div>Press Enter to send your text</div>
+                  </li>
+                `}
+          </ul>
+        </div>
+
+        <div class="composer">
+          <button
+            type="button"
+            class="quick-toggle ${this.#drawerOpen ? "active" : ""}"
+            @click=${this.handleQuickToggle}
+            aria-pressed=${this.#drawerOpen ? "true" : "false"}
+          >
+            <span aria-hidden="true">${this.renderIcon("status")}</span>
+            <span class="label">Quick</span>
           </button>
-          <button class="btn btn-secondary" @click=${this.handleSubmit} title="Send to Both Modules">
-            Send to Both (Enter)
-          </button>
-          <button class="btn btn-outline-agent" @click=${this.handleSubmitAgent} title="Send to Agent Module">
-            Send to Agent (Alt + Enter)
-          </button>
+
+          <div class="input-wrap">
+            <input
+              id="chat-composer-input"
+              type="text"
+              .value=${this.#inputValue}
+              @focus=${this.handleInputFocus}
+              @input=${this.handleInputChange}
+              @keydown=${this.handlePressKey}
+              role="combobox"
+              aria-autocomplete="list"
+              aria-expanded=${this.#drawerOpen ? "true" : "false"}
+              aria-controls=${this.#drawerId}
+              aria-activedescendant=${this.#activeSuggestionIndex >= 0
+                ? this.optionId(this.#activeSuggestionIndex)
+                : nothing}
+              placeholder="Start typing to search queries or enter your own..."
+            />
+          </div>
+
+          <div class="send-targets">
+            ${this.renderTargetButton("chat", "Chat", true)}
+            ${this.renderTargetButton("both", "Both")}
+            ${this.renderTargetButton("agent", "Agent")}
+          </div>
         </div>
       </div>
     `
