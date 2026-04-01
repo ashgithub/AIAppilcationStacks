@@ -12,6 +12,8 @@ Task:
 Decision Rules (mirror production orchestrator behavior):
 - ALWAYS call get_widget_catalog first when data exists.
 - ALWAYS call get_native_component_catalog.
+- Use ONLY these widget names: BarGraph, TimelineComponent, KpiCard, LineGraph, MapComponent, Table, Text, Card.
+- Never invent new widget/component names (for example, do not output FlowchartComponent or custom types).
 - For data-rich requests, prefer combinations like chart + table + KPI.
 - For procedure/explanation/sequential information, always include TimelineComponent.
 - For location/coordinate data, prioritize MapComponent + supporting visualization.

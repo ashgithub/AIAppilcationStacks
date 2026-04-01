@@ -15,8 +15,7 @@ from langfuse import Langfuse
 from dynamic_app.ui_agents_graph.ui_orchestrator_agent import SuggestionsReponseLLM
 from dynamic_app.ui_agents_graph.ui_layout_planner import UIParallelLayoutPlannerNode
 from dynamic_app.ui_agents_graph.ui_parallel_skeleton_agent import UIParallelSkeletonNode
-from dynamic_app.ui_agents_graph.ui_parallel_widget_worker_agent import UIParallelWidgetWorkerNode
-from dynamic_app.ui_agents_graph.ui_parallel_fragment_merge_agent import UIParallelFragmentMergeAgent
+from dynamic_app.ui_agents_graph.ui_parallel_widget_worker_agent import UIParallelWidgetSlotNode
 from dynamic_app.back_agents_graph.backend_orchestrator_agent import BackendOrchestratorAgent
 from core.dynamic_app.dynamic_struct import DynamicGraphState
 from core.langfuse_tracing import (
@@ -64,7 +63,7 @@ class DynamicGraph:
 
     SUPPORTED_CONTENT_TYPES = ["text", "text/plain", "text/event-stream", "application/json+a2ui"]
     CONTENT_TRUNCATION_LENGTH = 50
-    UI_RESPONSE_AGENT_NAMES = {"parallel_structured_ui_assembly"}
+    MAX_PARALLEL_WIDGETS = 4
 
     def __init__(
         self,
@@ -78,8 +77,10 @@ class DynamicGraph:
         self._suggestions_llm = SuggestionsReponseLLM()
         self._parallel_ui_layout_planner = UIParallelLayoutPlannerNode()
         self._parallel_ui_skeleton = UIParallelSkeletonNode()
-        self._parallel_ui_widget_worker = UIParallelWidgetWorkerNode()
-        self._parallel_structured_ui_assembly = UIParallelFragmentMergeAgent()
+        self._parallel_ui_widget_slots = {
+            index: UIParallelWidgetSlotNode(index)
+            for index in range(1, self.MAX_PARALLEL_WIDGETS + 1)
+        }
         self._out_query = SUGGESTION_QUERY
         self.langfuse_tracing_provider = LangfuseTracingProvider(langfuse_client=langfuse_client)
 
@@ -110,20 +111,20 @@ class DynamicGraph:
 
         graph_builder.add_node("suggestions", self._suggestions_llm)
         graph_builder.add_node("aggregator", self.aggregator)
-
-        graph_builder.add_edge(START, "backend_orchestrator")
-
         graph_builder.add_node("parallel_ui_layout_planner", self._parallel_ui_layout_planner)
         graph_builder.add_node("parallel_ui_skeleton", self._parallel_ui_skeleton)
-        graph_builder.add_node("parallel_ui_widget_worker", self._parallel_ui_widget_worker)
-        graph_builder.add_node("parallel_structured_ui_assembly", self._parallel_structured_ui_assembly)
+        for slot_index, slot_node in self._parallel_ui_widget_slots.items():
+            graph_builder.add_node(f"parallel_ui_widget_slot_{slot_index}", slot_node)
+
+        graph_builder.add_edge(START, "backend_orchestrator")
         graph_builder.add_edge("backend_orchestrator", "parallel_ui_layout_planner")
         graph_builder.add_edge("backend_orchestrator", "suggestions")
         graph_builder.add_edge("parallel_ui_layout_planner", "parallel_ui_skeleton")
-        graph_builder.add_edge("parallel_ui_layout_planner", "parallel_ui_widget_worker")
-        graph_builder.add_edge("parallel_ui_skeleton", "parallel_structured_ui_assembly")
-        graph_builder.add_edge("parallel_ui_widget_worker", "parallel_structured_ui_assembly")
-        graph_builder.add_edge("parallel_structured_ui_assembly", "aggregator")
+        graph_builder.add_edge("parallel_ui_skeleton", "aggregator")
+        for slot_index in self._parallel_ui_widget_slots:
+            slot_name = f"parallel_ui_widget_slot_{slot_index}"
+            graph_builder.add_edge("parallel_ui_layout_planner", slot_name)
+            graph_builder.add_edge(slot_name, "aggregator")
         graph_builder.add_edge("suggestions", "aggregator")
         graph_builder.add_edge("aggregator", END)
 
@@ -143,11 +144,37 @@ class DynamicGraph:
 
     def _extract_chunk_state(self, chunk: Any) -> dict[str, Any]:
         """Normalize chunk state shape for subgraph stream mode."""
+        known_keys = {
+            "messages",
+            "suggestions",
+            "parallel_data_context",
+            "parallel_widget_plan",
+            "parallel_execution_tasks",
+            "parallel_shell_output",
+            "parallel_skeleton_fragment",
+            "parallel_widget_fragment_1",
+            "parallel_widget_fragment_2",
+            "parallel_widget_fragment_3",
+            "parallel_widget_fragment_4",
+        }
+        raw_state: Any = None
         if isinstance(chunk, tuple) and len(chunk) > 1 and isinstance(chunk[1], dict):
-            return chunk[1]
-        if isinstance(chunk, dict):
-            return chunk
-        return {}
+            raw_state = chunk[1]
+        elif isinstance(chunk, dict):
+            raw_state = chunk
+        else:
+            return {}
+
+        if not isinstance(raw_state, dict):
+            return {}
+        if any(key in raw_state for key in known_keys):
+            return raw_state
+
+        merged: dict[str, Any] = {}
+        for value in raw_state.values():
+            if isinstance(value, dict):
+                merged.update(value)
+        return merged
 
     def _message_dedupe_key(self, message: AnyMessage) -> str:
         """Build a stable dedupe key for streamed messages."""
@@ -220,7 +247,6 @@ class DynamicGraph:
         request_id = uuid.uuid4().hex
         stable_session_id = str(session_id) if session_id else request_id
         final_response_content = None
-        ui_response_content = None
         ai_message_count = 0
         model_token_count = 0
         node_name = "START"
@@ -229,6 +255,14 @@ class DynamicGraph:
         detailed_message = ""
         seen_message_keys: set[str] = set()
         emitted_human_message = False
+        skeleton_emitted = False
+        emitted_widget_slots: set[int] = set()
+        pending_widget_fragments: list[dict[str, Any]] = []
+        surface_state: dict[str, dict[str, Any]] = {}
+        ordered_component_ids: list[str] = []
+        data_state: dict[str, dict[str, Any]] = {}
+        surface_id = "dashboard"
+        assistant_summary = ""
         final_payload: dict[str, Any] | None = None
         langfuse_client = self.langfuse_client or self.langfuse_tracing_provider.get_current_client()
         session_token = self.langfuse_tracing_provider.set_current_session_id(stable_session_id)
@@ -245,7 +279,7 @@ class DynamicGraph:
             async for chunk in self._dynamic_ui_graph.astream(
                 input=current_message,
                 config=config,
-                stream_mode='values',
+                stream_mode='updates',
                 subgraphs=True
             ):
                 chunk_state = self._extract_chunk_state(chunk)
@@ -271,28 +305,8 @@ class DynamicGraph:
 
                     if isinstance(latest_message, AIMessage):
                         ai_message_count += 1
-                        final_response_content = latest_message.content
-                        message_name = str(getattr(latest_message, "name", "") or "")
-                        message_content = str(getattr(latest_message, "content", "") or "")
-                        if (
-                            "---a2ui_JSON---" in message_content
-                            or message_name in self.UI_RESPONSE_AGENT_NAMES
-                        ):
-                            ui_response_content = message_content
-                            logger.info(
-                                "Captured UI candidate message | node=%s name=%s has_a2ui=%s len=%s",
-                                node_name,
-                                message_name,
-                                "---a2ui_JSON---" in message_content,
-                                len(message_content),
-                            )
-                        else:
-                            logger.debug(
-                                "Captured non-UI AI message | node=%s name=%s len=%s",
-                                node_name,
-                                message_name,
-                                len(message_content),
-                            )
+                        if str(getattr(latest_message, "name", "") or "") != "suggestions_agent":
+                            final_response_content = str(latest_message.content)
 
                     if isinstance(latest_message, AIMessage):
                         timeline_message, model_token_count, detailed_message = self._format_message(
@@ -313,26 +327,162 @@ class DynamicGraph:
                         "is_task_complete": False,
                         "updates": timeline_message,
                         "detailed_updates": detailed_message,
-                        # Expose raw model content so the executor can progressively parse A2UI payloads.
                         "content": str(getattr(latest_message, "content", "") or ""),
+                        "ui_messages": [],
                     }
 
                     yield updates
 
-            selected_final_response = ui_response_content or final_response_content
+                skeleton_fragment = chunk_state.get("parallel_skeleton_fragment")
+                if isinstance(skeleton_fragment, dict) and not skeleton_emitted:
+                    begin_message = skeleton_fragment.get("begin_rendering")
+                    initial_surface_update = skeleton_fragment.get("initial_surface_update")
+                    surface_id = str(skeleton_fragment.get("surface_id") or surface_id)
+                    assistant_summary = str(skeleton_fragment.get("assistant_text") or "")
+                    ordered_component_ids = list(skeleton_fragment.get("ordered_component_ids") or [])
+                    surface_state = {
+                        str(component.get("id")): component
+                        for component in list(skeleton_fragment.get("components") or [])
+                        if isinstance(component, dict) and component.get("id")
+                    }
+
+                    if isinstance(begin_message, dict):
+                        yield {
+                            "is_task_complete": False,
+                            "updates": "Skeleton ready",
+                            "detailed_updates": "Begin rendering emitted.",
+                            "content": "",
+                            "ui_messages": [begin_message],
+                        }
+                    if isinstance(initial_surface_update, dict):
+                        yield {
+                            "is_task_complete": False,
+                            "updates": "Skeleton ready",
+                            "detailed_updates": "Base layout emitted.",
+                            "content": "",
+                            "ui_messages": [initial_surface_update],
+                        }
+                    skeleton_emitted = True
+
+                    while pending_widget_fragments:
+                        widget_fragment = pending_widget_fragments.pop(0)
+                        widget_components = list(widget_fragment.get("components") or [])
+                        for component in widget_components:
+                            if not isinstance(component, dict):
+                                continue
+                            component_id = str(component.get("id") or "")
+                            if not component_id:
+                                continue
+                            if component_id not in ordered_component_ids:
+                                ordered_component_ids.append(component_id)
+                            surface_state[component_id] = component
+
+                        full_surface_update = {
+                            "surfaceUpdate": {
+                                "surfaceId": surface_id,
+                                "components": [
+                                    surface_state[component_id]
+                                    for component_id in ordered_component_ids
+                                    if component_id in surface_state
+                                ],
+                            }
+                        }
+                        ui_messages: list[dict[str, Any]] = [full_surface_update]
+                        widget_data_contents = list(widget_fragment.get("data_contents") or [])
+                        if widget_data_contents:
+                            for data_entry in widget_data_contents:
+                                if isinstance(data_entry, dict) and data_entry.get("key"):
+                                    data_state[str(data_entry["key"])] = data_entry
+                            ui_messages.append(
+                                {
+                                    "dataModelUpdate": {
+                                        "surfaceId": surface_id,
+                                        "path": "/",
+                                        "contents": list(data_state.values()),
+                                    }
+                                }
+                            )
+                        yield {
+                            "is_task_complete": False,
+                            "updates": str(widget_fragment.get("status_text") or "Widget ready"),
+                            "detailed_updates": "Buffered widget fragment emitted.",
+                            "content": "",
+                            "ui_messages": ui_messages,
+                        }
+
+                for slot_index in range(1, self.MAX_PARALLEL_WIDGETS + 1):
+                    fragment_key = f"parallel_widget_fragment_{slot_index}"
+                    widget_fragment = chunk_state.get(fragment_key)
+                    if not isinstance(widget_fragment, dict):
+                        continue
+                    if slot_index in emitted_widget_slots:
+                        continue
+                    emitted_widget_slots.add(slot_index)
+
+                    if widget_fragment.get("skipped"):
+                        continue
+                    if widget_fragment.get("error"):
+                        logger.warning(
+                            "Widget slot %s reported error: %s",
+                            slot_index,
+                            widget_fragment.get("error"),
+                        )
+                    if not skeleton_emitted:
+                        pending_widget_fragments.append(widget_fragment)
+                        continue
+
+                    widget_components = list(widget_fragment.get("components") or [])
+                    for component in widget_components:
+                        if not isinstance(component, dict):
+                            continue
+                        component_id = str(component.get("id") or "")
+                        if not component_id:
+                            continue
+                        if component_id not in ordered_component_ids:
+                            ordered_component_ids.append(component_id)
+                        surface_state[component_id] = component
+
+                    full_surface_update = {
+                        "surfaceUpdate": {
+                            "surfaceId": surface_id,
+                            "components": [
+                                surface_state[component_id]
+                                for component_id in ordered_component_ids
+                                if component_id in surface_state
+                            ],
+                        }
+                    }
+                    ui_messages: list[dict[str, Any]] = [full_surface_update]
+                    widget_data_contents = list(widget_fragment.get("data_contents") or [])
+                    if widget_data_contents:
+                        for data_entry in widget_data_contents:
+                            if isinstance(data_entry, dict) and data_entry.get("key"):
+                                data_state[str(data_entry["key"])] = data_entry
+                        ui_messages.append(
+                            {
+                                "dataModelUpdate": {
+                                    "surfaceId": surface_id,
+                                    "path": "/",
+                                    "contents": list(data_state.values()),
+                                }
+                            }
+                        )
+                    yield {
+                        "is_task_complete": False,
+                        "updates": str(widget_fragment.get("status_text") or "Widget ready"),
+                        "detailed_updates": "Widget fragment emitted.",
+                        "content": "",
+                        "ui_messages": ui_messages,
+                    }
+
+            selected_final_response = final_response_content or assistant_summary or "Interface generated successfully."
             logger.info(
-                "Final response selection | ai_messages=%s ui_selected=%s ui_len=%s fallback_len=%s",
+                "Final response selection | ai_messages=%s selected_len=%s",
                 ai_message_count,
-                ui_response_content is not None,
-                len(ui_response_content or ""),
-                len(final_response_content or ""),
+                len(selected_final_response or ""),
             )
 
-            if selected_final_response and "---a2ui_JSON---" in selected_final_response:
-                text_part, json_string = selected_final_response.split("---a2ui_JSON---", 1)
-                final_content = f"{text_part.strip()}\n---a2ui_JSON---\n{json_string.strip()}"
-            else:
-                final_content = selected_final_response or "No response generated"
+            final_content = selected_final_response or "No response generated"
 
             # Fallback suggestion generation ensures response consistency.
             fall_back_suggestions_model = SuggestionModel().build_suggestion_model()
@@ -350,7 +500,8 @@ class DynamicGraph:
                 "detailed_updates": detailed_message,
                 "token_count": str(model_token_count),
                 "suggestions": suggestions,
-                "sources": json.dumps(source_documents)
+                "sources": json.dumps(source_documents),
+                "ui_messages": [],
             }
         finally:
             self.langfuse_tracing_provider.reset_current_client(client_token)

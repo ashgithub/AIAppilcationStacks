@@ -123,10 +123,23 @@ export class ChatInput extends LitElement {
     }
   }
 
-  private handleKeyPress(e: KeyboardEvent) {
-    if (e.key === "Enter") {
-      this.handleSubmit()
+  private handlePressKey(e: KeyboardEvent) {
+    // Enter -> both, Cmd/Ctrl+Enter -> chat(LLM), Alt+Enter -> agent
+    if (e.key !== "Enter") return;
+
+    e.preventDefault();
+
+    if (e.altKey) {
+      this.handleSubmitAgent();
+      return;
     }
+
+    if (e.ctrlKey || e.metaKey) {
+      this.handleSubmitLLM();
+      return;
+    }
+
+    this.handleSubmit();
   }
   // #endregion Actions
 
@@ -138,18 +151,18 @@ export class ChatInput extends LitElement {
           type="text"
           .value=${this.#inputValue}
           @input=${(e: Event) => (this.#inputValue = (e.target as HTMLInputElement).value)}
-          @keypress=${this.handleKeyPress}
+          @keydown=${this.handlePressKey}
           placeholder="Show me latest outage zones..."
         />
         <div class="send-buttons">
           <button class="btn btn-outline-chat" @click=${this.handleSubmitLLM} title="Send to Chat Module">
-            Send to Chat
+            Send to Chat (Ctrl + Enter)
           </button>
           <button class="btn btn-secondary" @click=${this.handleSubmit} title="Send to Both Modules">
             Send to Both (Enter)
           </button>
           <button class="btn btn-outline-agent" @click=${this.handleSubmitAgent} title="Send to Agent Module">
-            Send to Agent
+            Send to Agent (Alt + Enter)
           </button>
         </div>
       </div>

@@ -1,5 +1,3 @@
-"""Parallel UI widget worker node."""
-
 from __future__ import annotations
 
 import asyncio
@@ -23,9 +21,13 @@ from core.dynamic_app.prompts import (
     UI_PARALLEL_WIDGET_INSTRUCTIONS,
     build_widget_structured_prompt,
 )
+from dynamic_app.ui_agents_graph.ui_parallel_fragment_merge_agent import (
+    UIParallelFragmentMergeAgent,
+)
 
 MAX_WIDGET_GENERATION_ATTEMPTS = 2
 MAX_RETRY_PAYLOAD_PREVIEW = 1200
+MAX_PARALLEL_WIDGETS = 4
 logger = logging.getLogger(__name__)
 
 
@@ -40,6 +42,7 @@ class UIWidgetStructuredAgent(BaseAgent):
         self._model_registry = get_widget_model_registry()
         self._agent_registry: dict[str, Any] = {}
         self._freeform_agent = self.build_agent()
+        self.last_generation_note: str | None = None
 
     def _build_minimal_widget_output(self, widget_name: str, model_cls: Any) -> Any:
         schema = model_cls.model_json_schema() if hasattr(model_cls, "model_json_schema") else {}
@@ -58,13 +61,7 @@ class UIWidgetStructuredAgent(BaseAgent):
             except Exception:
                 return None
 
-    def _build_retry_prompt(
-        self,
-        widget_name: str,
-        data_context: str,
-        previous_payload: str,
-        previous_error: str,
-    ) -> str:
+    def _build_retry_prompt(self, widget_name: str, data_context: str, previous_payload: str, previous_error: str) -> str:
         return (
             f"{build_widget_structured_prompt(widget_name, data_context)}\n\n"
             "Retry request: the previous response was invalid for the schema.\n"
@@ -74,9 +71,7 @@ class UIWidgetStructuredAgent(BaseAgent):
             "Output must be only schema-valid JSON content."
         )
 
-    def _validate_widget_output(
-        self, model_cls: Any, candidate: Any
-    ) -> tuple[Any | None, str | None]:
+    def _validate_widget_output(self, model_cls: Any, candidate: Any) -> tuple[Any | None, str | None]:
         if candidate is None:
             return None, "Candidate payload is empty."
         if isinstance(candidate, model_cls):
@@ -124,9 +119,11 @@ class UIWidgetStructuredAgent(BaseAgent):
         return validated, error
 
     async def generate_widget(self, widget_name: str, data_context: str) -> Any:
+        self.last_generation_note = None
         canonical_name = normalize_widget_name(widget_name)
         model_cls = self._model_registry.get(canonical_name)
         if model_cls is None:
+            self.last_generation_note = "unsupported_widget"
             logger.warning("Widget skipped: unsupported widget_name=%s", widget_name)
             return None
         agent = self._agent_registry.get(canonical_name)
@@ -144,7 +141,6 @@ class UIWidgetStructuredAgent(BaseAgent):
                     canonical_name, data_context, last_payload_preview, last_error
                 )
             try:
-                #region agent invokation
                 response = await agent.ainvoke({"messages": [HumanMessage(content=prompt)]})
                 structured = extract_structured_result(response, model_cls)
                 if structured is not None:
@@ -196,6 +192,7 @@ class UIWidgetStructuredAgent(BaseAgent):
             previous_error=last_error,
         )
         if recovered is not None:
+            self.last_generation_note = "recovered_after_malformed_payload"
             logger.info(
                 "Widget recovered via general post-retry check | widget=%s model=%s",
                 canonical_name,
@@ -203,27 +200,23 @@ class UIWidgetStructuredAgent(BaseAgent):
             )
             return recovered
 
-        logger.warning(
-            "General post-retry check failed | widget=%s model=%s error=%s",
-            canonical_name,
-            model_cls.__name__,
-            recovery_error,
-        )
         logger.error(
             "Widget fallback exhausted; returning minimal payload | widget=%s model=%s",
             canonical_name,
             model_cls.__name__,
         )
+        self.last_generation_note = "malformed_widget_payload_fallback"
         return self._build_minimal_widget_output(canonical_name, model_cls)
 
 
-#region graph node
-class UIParallelWidgetWorkerNode:
-    """Graph node that generates all widget outputs in parallel."""
+class UIParallelWidgetSlotNode:
+    """Graph node that generates one widget slot and emits one fragment."""
 
-    def __init__(self):
-        self.agent_name = "ui_parallel_widget_worker"
+    def __init__(self, slot_index: int):
+        self.slot_index = slot_index
+        self.agent_name = f"ui_parallel_widget_slot_{slot_index}"
         self._widget = UIWidgetStructuredAgent()
+        self._fragment_builder = UIParallelFragmentMergeAgent()
 
     async def __call__(self, state: DynamicGraphState) -> DynamicGraphState:
         tasks = list(state.get("parallel_execution_tasks") or [])
@@ -231,63 +224,95 @@ class UIParallelWidgetWorkerNode:
             state.get("parallel_data_context")
             or (state["messages"][-1].content if state.get("messages") else "")
         )
-        logger.info(
-            "Widget worker start | task_count=%s widgets=%s",
-            len(tasks),
-            [task.get("widget_name") for task in tasks],
-        )
-        widget_outputs = await asyncio.gather(
-            *[
-                self._widget.generate_widget(str(task.get("widget_name", "")), data_context)
-                for task in tasks
-            ],
+        task = next((item for item in tasks if int(item.get("index", 0)) == self.slot_index), None)
+        state_key = f"parallel_widget_fragment_{self.slot_index}"
+        if task is None:
+            return {state_key: {"slot_index": self.slot_index, "skipped": True}}
+
+        try:
+            widget_output = await self._widget.generate_widget(
+                str(task.get("widget_name", "")), data_context
+            )
+            generation_note = self._widget.last_generation_note
+            widget_components, widget_contents = self._fragment_builder._build_widget_payload(
+                task, widget_output
+            )
+            if generation_note == "malformed_widget_payload_fallback":
+                widget_components = [
+                    {
+                        "id": str(task.get("widget_id")),
+                        "component": {
+                            "Text": {
+                                "text": {
+                                    "literalString": (
+                                        "This section is using a fallback view because the widget "
+                                        "agent returned malformed data. The request completed normally."
+                                    )
+                                },
+                                "usageHint": "body",
+                            }
+                        },
+                    }
+                ]
+                widget_contents = []
+            logger.info(
+                "Widget slot fragment built | slot=%s widget=%s components=%s data_entries=%s",
+                self.slot_index,
+                task.get("widget_name"),
+                len(widget_components),
+                len(widget_contents),
+            )
+            return {
+                state_key: {
+                    "slot_index": self.slot_index,
+                    "task": task,
+                    "components": widget_components,
+                    "data_contents": widget_contents,
+                    "status_text": (
+                        f"Rendered {task.get('slot_label') or task.get('widget_name')}"
+                        if generation_note is None
+                        else (
+                            f"Rendered {task.get('slot_label') or task.get('widget_name')} "
+                            "(fallback due to malformed widget payload)"
+                        )
+                    ),
+                }
+            }
+        except Exception as exc:
+            logger.error(
+                "Widget slot generation failed | slot=%s widget=%s error=%s",
+                self.slot_index,
+                task.get("widget_name"),
+                exc,
+            )
+            return {
+                state_key: {
+                    "slot_index": self.slot_index,
+                    "task": task,
+                    "components": [],
+                    "data_contents": [],
+                    "error": str(exc),
+                    "status_text": f"Failed to render {task.get('slot_label') or task.get('widget_name')}",
+                }
+            }
+
+
+class UIParallelWidgetWorkerNode:
+    """Compatibility node that gathers all widget slots at once."""
+
+    def __init__(self):
+        self.agent_name = "ui_parallel_widget_worker"
+        self._slot_nodes = [UIParallelWidgetSlotNode(index) for index in range(1, MAX_PARALLEL_WIDGETS + 1)]
+
+    async def __call__(self, state: DynamicGraphState) -> DynamicGraphState:
+        results = await asyncio.gather(
+            *[slot_node(state) for slot_node in self._slot_nodes],
             return_exceptions=True,
         )
-
-        serialized_outputs: list[dict[str, Any]] = []
-        for task, widget_output in zip(tasks, widget_outputs):
-            if isinstance(widget_output, Exception):
-                logger.error(
-                    "Widget generation raised exception | widget=%s slot=%s",
-                    task.get("widget_name"),
-                    task.get("slot_label"),
-                    exc_info=(
-                        type(widget_output),
-                        widget_output,
-                        widget_output.__traceback__,
-                    ),
-                )
-                serialized_outputs.append(
-                    {
-                        "task_index": task.get("index"),
-                        "widget_name": task.get("widget_name"),
-                        "output_type": None,
-                        "payload": None,
-                        "error": str(widget_output),
-                    }
-                )
+        merged: dict[str, Any] = {}
+        for result in results:
+            if isinstance(result, Exception):
+                logger.warning("Compatibility widget worker slot failed with exception: %s", result)
                 continue
-
-            if widget_output is None:
-                logger.warning(
-                    "Widget generation returned None | widget=%s slot=%s",
-                    task.get("widget_name"),
-                    task.get("slot_label"),
-                )
-
-            serialized_outputs.append(
-                {
-                    "task_index": task.get("index"),
-                    "widget_name": task.get("widget_name"),
-                    "output_type": (
-                        widget_output.__class__.__name__ if widget_output is not None else None
-                    ),
-                    "payload": (
-                        widget_output.model_dump()
-                        if hasattr(widget_output, "model_dump")
-                        else widget_output
-                    ),
-                    "error": None,
-                }
-            )
-        return {"parallel_widget_outputs": serialized_outputs}
+            merged.update(result)
+        return merged

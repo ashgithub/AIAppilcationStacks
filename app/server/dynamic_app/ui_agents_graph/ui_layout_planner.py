@@ -9,7 +9,9 @@ from core.dynamic_app.dynamic_struct import DynamicGraphState
 from core.dynamic_app.parallel_ui_shared import (
     build_widget_execution_tasks,
     extract_structured_result,
+    get_widget_model_registry,
     is_no_data_or_out_of_domain,
+    is_supported_widget_name,
     needs_timeline,
     normalize_widget_name,
 )
@@ -35,6 +37,7 @@ class UIParallelOrchestratorAgent(BaseAgent):
         self.tools = [get_widget_catalog, get_native_component_catalog]
         self.response_format = ParallelWidgetPlan
         self.agent = self.build_agent()
+        self._supported_widget_names = set(get_widget_model_registry().keys())
 
     async def generate_plan(self, state: DynamicGraphState) -> ParallelWidgetPlan:
         data_context = str(state["messages"][-1].content if state["messages"] else "")
@@ -78,6 +81,14 @@ class UIParallelOrchestratorAgent(BaseAgent):
             seen: set[str] = set()
             for task in sorted(extracted.widget_tasks, key=lambda item: item.priority):
                 canonical = normalize_widget_name(task.widget_name)
+                if not is_supported_widget_name(canonical):
+                    logger.warning(
+                        "Planner dropped unsupported widget | original=%s canonical=%s supported=%s",
+                        task.widget_name,
+                        canonical,
+                        sorted(self._supported_widget_names),
+                    )
+                    continue
                 key = canonical.lower()
                 if key in seen:
                     continue

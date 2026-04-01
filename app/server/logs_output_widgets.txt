@@ -1,98 +1,98 @@
-{
-    "role": "assistant",
-    "content": {
-        "surface_id": "dashboard",
-        "root_id": "root-layout",
-        "surface_title": "Assets in Tracking Condition",
-        "intro_text": "This dashboard displays assets with condition scores below 4, indicating they require monitoring. Review counts and details for proactive maintenance.",
-        "layout_component": "Column",
-        "use_card_sections": false,
-        "section_alignment": "stretch",
-        "section_distribution": "start",
-        "placeholder_usage_hint": "caption",
-        "section_titles": [
-            "Tracking Count",
-            "Asset Details"
-        ]
+[
+    {
+        "role": "system",
+        "content": "\nYou are a UI planner for parallel widget generation.\n\nTask:\n- Select 1-4 widgets/components that best present the provided data.\n- Prefer visual widgets when meaningful data exists.\n- Use concise slot labels for each widget section.\n- Return ONLY structured output.\n\nDecision Rules (mirror production orchestrator behavior):\n- ALWAYS call get_widget_catalog first when data exists.\n- ALWAYS call get_native_component_catalog.\n- For data-rich requests, prefer combinations like chart + table + KPI.\n- For procedure/explanation/sequential information, always include TimelineComponent.\n- For location/coordinate data, prioritize MapComponent + supporting visualization.\n- For no-data / out-of-domain / inappropriate requests, use only Text and Card.\n- Keep the plan practical for parallel assembly and streaming.\n"
     },
-    "additional_kwargs": {
-        "parsed": null,
-        "refusal": null
+    {
+        "role": "user",
+        "content": "Give me some diagrams on how can we identify and evaluate risks according to mexican guidelines?"
+    },
+    {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+            {
+                "name": "semantic_search",
+                "args": {
+                    "query": "how to identify and evaluate risks according to Mexican disaster manual guidelines",
+                    "top_k": 5
+                },
+                "id": "call_27721983",
+                "type": "tool_call"
+            }
+        ],
+        "additional_kwargs": {
+            "refusal": null
+        }
+    },
+    {
+        "role": "tool",
+        "content": "[1] (Source: ./core/rag_docs/general_disaster_manual_mxn.pdf_start_2063) Identificar y evaluar riesgos ............................................................................................... 5  Plan de evacuación ................................................................................................................... 17\n\n[2] (Source: ./core/rag_docs/general_disaster_manual_mxn.pdf_start_875) El objetivo de identificar riesgos y obstáculos que pudieran entorpecer la evacuación es  reducirlos y corregirlos previamente al ejerci cio. Hay que reconocer en el inmueble los  objetos que representen riesgo en el momento del desalojo, es decir, los objetos\n\n[3] (Source: ./core/rag_docs/general_disaster_manual_mxn.pdf_start_652) 1. Conocer las instalaciones.  2. Identificar y evaluar riesgos.  3. Seleccionar rutas de salida.  4. Capacitar a grupos de trabajo.  5. Realizar simulacros.  6. Revisar y reajustar el plan.  Conocer las instalaciones (análisis general de vulnerabilidad del inmueble)  Localización\n\n[4] (Source: ./core/rag_docs/general_disaster_manual_mxn.pdf_start_731) severos. Es conveniente que, con base en la identificación del riesgo se elabore la  hipótesis del simulacro para que sea lo más real posible.  El objetivo de identificar riesgos y obstáculos que pudieran entorpecer la evacuación es\n\n[5] (Source: ./core/rag_docs/general_disaster_manual_mxn.pdf_start_0) 5    Identificar y evaluar riesgos   Es crucial detectar a tiempo, durante la prevención o primera etapa de la Protección  Civil, los posibles daños a los que está expuesto un inmueble; ante la presencia de los  fenómenos perturbadores, tanto de tipo natural como los antropogénicos o causados",
+        "tool_call_id": "call_27721983"
+    },
+    {
+        "role": "assistant",
+        "content": "---\nRAG DATA:\nThe Mexican disaster manual (General Disaster Manual, Mexico) outlines procedures for identifying and evaluating risks, primarily in the context of civil protection, evacuation planning, and vulnerability analysis for buildings and infrastructure. While the manual does not provide explicit diagrams in the available text excerpts, it describes a structured process that can be visualized as flowcharts or step-by-step diagrams. Below is a consolidated summary of the key guidelines for identifying and evaluating risks, based on the manual's content. This can be used to create diagrams such as:\n\n1. **A Step-by-Step Flowchart for Risk Identification in Evacuation Planning**:\n   - **Step 1: Know the Installations (Análisis General de Vulnerabilidad)**: Conduct a general vulnerability analysis of the building or site. Locate areas exposed to natural (e.g., earthquakes, floods) or anthropogenic (human-caused, e.g., fires, structural failures) phenomena. Diagram: Start with a site map icon, branching to hazard zones.\n   - **Step 2: Identify and Evaluate Risks**: Detect potential damages early during the prevention phase of civil protection. Recognize objects or conditions in the building that pose risks during evacuation (e.g., obstacles, unstable structures). Evaluate severity based on likelihood and impact. Objective: Reduce and correct risks beforehand to avoid hindrance during emergencies. Diagram: Use a risk matrix (e.g., 2x2 grid: High/Low Probability vs. High/Low Impact) with icons for common risks like debris or narrow exits.\n   - **Step 3: Select Exit Routes**: Based on identified risks, map safe evacuation paths, avoiding obstacles. Diagram: Floor plan overlay with arrows for routes and red flags for risks.\n   - **Step 4: Train Work Groups and Conduct Drills**: Incorporate risk evaluation into training. Develop realistic hypotheses for drills based on identified risks (e.g., simulate severe scenarios). Diagram: Timeline or cycle showing training → drill → evaluation loop.\n   - **Step 5: Review and Adjust the Plan**: Reassess risks post-drill and update the evacuation plan. Diagram: Feedback loop arrow returning to Step 1.\n\n   Overall Process Diagram Suggestion: A linear flowchart starting from \"Prevention Phase\" → \"Risk Detection\" → \"Evaluation & Correction\" → \"Implementation (Drills)\" → \"Review,\" with side branches for specific risk types (natural vs. anthropogenic).\n\n2. **Risk Evaluation Framework**:\n   - **Early Detection Emphasis**: Crucial in the first stage of civil protection to identify exposures to perturbing phenomena. Risks include those that could entangle evacuation, such as objects representing hazards during desalojos (evacuations).\n   - **Hypothesis for Simulations**: Base drill scenarios on risk identification to make them realistic and severe as needed.\n   - Diagram Idea: A decision tree: \"Is risk natural or human-caused?\" → Branches to evaluation criteria (e.g., \"Can it be reduced pre-event?\") → Outcomes (e.g., \"Correct obstacle\" or \"Update routes\").\n\nThese steps are detailed in sections of the manual focused on evacuation plans (e.g., pages referencing starts at 0, 652, 731, 875, 2063). For actual diagrams, the manual recommends basing them on site-specific vulnerability analyses, but no pre-made visuals are described in the text. If you provide more details on the context (e.g., building type), I can refine this for visualization.\n\nNo GRAPH DATA section, as the query does not involve network infrastructure elements.\n---",
+        "additional_kwargs": {
+            "refusal": null
+        }
+    },
+    {
+        "role": "tool",
+        "content": {
+            "type": "function",
+            "function": {
+                "name": "get_widget_catalog",
+                "description": "Returns the list of widget names and short descriptions in JSON format",
+                "parameters": {
+                    "properties": {},
+                    "type": "object",
+                    "additionalProperties": false
+                },
+                "strict": true
+            }
+        }
+    },
+    {
+        "role": "tool",
+        "content": {
+            "type": "function",
+            "function": {
+                "name": "get_native_component_catalog",
+                "description": "Returns the list of available native component names and descriptions in JSON format",
+                "parameters": {
+                    "properties": {},
+                    "type": "object",
+                    "additionalProperties": false
+                },
+                "strict": true
+            }
+        }
     }
-}
+]
 
 {
     "role": "assistant",
     "content": {
-        "title": "Assets in Tracking Condition",
-        "data": [
+        "summary": "Diagrams for identifying and evaluating risks per Mexican guidelines (e.g., General Disaster Manual for civil protection and evacuation planning).",
+        "widget_tasks": [
             {
-                "key": "total_tracked",
-                "label": "Total Tracked Assets",
-                "value": 10,
-                "unit": "",
-                "change": null,
-                "changeLabel": null,
-                "icon": "inventory",
-                "color": null,
-                "details": {
-                    "description": "Assets requiring monitoring due to condition score < 4",
-                    "criticality_breakdown": {
-                        "high": 7,
-                        "medium": 1,
-                        "low": 2
-                    }
-                }
+                "widget_name": "TimelineComponent",
+                "slot_label": "Risk Identification Steps",
+                "priority": 1
             },
             {
-                "key": "high_criticality",
-                "label": "High Criticality Assets",
-                "value": 7,
-                "unit": "",
-                "change": null,
-                "changeLabel": null,
-                "icon": "priority_high",
-                "color": "red",
-                "details": {
-                    "types": [
-                        "switch",
-                        "capacitor",
-                        "voltage_regulator",
-                        "sensor",
-                        "transformer",
-                        "recloser"
-                    ],
-                    "status": "All in service"
-                }
+                "widget_name": "FlowchartComponent",
+                "slot_label": "Evaluation Process Flow",
+                "priority": 2
             },
-            "keyavg_score",
-            "label",
-            "Average Condition Score",
-            "value3.56",
-            "unit",
-            "score",
-            "change",
-            null,
-            "changeLabel",
-            null,
-            "icon",
-            "trending_down",
-            "color",
-            "orange",
-            "details",
-            "range3.3 to 3.9",
-            "recommendationMonitor closely to prevent failures"
+            {
+                "widget_name": "Card",
+                "slot_label": "Key Guidelines Summary",
+                "priority": 3
+            }
         ]
     },
-    "additional_kwargs": {
-        "parsed": null,
-        "refusal": null
-    }
-}
-
-{
-    "role": "assistant",
-    "content": "{\"title\":\"Assets in Tracking Condition\",\"columns\":[{\"header\":\"Asset ID\",\"field\":\"asset_id\",\"type\":\"string\"},{\"header\":\"Asset Type\",\"field\":\"asset_type\",\"type\":\"string\"},{\"header\":\"Condition Score\",\"field\":\"condition_score\",\"type\":\"number\"},{\"header\":\"Status\",\"field\":\"status\",\"type\":\"string\"},{\"header\":\"Criticality\",\"field\":\"criticality\",\"type\":\"string\"}],\"rows\":[{\"id\":\"GEN-5007\",\"values\":{\"asset_id\":\"GEN-5007\",\"asset_type\":\"switch\",\"condition_score\":3.4,\"status\":\"in_service\",\"criticality\":\"high\"},\"details\":{\"notes\":\"Requires monitoring due to condition score < 4\"}},\"id:G\",\"EN-5010\",\"valuesEN-5010\",\"asset_typeEN-5010\",\"capacitor\",\"condition_scoreEN-5010\",3.7,\"statusEN-5010\",\"in_service\",\"criticalityEN-5010\",\"lowEN-5010\",\"detailsEN-5010\",\"notesEN-5010\",\"Requires monitoring due to condition score < 4EN-5010EN-5013\",\"idEN-5013\",\"GEN-5013\",\"valuesEN-5013\",\"asset_idEN-5013\",\"GEN-5013\",\"asset_typeEN-5013\",\"recloser\",\"condition_scoreEN-5013\",3.3,\"statusEN-5013\",\"in_service\",\"criticalityEN-5013\",\"mediumEN-5013\",\"detailsEN-5013\",\"notesEN-5013\",\"Requires monitoring due to condition score < 4EN-5013EN-5021\",\"idEN-5021\",\"GEN-5021\",\"valuesEN-5021\",\"asset_idEN-5021\",\"GEN-5021\",\"asset_typeEN-5021\",\"capacitor\",\"condition",
     "additional_kwargs": {
         "parsed": null,
         "refusal": null

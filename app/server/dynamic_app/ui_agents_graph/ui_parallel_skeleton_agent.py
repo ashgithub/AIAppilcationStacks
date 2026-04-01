@@ -14,6 +14,9 @@ from core.dynamic_app.parallel_ui_shared import (
 )
 from core.dynamic_app.prompts import UI_PARALLEL_SHELL_INSTRUCTIONS
 from core.dynamic_app.schemas.structured_outputs import A2UIShellOutput, ParallelWidgetPlan
+from dynamic_app.ui_agents_graph.ui_parallel_fragment_merge_agent import (
+    UIParallelFragmentMergeAgent,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +66,7 @@ class UIParallelSkeletonNode:
     def __init__(self):
         self.agent_name = "ui_parallel_skeleton"
         self._shell = UIShellStructuredAgent()
+        self._fragment_builder = UIParallelFragmentMergeAgent()
 
     async def __call__(self, state: DynamicGraphState) -> DynamicGraphState:
         plan_data = state.get("parallel_widget_plan") or {}
@@ -79,4 +83,45 @@ class UIParallelSkeletonNode:
                     "I can help you explore outage, energy, infrastructure, and disaster response data."
                 )
             logger.info("Skeleton node forced guidance shell settings for no-data/out-of-scope.")
-        return {"parallel_shell_output": shell_output.model_dump()}
+        tasks = list(state.get("parallel_execution_tasks") or [])
+        if len(shell_output.section_titles) > len(tasks):
+            shell_output.section_titles = shell_output.section_titles[: len(tasks)]
+            logger.info(
+                "Skeleton section_titles trimmed to task count | section_titles=%s tasks=%s",
+                len(shell_output.section_titles),
+                len(tasks),
+            )
+        shell_components, assistant_text = self._fragment_builder._build_shell_components(
+            shell_output, tasks
+        )
+        surface_id = shell_output.surface_id or "dashboard"
+        root_id = shell_output.root_id or "root-layout"
+
+        fragment = {
+            "surface_id": surface_id,
+            "root_id": root_id,
+            "assistant_text": assistant_text or "",
+            "ordered_component_ids": [component["id"] for component in shell_components],
+            "components": shell_components,
+            "begin_rendering": {
+                "beginRendering": {
+                    "surfaceId": surface_id,
+                    "root": root_id,
+                    "styles": {
+                        "font": shell_output.style_font or "Arial",
+                        "primaryColor": shell_output.style_primary_color or "#007bff",
+                    },
+                }
+            },
+            "initial_surface_update": {
+                "surfaceUpdate": {
+                    "surfaceId": surface_id,
+                    "components": shell_components,
+                }
+            },
+        }
+
+        return {
+            "parallel_shell_output": shell_output.model_dump(),
+            "parallel_skeleton_fragment": fragment,
+        }

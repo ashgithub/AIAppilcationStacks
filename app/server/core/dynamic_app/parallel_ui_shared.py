@@ -22,6 +22,18 @@ from core.dynamic_app.schemas.structured_outputs import (
 logger = logging.getLogger(__name__)
 
 
+SUPPORTED_WIDGET_NAMES: tuple[str, ...] = (
+    "BarGraph",
+    "TimelineComponent",
+    "KpiCard",
+    "LineGraph",
+    "MapComponent",
+    "Table",
+    "Text",
+    "Card",
+)
+
+
 def slugify(value: str) -> str:
     lowered = (value or "widget").lower()
     slug = re.sub(r"[^a-z0-9]+", "-", lowered).strip("-")
@@ -42,6 +54,11 @@ def normalize_widget_name(widget_name: str) -> str:
         "card": "Card",
     }
     return aliases.get(normalized, widget_name)
+
+
+def is_supported_widget_name(widget_name: str) -> bool:
+    canonical = normalize_widget_name(widget_name)
+    return canonical in SUPPORTED_WIDGET_NAMES
 
 
 def is_no_data_or_out_of_domain(data_context: str) -> bool:
@@ -329,19 +346,28 @@ def get_widget_model_registry() -> dict[str, Any]:
 
 def build_widget_execution_tasks(plan: ParallelWidgetPlan) -> list[dict[str, Any]]:
     tasks: list[dict[str, Any]] = []
-    for index, selected in enumerate(plan.widget_tasks, start=1):
+    next_index = 1
+    for selected in plan.widget_tasks:
         canonical_name = normalize_widget_name(selected.widget_name)
+        if not is_supported_widget_name(canonical_name):
+            logger.warning(
+                "Dropping unsupported widget from execution tasks | original=%s canonical=%s",
+                selected.widget_name,
+                canonical_name,
+            )
+            continue
         slug = slugify(canonical_name)
         tasks.append(
             {
                 "widget_name": canonical_name,
                 "slot_label": selected.slot_label or canonical_name,
-                "index": index,
-                "section_id": f"section-{slug}-{index}",
-                "section_title_id": f"section-title-{slug}-{index}",
-                "widget_id": f"widget-{slug}-{index}",
+                "index": next_index,
+                "section_id": f"section-{slug}-{next_index}",
+                "section_title_id": f"section-title-{slug}-{next_index}",
+                "widget_id": f"widget-{slug}-{next_index}",
             }
         )
+        next_index += 1
 
     if not tasks:
         tasks.append(
