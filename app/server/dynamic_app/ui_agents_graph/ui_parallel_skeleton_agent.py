@@ -49,7 +49,7 @@ class UIShellStructuredAgent(BaseAgent):
         if structured is None:
             logger.warning("Shell structured extraction failed. Using default shell output.")
             return A2UIShellOutput()
-        logger.info(
+        logger.debug(
             "Shell success | root_id=%s title=%s section_titles=%s use_card_sections=%s layout=%s",
             structured.root_id,
             structured.surface_title,
@@ -82,11 +82,11 @@ class UIParallelSkeletonNode:
                 shell_output.intro_text = (
                     "I can help you explore outage, energy, infrastructure, and disaster response data."
                 )
-            logger.info("Skeleton node forced guidance shell settings for no-data/out-of-scope.")
+            logger.debug("Skeleton node forced guidance shell settings for no-data/out-of-scope.")
         tasks = list(state.get("parallel_execution_tasks") or [])
         if len(shell_output.section_titles) > len(tasks):
             shell_output.section_titles = shell_output.section_titles[: len(tasks)]
-            logger.info(
+            logger.debug(
                 "Skeleton section_titles trimmed to task count | section_titles=%s tasks=%s",
                 len(shell_output.section_titles),
                 len(tasks),

@@ -21,7 +21,6 @@ from chat_app.llm_executor import OutageEnergyLLMExecutor
 from chat_app.main_llm import OCIOutageEnergyLLM
 from dynamic_app.dynamic_agents_graph import DynamicGraph
 from dynamic_app.dynamic_graph_executor import DynamicGraphExecutor
-from mock_executors import MockDynamicExecutor, MockLLMExecutor
 from core.dynamic_app.a2a_config_provider import (
     dynamic_agent_capabilities,
     get_widget_catalog,
@@ -49,8 +48,7 @@ logger = logging.getLogger(__name__)
 @click.command()
 @click.option("--host", default="localhost")
 @click.option("--port", default=10002)
-@click.option("--mock", is_flag=True, default=False, help="Run credential-free mock executors for UI testing")
-def main(host, port, mock):
+def main(host, port):
     try:
         langfuse_client = Langfuse(
             public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
@@ -61,9 +59,6 @@ def main(host, port, mock):
         )
         
         base_url = f"http://{host}:{port}"
-
-        if mock:
-            logger.warning("Starting server in mock mode (no OCI credentials required)")
 
         # region Agent executor setup
         agent_base_url = f"{base_url}/agent"
@@ -78,7 +73,7 @@ def main(host, port, mock):
             skills=[get_widget_catalog,get_widget_schema],
         )
 
-        agent_executor = MockDynamicExecutor() if mock else DynamicGraphExecutor(
+        agent_executor = DynamicGraphExecutor(
             base_url=agent_base_url,
             langfuse_client=langfuse_client,
         )
@@ -119,7 +114,7 @@ def main(host, port, mock):
             skills=llm_skills,
         )
 
-        llm_executor = MockLLMExecutor() if mock else OutageEnergyLLMExecutor(langfuse_client)
+        llm_executor = OutageEnergyLLMExecutor(langfuse_client)
 
         llm_push_config_store = InMemoryPushNotificationConfigStore()
         llm_push_sender = BasePushNotificationSender(httpx_client=httpx_client,

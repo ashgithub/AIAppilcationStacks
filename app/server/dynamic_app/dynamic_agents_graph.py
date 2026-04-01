@@ -69,9 +69,8 @@ class DynamicGraph:
         self,
         base_url: str,
         langfuse_client: Langfuse | None = None,
-        inline_catalog: list = None,
     ):
-        self._inline_catalog = inline_catalog or []
+        self.base_url = base_url
         self.langfuse_client = langfuse_client
         self._backend_orchestrator = BackendOrchestratorAgent()
         self._suggestions_llm = SuggestionsReponseLLM()
@@ -83,14 +82,6 @@ class DynamicGraph:
         }
         self._out_query = SUGGESTION_QUERY
         self.langfuse_tracing_provider = LangfuseTracingProvider(langfuse_client=langfuse_client)
-
-    @property
-    def inline_catalog(self):
-        return self._inline_catalog
-
-    @inline_catalog.setter
-    def inline_catalog(self, value):
-        self._inline_catalog = value or []
 
     #region Graph Nodes
     async def aggregator(self,state:DynamicGraphState):
@@ -476,8 +467,8 @@ class DynamicGraph:
                     }
 
             selected_final_response = final_response_content or assistant_summary or "Interface generated successfully."
-            logger.info(
-                "Final response selection | ai_messages=%s selected_len=%s",
+            logger.debug(
+                "Final response selected | ai_messages=%s selected_len=%s",
                 ai_message_count,
                 len(selected_final_response or ""),
             )
@@ -513,26 +504,3 @@ class DynamicGraph:
 #endregion
 
 
-#region Testing
-async def main():
-    langfuse_client = Langfuse(
-        public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
-        secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
-        host=os.getenv("LANGFUSE_HOST"),
-    )
-    graph = DynamicGraph(base_url="http://localhost:8000", langfuse_client=langfuse_client)
-
-    await graph.build_graph()
-
-    async for event in graph.call_dynamic_ui_graph("Show me a dashboard with some charts and graphs about energy usage", "1234"):
-        if event['is_task_complete']:
-            print(f"\nFinal event: {event}")
-        else:
-            if len(event['updates']) < 200:
-                print(event)
-            else:
-                print(event['updates'][:200])
-
-if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())

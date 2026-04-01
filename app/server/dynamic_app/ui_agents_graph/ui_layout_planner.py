@@ -41,13 +41,13 @@ class UIParallelOrchestratorAgent(BaseAgent):
 
     async def generate_plan(self, state: DynamicGraphState) -> ParallelWidgetPlan:
         data_context = str(state["messages"][-1].content if state["messages"] else "")
-        logger.info(
+        logger.debug(
             "Planner start | data_context_len=%s no_data_or_oos=%s",
             len(data_context),
             is_no_data_or_out_of_domain(data_context),
         )
         if is_no_data_or_out_of_domain(data_context):
-            logger.info("Planner using guidance-mode static plan.")
+            logger.debug("Planner using guidance-mode static plan.")
             return ParallelWidgetPlan(
                 summary="Guidance mode with native components.",
                 widget_tasks=[
@@ -150,7 +150,7 @@ class UIParallelLayoutPlannerNode:
         data_context = str(state["messages"][-1].content if state["messages"] else "")
         plan = await self._planner.generate_plan(state)
         tasks = build_widget_execution_tasks(plan)
-        logger.info(
+        logger.debug(
             "Planner node output | tasks=%s widgets=%s",
             len(tasks),
             [task["widget_name"] for task in tasks],

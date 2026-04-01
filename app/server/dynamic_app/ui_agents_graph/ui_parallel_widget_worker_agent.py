@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import Any
 
@@ -144,7 +143,7 @@ class UIWidgetStructuredAgent(BaseAgent):
                 response = await agent.ainvoke({"messages": [HumanMessage(content=prompt)]})
                 structured = extract_structured_result(response, model_cls)
                 if structured is not None:
-                    logger.info(
+                    logger.debug(
                         "Widget success | widget=%s model=%s attempt=%s",
                         canonical_name,
                         model_cls.__name__,
@@ -156,7 +155,7 @@ class UIWidgetStructuredAgent(BaseAgent):
                 candidate = parse_json_loose(raw) if isinstance(raw, str) else raw
                 validated, validation_error = self._validate_widget_output(model_cls, candidate)
                 if validated is not None:
-                    logger.info(
+                    logger.debug(
                         "Widget success after loose parse | widget=%s model=%s attempt=%s",
                         canonical_name,
                         model_cls.__name__,
@@ -193,7 +192,7 @@ class UIWidgetStructuredAgent(BaseAgent):
         )
         if recovered is not None:
             self.last_generation_note = "recovered_after_malformed_payload"
-            logger.info(
+            logger.debug(
                 "Widget recovered via general post-retry check | widget=%s model=%s",
                 canonical_name,
                 model_cls.__name__,
@@ -255,7 +254,7 @@ class UIParallelWidgetSlotNode:
                     }
                 ]
                 widget_contents = []
-            logger.info(
+            logger.debug(
                 "Widget slot fragment built | slot=%s widget=%s components=%s data_entries=%s",
                 self.slot_index,
                 task.get("widget_name"),
@@ -297,22 +296,3 @@ class UIParallelWidgetSlotNode:
             }
 
 
-class UIParallelWidgetWorkerNode:
-    """Compatibility node that gathers all widget slots at once."""
-
-    def __init__(self):
-        self.agent_name = "ui_parallel_widget_worker"
-        self._slot_nodes = [UIParallelWidgetSlotNode(index) for index in range(1, MAX_PARALLEL_WIDGETS + 1)]
-
-    async def __call__(self, state: DynamicGraphState) -> DynamicGraphState:
-        results = await asyncio.gather(
-            *[slot_node(state) for slot_node in self._slot_nodes],
-            return_exceptions=True,
-        )
-        merged: dict[str, Any] = {}
-        for result in results:
-            if isinstance(result, Exception):
-                logger.warning("Compatibility widget worker slot failed with exception: %s", result)
-                continue
-            merged.update(result)
-        return merged
