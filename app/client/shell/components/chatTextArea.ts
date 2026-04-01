@@ -129,64 +129,18 @@ export class ChatInput extends LitElement {
       z-index: 2;
     }
 
-    .quick-toggle {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--space-xs);
-      min-width: calc(var(--space-2xl) + var(--space-lg));
-      height: var(--composer-control-height);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-sm);
-      background: var(--surface-secondary);
-      color: var(--agent-accent);
-      font-family: var(--font-family);
-      font-size: var(--font-size-sm);
-      font-weight: var(--font-weight-medium);
-      padding: 0 var(--space-sm);
-      cursor: pointer;
-      transition: background var(--transition-normal), border-color var(--transition-normal);
-    }
-
-    .quick-toggle .label {
-      color: var(--text-secondary);
-      font-size: var(--font-size-sm);
-    }
-
-    .quick-toggle svg {
-      width: var(--font-size-sm);
-      height: var(--font-size-sm);
-    }
-
-    .quick-toggle:hover {
-      background: var(--hover-overlay);
-      border-color: var(--border-secondary);
-    }
-
-    .quick-toggle.active {
-      background: var(--active-overlay);
-      border-color: var(--agent-accent);
-    }
-
     .input-wrap {
       flex: 1;
       display: flex;
       align-items: center;
       height: var(--composer-control-height);
-      border: 1px solid transparent;
-      border-radius: var(--radius-sm);
       padding: 0 var(--space-xs);
-      background: transparent;
-      transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
-    }
-
-    .input-wrap:focus-within {
-      border-color: var(--focus-ring);
-      box-shadow: 0 0 0 1px var(--focus-ring);
     }
 
     input {
       flex: 1;
       height: 100%;
+      padding: 0;
       font-size: var(--font-size-sm);
       border: none;
       background: transparent;
@@ -214,8 +168,8 @@ export class ChatInput extends LitElement {
       gap: var(--space-xs);
       min-width: calc(var(--space-2xl) + var(--space-sm));
       height: var(--composer-control-height);
-      border-radius: var(--radius-sm);
       border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
       background: var(--surface-secondary);
       color: var(--text-primary);
       font-family: var(--font-family);
@@ -224,30 +178,30 @@ export class ChatInput extends LitElement {
       line-height: var(--line-height-tight);
       padding: 0 var(--space-sm);
       cursor: pointer;
-      transition: background var(--transition-normal), border-color var(--transition-normal), color var(--transition-normal);
+      transition: background-color var(--transition-normal), color var(--transition-normal), transform var(--transition-fast);
     }
 
     .target-btn:hover {
       background: var(--hover-overlay);
-      border-color: var(--border-secondary);
     }
 
     .target-btn.active[data-target="chat"] {
       background: var(--oracle-primary);
-      border-color: var(--oracle-primary);
       color: var(--neutral-900);
     }
 
     .target-btn.active[data-target="both"] {
       background: var(--chat-bg);
-      border-color: var(--chat-bg-secondary);
       color: var(--neutral-white);
     }
 
     .target-btn.active[data-target="agent"] {
-      border-color: var(--agent-accent);
       color: var(--agent-accent);
       background: var(--module-agent-active);
+    }
+
+    .target-btn:active {
+      transform: translateY(1px);
     }
 
     .target-btn svg {
@@ -256,7 +210,6 @@ export class ChatInput extends LitElement {
     }
 
     .target-btn:focus-visible,
-    .quick-toggle:focus-visible,
     .row-action:focus-visible {
       outline: none;
       box-shadow: 0 0 0 1px var(--focus-ring);
@@ -293,7 +246,7 @@ export class ChatInput extends LitElement {
       align-items: center;
       justify-content: space-between;
       gap: var(--space-sm);
-      padding: var(--space-sm);
+      padding: var(--space-sm) var(--space-sm);
       background: var(--surface-primary);
       border-bottom: 1px solid var(--border-subtle);
       z-index: 1;
@@ -319,6 +272,8 @@ export class ChatInput extends LitElement {
       border: 1px solid var(--border-subtle);
       padding: 0 var(--space-xs);
       font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-medium);
+      line-height: var(--line-height-tight);
       white-space: nowrap;
     }
 
@@ -328,14 +283,17 @@ export class ChatInput extends LitElement {
       list-style: none;
       max-height: 42vh;
       overflow-y: auto;
+      overflow-x: hidden;
+      width: auto;
     }
 
     .suggestion-row {
-      display: grid;
-      grid-template-columns: calc(var(--space-xl) + var(--space-xs)) minmax(0, 1fr) auto;
+      display: flex;
       align-items: center;
+      flex-wrap: nowrap;
       gap: var(--space-sm);
-      width: calc(100% - (2 * var(--space-xs)));
+      width: calc(100% - (6 * var(--space-xs)));
+      max-width: calc(100% - (6 * var(--space-xs)));
       margin: 0 var(--space-xs) var(--space-xs);
       padding: var(--space-xs) var(--space-sm);
       border: 1px solid transparent;
@@ -344,17 +302,48 @@ export class ChatInput extends LitElement {
       color: inherit;
       text-align: left;
       cursor: pointer;
-      transition: background var(--transition-fast), border-color var(--transition-fast);
+      position: relative;
+      transition: background-color var(--transition-normal), border-color var(--transition-normal), transform var(--transition-fast);
+    }
+
+    .suggestion-row::after {
+      content: "";
+      position: absolute;
+      left: var(--space-sm);
+      right: var(--space-sm);
+      bottom: calc(-1 * var(--space-xs));
+      border-bottom: 1px solid var(--border-subtle);
     }
 
     .suggestion-row:hover {
       background: var(--hover-overlay);
       border-color: var(--border-subtle);
+      transform: translateY(-1px);
     }
 
     .suggestion-row.active {
       background: var(--module-agent-active);
       border-color: var(--agent-border);
+    }
+
+    .suggestion-row.active::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: var(--space-xs);
+      bottom: var(--space-xs);
+      width: 1px;
+      background: var(--agent-accent);
+      border-radius: var(--radius-full);
+    }
+
+    .suggestion-row:active {
+      background: var(--active-overlay);
+      transform: translateY(0);
+    }
+
+    .suggestion-row:last-child::after {
+      content: none;
     }
 
     .icon-box {
@@ -372,14 +361,15 @@ export class ChatInput extends LitElement {
     .icon-box svg {
       width: var(--font-size-base);
       height: var(--font-size-base);
+      flex-shrink: 0;
     }
 
     .row-title {
       color: var(--text-primary);
       font-size: var(--font-size-base);
-      font-weight: var(--font-weight-semibold);
+      font-weight: var(--font-weight-bold);
       line-height: var(--line-height-tight);
-      margin-bottom: var(--space-xs);
+      margin-bottom: 0;
     }
 
     .row-description {
@@ -389,10 +379,40 @@ export class ChatInput extends LitElement {
       font-weight: var(--font-weight-normal);
     }
 
+    .row-copy {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .row-title,
+    .row-description {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .row-title {
+      white-space: nowrap;
+    }
+
+    .row-description {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
     .row-actions {
       display: inline-flex;
       align-items: center;
       gap: var(--space-xs);
+      flex-shrink: 0;
+      margin-left: auto;
+      padding-left: var(--space-xs);
+      border-left: 1px solid var(--border-subtle);
+      white-space: nowrap;
     }
 
     .row-action {
@@ -406,7 +426,7 @@ export class ChatInput extends LitElement {
       font-family: var(--font-family);
       font-size: var(--font-size-sm);
       font-weight: var(--font-weight-medium);
-      transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+      transition: background-color var(--transition-normal), color var(--transition-normal), transform var(--transition-fast);
     }
 
     .row-action:hover {
@@ -420,6 +440,10 @@ export class ChatInput extends LitElement {
 
     .row-action[data-target="agent"] {
       color: var(--agent-accent);
+    }
+
+    .row-action:active {
+      transform: translateY(1px);
     }
 
     .empty-state {
@@ -437,33 +461,31 @@ export class ChatInput extends LitElement {
         flex-wrap: wrap;
       }
 
-      .quick-toggle {
-        min-width: calc(var(--space-2xl) + var(--space-sm));
-      }
-
       .input-wrap {
-        order: 2;
         width: 100%;
       }
 
       .send-targets {
-        order: 3;
         width: 100%;
-        justify-content: space-between;
+        justify-content: flex-end;
       }
 
       .target-btn {
-        flex: 1;
+        flex: 0 1 auto;
         min-width: 0;
       }
 
       .suggestion-row {
-        grid-template-columns: calc(var(--space-xl) + var(--space-xs)) minmax(0, 1fr);
+        flex-wrap: wrap;
+        gap: var(--space-xs);
       }
 
       .row-actions {
-        grid-column: 1 / -1;
+        margin-left: 0;
+        width: 100%;
         justify-content: flex-end;
+        border-left: none;
+        padding-left: 0;
       }
 
       .row-title {
@@ -479,7 +501,6 @@ export class ChatInput extends LitElement {
       .drawer,
       .suggestion-row,
       .target-btn,
-      .quick-toggle,
       .row-action {
         transition: none;
       }
@@ -516,18 +537,10 @@ export class ChatInput extends LitElement {
     return `quick-option-${index}`;
   }
 
-  private get inputElement(): HTMLInputElement | null {
-    return this.renderRoot.querySelector<HTMLInputElement>("#chat-composer-input");
-  }
-
-  private openDrawer({ focusInput = false }: { focusInput?: boolean } = {}) {
+  private openDrawer() {
     this.#drawerOpen = true;
     if (this.filteredSuggestions.length > 0 && this.#activeSuggestionIndex < 0) {
       this.#activeSuggestionIndex = 0;
-    }
-
-    if (focusInput) {
-      this.updateComplete.then(() => this.inputElement?.focus());
     }
   }
 
@@ -635,14 +648,6 @@ export class ChatInput extends LitElement {
     this.sendQuery(this.#inputValue, this.#defaultTarget);
   }
 
-  private handleQuickToggle() {
-    if (this.#drawerOpen) {
-      this.closeDrawer();
-      return;
-    }
-    this.openDrawer({ focusInput: true });
-  }
-
   private handleTargetClick(target: SendTarget) {
     this.#defaultTarget = target;
     this.sendQuery(this.#inputValue, target);
@@ -670,7 +675,19 @@ export class ChatInput extends LitElement {
     }
   }
 
-  private renderTargetButton(target: SendTarget, label: string, withIcon = false) {
+  private renderTargetIcon(target: SendTarget) {
+    switch (target) {
+      case "chat":
+        return svg`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg>`;
+      case "both":
+        return svg`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="8" rx="1"></rect><rect x="13" y="3" width="8" height="8" rx="1"></rect><rect x="8" y="13" width="8" height="8" rx="1"></rect></svg>`;
+      case "agent":
+      default:
+        return svg`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m13 2-9 12h6l-1 8 9-12h-6z"></path></svg>`;
+    }
+  }
+
+  private renderTargetButton(target: SendTarget, label: string) {
     const isActive = this.#defaultTarget === target;
     return html`
       <button
@@ -680,9 +697,7 @@ export class ChatInput extends LitElement {
         @click=${() => this.handleTargetClick(target)}
         aria-pressed=${isActive ? "true" : "false"}
       >
-        ${withIcon
-          ? html`<span aria-hidden="true">${this.renderIcon("report")}</span>`
-          : nothing}
+        <span aria-hidden="true">${this.renderTargetIcon(target)}</span>
         ${label}
       </button>
     `;
@@ -719,7 +734,7 @@ export class ChatInput extends LitElement {
                       @click=${() => this.handleRowSend(item)}
                     >
                       <span class="icon-box" aria-hidden="true">${this.renderIcon(item.icon)}</span>
-                      <span>
+                      <span class="row-copy">
                         <div class="row-title">${item.title}</div>
                         <div class="row-description">${item.description}</div>
                       </span>
@@ -771,16 +786,6 @@ export class ChatInput extends LitElement {
         </div>
 
         <div class="composer">
-          <button
-            type="button"
-            class="quick-toggle ${this.#drawerOpen ? "active" : ""}"
-            @click=${this.handleQuickToggle}
-            aria-pressed=${this.#drawerOpen ? "true" : "false"}
-          >
-            <span aria-hidden="true">${this.renderIcon("status")}</span>
-            <span class="label">Quick</span>
-          </button>
-
           <div class="input-wrap">
             <input
               id="chat-composer-input"
@@ -801,7 +806,7 @@ export class ChatInput extends LitElement {
           </div>
 
           <div class="send-targets">
-            ${this.renderTargetButton("chat", "Chat", true)}
+            ${this.renderTargetButton("chat", "Chat")}
             ${this.renderTargetButton("both", "Both")}
             ${this.renderTargetButton("agent", "Agent")}
           </div>
