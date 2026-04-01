@@ -2,16 +2,10 @@
 
 from __future__ import annotations
 
-import json
 import logging
 from typing import Any
 
-from langchain.messages import AIMessage
-
-from core.dynamic_app.dynamic_struct import DynamicGraphState
 from core.dynamic_app.parallel_ui_shared import (
-    get_widget_model_registry,
-    normalize_widget_name,
     slugify,
     to_a2ui_value_entry,
 )
@@ -31,33 +25,10 @@ logger = logging.getLogger(__name__)
 
 
 class UIParallelFragmentMergeAgent:
-    """Compose shell and widget fragments into a final A2UI payload."""
+    """Build shell and widget A2UI fragments for streaming nodes."""
 
     def __init__(self):
         self.agent_name = "parallel_structured_ui_assembly"
-        self._model_registry = get_widget_model_registry()
-
-    def _widget_for_task(self, task: dict[str, Any], outputs: list[dict[str, Any]]) -> Any:
-        task_index = task.get("index")
-        for output in outputs:
-            if output.get("task_index") == task_index:
-                payload = output.get("payload")
-                if payload is None:
-                    return None
-                widget_name = normalize_widget_name(str(task.get("widget_name", "")))
-                model_cls = self._model_registry.get(widget_name)
-                if model_cls is None:
-                    return payload
-                try:
-                    return model_cls.model_validate(payload)
-                except Exception:
-                    logger.warning(
-                        "Widget payload validation failed at merge for widget=%s task_index=%s",
-                        widget_name,
-                        task_index,
-                    )
-                    return None
-        return None
 
     def _build_shell_components(
         self, shell_output: A2UIShellOutput, tasks: list[dict[str, Any]]
@@ -448,116 +419,3 @@ class UIParallelFragmentMergeAgent:
                 }
             )
         return components, contents
-
-    async def __call__(self, state: DynamicGraphState) -> DynamicGraphState:
-        tasks = list(state.get("parallel_execution_tasks") or [])
-        shell_output_data = state.get("parallel_shell_output") or {}
-        shell_output = A2UIShellOutput.model_validate(shell_output_data)
-        widget_outputs = list(state.get("parallel_widget_outputs") or [])
-
-        shell_components, assistant_text = self._build_shell_components(shell_output, tasks)
-        logger.info(
-            "Shell components built | component_count=%s assistant_text_len=%s",
-            len(shell_components),
-            len(assistant_text or ""),
-        )
-
-        shell_components_by_id = {component["id"]: component for component in shell_components}
-        ordered_component_ids = [component["id"] for component in shell_components]
-        merged_data_contents: list[dict[str, Any]] = []
-        widget_component_batches: list[list[dict[str, Any]] | None] = []
-
-        for task in tasks:
-            widget_output = self._widget_for_task(task, widget_outputs)
-            widget_components, widget_contents = self._build_widget_payload(task, widget_output)
-            logger.info(
-                "Widget payload built | widget=%s components=%s data_entries=%s",
-                task.get("widget_name"),
-                len(widget_components),
-                len(widget_contents),
-            )
-            widget_component_batches.append(widget_components)
-            merged_data_contents.extend(widget_contents)
-
-        surface_id = shell_output.surface_id or "dashboard"
-        root_id = shell_output.root_id or "root-layout"
-        messages_payload: list[dict[str, Any]] = [
-            {
-                "beginRendering": {
-                    "surfaceId": surface_id,
-                    "root": root_id,
-                    "styles": {
-                        "font": shell_output.style_font or "Arial",
-                        "primaryColor": shell_output.style_primary_color or "#007bff",
-                    },
-                }
-            }
-        ]
-
-        progressive_state = {
-            component_id: shell_components_by_id[component_id]
-            for component_id in ordered_component_ids
-        }
-        messages_payload.append(
-            {
-                "surfaceUpdate": {
-                    "surfaceId": surface_id,
-                    "components": list(progressive_state.values()),
-                }
-            }
-        )
-
-        for widget_components in widget_component_batches:
-            if not widget_components:
-                continue
-            touched = False
-            for component in widget_components:
-                component_id = component["id"]
-                if component_id not in progressive_state:
-                    ordered_component_ids.append(component_id)
-                progressive_state[component_id] = component
-                touched = True
-            if touched:
-                messages_payload.append(
-                    {
-                        "surfaceUpdate": {
-                            "surfaceId": surface_id,
-                            "components": [
-                                progressive_state[component_id]
-                                for component_id in ordered_component_ids
-                                if component_id in progressive_state
-                            ],
-                        }
-                    }
-                )
-
-        if merged_data_contents:
-            messages_payload.append(
-                {
-                    "dataModelUpdate": {
-                        "surfaceId": surface_id,
-                        "path": "/",
-                        "contents": merged_data_contents,
-                    }
-                }
-            )
-        else:
-            logger.warning(
-                "No merged data contents were generated for this response | tasks=%s",
-                len(tasks),
-            )
-
-        content = (
-            f"{assistant_text}\n---a2ui_JSON---\n"
-            f"{json.dumps(messages_payload, ensure_ascii=False)}"
-        )
-        logger.info(
-            "Parallel assembler final payload | messages=%s data_entries=%s surface_id=%s root_id=%s",
-            len(messages_payload),
-            len(merged_data_contents),
-            surface_id,
-            root_id,
-        )
-        return {
-            "messages": state["messages"] + [AIMessage(content=content, name=self.agent_name)]
-        }
