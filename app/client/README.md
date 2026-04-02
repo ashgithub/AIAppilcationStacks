@@ -1,64 +1,108 @@
-# Client App (Lit + A2A/A2UI)
+# Client Application (Lit + A2UI)
 
-This folder contains the frontend shell (`Lit`) for the application and scripts to run it alone or together with the Python server.
+This folder contains the frontend workspace for the app shell and the scripts used to run it standalone or together with the Python backend.
 
 ## Prerequisites
 
-- Node.js 20+ (recommended)
+- Node.js 20+
 - npm
-- Optional for full demo: `uv` (used to run `app/server`)
+- Optional for full stack demo: `uv` (used by `app/server`)
 
-## Quick Start (Client Only)
+## Run Modes
 
-From this folder (`app/client`):
+From `app/client`:
 
 ```bash
 npm install
+```
+
+Client only:
+
+```bash
 npm run serve:shell
 ```
 
-Then open the Vite dev URL (typically `http://localhost:5173`).
-
-## Full Demo (Client + Server)
-
-From this folder (`app/client`):
+Full demo (client + server):
 
 ```bash
-npm install
 npm run demo:edge
 ```
 
-This starts:
+## NPM Scripts (root `app/client/package.json`)
 
-- `SHELL`: frontend (`npm run serve:shell`)
-- `REST`: backend (`uv run __main__.py` from `app/server`)
+- `serve:shell`: starts Vite dev server in `shell` workspace (`cd shell && npm run dev`)
+- `serve:agent:edge`: starts backend from `app/server` (`uv run __main__.py`)
+- `demo:edge`: runs shell + backend in parallel via `concurrently`
 
-Default backend URL expected by the client is `http://localhost:10002`.
+## Client Architecture
 
-## Available Scripts
+Main entrypoint is [`shell/app.ts`](./shell/app.ts). It renders three modules that can be toggled independently:
 
-- `npm run serve:shell`: runs the Lit shell in dev mode (`app/client/shell`)
-- `npm run serve:agent:edge`: runs the Python server from `app/server`
-- `npm run demo:edge`: runs shell + server in parallel
+- `Traditional` (`/traditional` endpoints)
+- `Chat` (`/llm`)
+- `Agent` (`/agent`)
 
-## What You See in the UI
+Message routing and session handling are centralized in [`shell/services/a2ui-router.ts`](./shell/services/a2ui-router.ts), which dispatches normalized streaming events to modules.
 
-The shell renders three modules (toggles in the header):
+Default backend origin is defined in [`shell/services/server-endpoints.ts`](./shell/services/server-endpoints.ts) as:
 
-- `Traditional` -> `http://localhost:10002/traditional`
-- `Chat` -> `http://localhost:10002/llm`
-- `Agent` -> `http://localhost:10002` / `http://localhost:10002/agent`
+`http://localhost:10002`
 
-## Project Structure
+## Folder Structure
 
-- [shell/app.ts](./shell/app.ts): main app container and module toggles
-- [shell/components](./shell/components): UI modules (`main_traditional`, `main_chat`, `main_agent`, input/config components)
-- [shell/services](./shell/services): A2UI client/router and session routing
-- [shell/middleware](./shell/middleware): Vite middleware for `/a2a` proxy/event handling
-- [shell/configs](./shell/configs): starter configs for module behavior and payloads
-- [shell/ui/custom-components](./shell/ui/custom-components): reusable A2UI-rendered components
+```text
+app/client
+|- package.json                # workspace-level scripts (serve + demo)
+|- README.md
+`- shell                       # Lit app workspace
+   |- app.ts                   # top-level container and module toggles
+   |- index.html
+   |- vite.config.ts           # Vite config + middleware plugin registration
+   |- package.json             # shell-specific build/dev/test scripts (Wireit)
+   |- components               # major UI modules and shared shell components
+   |  |- main_traditional.ts
+   |  |- main_chat.ts
+   |  |- main_agent.ts
+   |  |- chatTextArea.ts
+   |  |- status_drawer.ts
+   |  |- stat_bar.ts
+   |  `- config_canvas.ts
+   |- configs                  # app/module configuration models + defaults
+   |  |- types.ts
+   |  |- agent_config.ts
+   |  |- chat_config.ts
+   |  |- outage_config.ts
+   |  |- traditional_config.ts
+   |  |- restaurant.ts
+   |  `- quick_queries.json
+   |- middleware               # Vite middleware for A2A/A2UI request handling
+   |  |- index.ts
+   |  `- a2a.ts
+   |- services                 # transport, routing, normalization, formatting
+   |  |- a2ui-router.ts
+   |  |- client.ts
+   |  |- server-endpoints.ts
+   |  |- stream-event-normalizer.ts
+   |  |- stream-status.ts
+   |  `- number-format.ts
+   |- ui                       # UI exports and custom A2UI components
+   |  |- ui.ts
+   |  |- snackbar.ts
+   |  `- custom-components
+   |- theme                    # shared design tokens + theme definitions
+   |- events                   # typed custom events used across components
+   |- types                    # shared client-side types
+   `- public                   # static assets (e.g., favicon)
+```
 
-## Notes
+## Key Integration Points
 
-- Scripts are written for PowerShell/Windows-first workflows.
-- If your server runs on a different host/port, update hardcoded URLs in `shell/components` and `shell/services`.
+- A2A middleware endpoint: `shell/middleware/a2a.ts` handles `/a2a` POST traffic in dev.
+- Component registration: `shell/ui/custom-components/register-components.ts`.
+- Config contracts: `shell/configs/types.ts`.
+- Quick query presets: `shell/configs/quick_queries.json`.
+
+## Team Notes
+
+- This workspace is Windows/PowerShell-friendly by default (`cd` style scripts in `package.json`).
+- If backend host/port changes, update [`shell/services/server-endpoints.ts`](./shell/services/server-endpoints.ts).
