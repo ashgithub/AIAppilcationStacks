@@ -7,6 +7,7 @@ Task:
 - Select 1-4 widgets/components that best present the provided data.
 - Prefer visual widgets when meaningful data exists.
 - Use concise slot labels for each widget section.
+- Do not compute metrics or rewrite datasets; your role is planning/routing only.
 - Return ONLY structured output.
 
 Decision Rules (mirror production orchestrator behavior):
@@ -14,9 +15,10 @@ Decision Rules (mirror production orchestrator behavior):
 - ALWAYS call get_native_component_catalog.
 - Use ONLY these widget names: BarGraph, TimelineComponent, KpiCard, LineGraph, MapComponent, Table, Text, Card.
 - Never invent new widget/component names (for example, do not output FlowchartComponent or custom types).
-- For data-rich requests, prefer combinations like chart + table + KPI.
+- For trends, tendencies, swings prefer linegraphs KPI cards and support widgets if required.
+- For data-rich requests, prefer combinations like chart/line chart + table + KPI.
 - For procedure/explanation/sequential information, always include TimelineComponent.
-- For location/coordinate data, prioritize MapComponent + supporting visualization.
+- For location/coordinate/zone data, prioritize MapComponent + supporting visualization.
 - For no-data / out-of-domain / inappropriate requests, use only Text and Card.
 - Keep the plan practical for parallel assembly and streaming.
 """
@@ -81,7 +83,9 @@ GLOBAL RULES:
 - Never return prose, markdown, explanations, or JSON outside the target schema.
 - Keep values realistic and grounded in the provided context.
 - Prefer informative details that improve UI drill-down behavior.
+- Treat the layout planner as a router only: you are responsible for deriving calculations, grouping, and summaries needed by your widget.
 - Do not invent unavailable critical facts; when uncertain, use neutral placeholders or lower-confidence detail text.
+- Do not emit NaN/Infinity/null-like numeric values for display metrics. Use finite numbers only.
 
 NO-DATA / GUIDANCE MODE:
 - If context indicates no data available or out-of-domain, adapt gracefully:
@@ -94,7 +98,9 @@ WIDGET-LEVEL QUALITY EXPECTATIONS:
   - details should include trend/driver/impact style keys when context supports them.
 - KpiCard:
   - each item needs stable key, label, value; add detail maps for interpretation.
+  - each item should include an icon
   - use change/changeLabel only when they are contextually justified.
+  - never output change as NaN, "NaN", or non-numeric text.
 - LineGraph:
   - labels and all series values must align in length.
   - details should map to label index and describe signal/trend/anomalies.
@@ -102,7 +108,8 @@ WIDGET-LEVEL QUALITY EXPECTATIONS:
   - provide coherent marker coordinates and practical details (status/priority/impact).
 - Table:
   - columns must match row value fields.
-  - include row-level details for downstream inspection.
+  - include row-level details for downstream inspection; never leave all row details empty.
+  - avoid id-only rows; include meaningful business/context fields.
 - TimelineComponent:
   - ensure chronological readability and actionable event descriptions.
   - include details (impact, stakeholders, follow-up) when available.
@@ -117,13 +124,20 @@ SAFETY / SCOPE:
 """
 
 
-def build_widget_structured_prompt(widget_name: str, data_context: str) -> str:
+def build_widget_structured_prompt(
+    widget_name: str,
+    data_context: str,
+    slot_label: str | None = None,
+    planner_summary: str | None = None,
+) -> str:
     """Return widget-specific instructions for structured generation."""
+    section_line = f"Section focus: {slot_label}\n" if slot_label else ""
+    summary_line = f"Planner summary: {planner_summary}\n" if planner_summary else ""
     return f"""
 Generate structured output for exactly one widget.
 
 Widget: {widget_name}
-Data context:
+{section_line}{summary_line}Data context:
 {data_context}
 
 Requirements:
@@ -131,8 +145,11 @@ Requirements:
 - Include rich contextual details when available, but avoid unnecessary complexity.
 - Keep output compatible with A2UI valueMap/valueString/valueNumber style conversion.
 - Ensure fields align with the requested widget schema and data cardinality constraints.
+- Derive useful computed values from the provided raw context when needed for this widget.
 - Return valid JSON-compatible values only (no flattened key/value token lists).
 - Never truncate JSON or cut off strings.
 - For arrays of objects (for example KPI `data` or Table `rows`), each element must be a full object.
+- Never emit NaN/Infinity or string placeholders like "NaN" in numeric fields.
+- For Table rows, provide non-empty `details` with extra context per row whenever possible.
 - Return ONLY structured output for the requested widget type.
 """

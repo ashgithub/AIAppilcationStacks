@@ -5,6 +5,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from dynamic_app.back_agents_graph.rag_agent import semantic_search
 from dynamic_app.back_agents_graph.nl2graph_agent import call_graphDB
+from chat_app.nl2sql_agent import call_SQL_DB
 from core.gen_ai_provider import GenAIProvider
 from core.dynamic_app.dynamic_struct import DynamicGraphState
 from core.dynamic_app.prompts import BACKEND_ORCHESTRATOR_INSTRUCTIONS
@@ -29,7 +30,7 @@ class BackendOrchestratorAgent:
 
     def _build_agent(self):
         """Build the agent with worker tools."""
-        tools = [call_graphDB, semantic_search]
+        tools = [call_graphDB, semantic_search, call_SQL_DB]
 
         return create_agent(
             model=self._client,

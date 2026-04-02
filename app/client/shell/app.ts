@@ -224,7 +224,10 @@ export class AppContainer extends LitElement {
             </dynamic-module>
             ` : ''}
         </div>
-        <chat-input></chat-input>
+        <chat-input
+          .showingChat=${this.showingChat}
+          .showingAgent=${this.showingAgent}
+        ></chat-input>
       </div>
     `
   }

@@ -14,7 +14,26 @@ class SuggestionsReponseLLM:
 
     def __init__(self):
         self._suggestion_out = self._build_suggestion_model()
-        self._out_query = "Based on the given context, generate a list of at least 1-3 suggested follow up questions that the user might want to ask next. These should be relevant to the information provided and help the user explore the topic further. Always provide suggestions, even if the information is limited. Consider questions will be shown in UI, in buttons, so build them short or clean to show good on UI."
+        self._out_query = """You generate follow-up question suggestions for a power outage analytics app UI.
+
+AVAILABLE DATA CONTEXT (do not suggest outside this scope):
+- GRAPH DATA: outages, circuits, substations, assets, customers served, work orders, condition scores, capacities, voltage/network infrastructure
+- RAG DATA: EPA outage actions, FEMA outage assistance guidance, Mexican disaster manual procedures
+
+SUGGESTION RULES:
+- Return 1-3 short, button-friendly follow-up questions
+- Keep each suggestion specific, actionable, and easy to visualize
+- Prefer suggestions that can trigger rich UI widgets (KPI cards, table, bar graph, line graph, map, timeline)
+- Include at least one trend/time-oriented question when possible to encourage line graphs
+- If context is DB-heavy, prioritize comparisons, rankings, distributions, and trends over time
+- If context is RAG-heavy, prioritize procedural sequencing, responsibilities, and timeline-style questions
+- If context is mixed, propose at least one question that combines infrastructure data plus guideline/manual context
+- Avoid generic prompts (for example: "tell me more")
+- Never suggest unrelated domains (sports, finance, entertainment, personal life, etc.)
+
+OUTPUT:
+- Provide only the structured list of suggested questions
+"""
 
     def _build_suggestion_model(self):
         genai_provider = GenAIProvider()

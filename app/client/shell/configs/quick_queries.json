@@ -1,0 +1,128 @@
+[
+  {
+    "id": "q01-rag-epa-actions",
+    "title": "What are the EPA recommended actions for power outages in the US?",
+    "description": "Text response with EPA guidelines from RAG and timeline widget for actions to follow",
+    "icon": "report",
+    "tags": ["RAG", "Timeline", "Text"]
+  },
+  {
+    "id": "q02-rag-immediate-steps",
+    "title": "What immediate steps should be taken during a widespread power outage according to US guidelines?",
+    "description": "Procedural response, uses timeline widget for steps and times and text to show data retrieved.",
+    "icon": "status",
+    "tags": ["RAG", "Timeline", "Text"]
+  },
+  {
+    "id": "q03-rag-communication-manuals",
+    "title": "How do disaster response manuals address communication during outages?",
+    "description": "Shows the protocols on text and the communication phases on a timeline.",
+    "icon": "shield",
+    "tags": ["RAG", "Text", "Timeline"]
+  },
+  {
+    "id": "q04-rag-fema-timeline",
+    "title": "Which is the visualization of FEMA assistance steps for electrical outages?",
+    "description": "Mostly explanation text about assistance steps, sometimes a timeline for sequence.",
+    "icon": "status",
+    "tags": ["RAG", "Text", "Timeline"]
+  },
+  {
+    "id": "q05-rag-mexico-risk-diagrams",
+    "title": "Give me some diagrams on how can we identify and evaluate risks according to mexican guidelines?",
+    "description": "Spanish-English response work, text for the main steps and sometimes a timeline for steps on risk evaluation.",
+    "icon": "shield",
+    "tags": ["RAG", "Text", "Spanish"]
+  },
+  {
+    "id": "q06-db-open-work-orders",
+    "title": "Which work orders are still open and their associated asset types?",
+    "description": "Retrieves from DB and displays table with work orders details, general data on KPI cards and bar graph for compilation of sources.",
+    "icon": "report",
+    "tags": ["DB"]
+  },
+  {
+    "id": "q07-db-high-customer-circuits",
+    "title": "Find circuits with the highest number of customers served",
+    "description": "DB data showing bar graph with number of customers per circuit, table for details and KPI cards to show general trends.",
+    "icon": "metrics",
+    "tags": ["DB"]
+  },
+  {
+    "id": "q08-db-condition-distribution",
+    "title": "Display asset health distribution by condition score, include names if possible.",
+    "description": "Requires conditional score, results are displayed on bar graph with assets score groups and a table for details on each asset.",
+    "icon": "warning",
+    "tags": ["DB"]
+  },
+  {
+    "id": "q09-db-outage-cause-categories",
+    "title": "What are the most common outage cause categories in the last 6 months?",
+    "description": "Category-analysis use case for bar chart plus KPI summary and supporting details on a table.",
+    "icon": "metrics",
+    "tags": ["DB", "Bar graph"]
+  },
+  {
+    "id": "q10-db-map-substations-circuits",
+    "title": "Show me the location of the main substations and circuits with characteristics.",
+    "description": "Geospatial showcase on map and supporting data on table widget",
+    "icon": "pin",
+    "tags": ["DB", "Map"]
+  },
+  {
+    "id": "q11-db-map-substation-capacity",
+    "title": "Visualize substation locations with capacity indicators",
+    "description": "Capacity intelligence use case combining map context with infrastructure metrics.",
+    "icon": "pin",
+    "tags": ["DB", "Map", "Table", "KPI cards"]
+  },
+  {
+    "id": "q12-Mixed-map-outages-procedures",
+    "title": "Map the outages in residential areas, and then explain, what recovery procedures does the disaster manual recommend?",
+    "description": "Retrieves DB data for outages and RAG to complete explanation on full view display.",
+    "icon": "pin",
+    "tags": ["RAG", "DB", "Map", "Table", "KPI cards"]
+  },
+  {
+    "id": "q13-Mixed-map-zones-epa",
+    "title": "Map the outage locations and show also EPA recommended response zones",
+    "description": "Policy-and-operations geospatial use case to align locations with response guidance.",
+    "icon": "pin",
+    "tags": ["RAG", "DB", "Map", "Timeline"]
+  },
+  {
+    "id": "q14-Mixed-duration-cause-epa",
+    "title": "Compare average outage duration by cause category and reference relevant EPA guidelines",
+    "description": "Comparative analytics plus guideline correlation for evidence-backed operational decisions.",
+    "icon": "metrics",
+    "tags": ["RAG","DB","Bar graph", "Timeline", "Text"]
+  },
+  {
+    "id": "q15-Mixed-resolution-time-manual",
+    "title": "Compare outage resolution times for circuits originating from different substations, and what the disaster manual says about response times",
+    "description": "Advanced comparison use case blending performance metrics with procedural timelines.",
+    "icon": "metrics",
+    "tags": ["RAG","DB","Bar graph", "Timeline"]
+  },
+  {
+    "id": "q16-line-monthly-duration-epa",
+    "title": "Trend outage duration by month and explain which EPA actions are recommended when duration increases",
+    "description": "Focused on outage response time and RAG to retrieve the actions for duration data.",
+    "icon": "status",
+    "tags": ["RAG", "DB", "Line graph", "Table"]
+  },
+  {
+    "id": "q17-line-substation-frequency-fema",
+    "title": "Show the location of main substations and provide string advice on how to face a disaster such as fire or earthquake.",
+    "description": "Retrieves relational data for showing trends on the outage times and timeline for steps.",
+    "icon": "warning",
+    "tags": ["RAG", "DB", "Map","Timeline", "Spanish"]
+  },
+  {
+    "id": "q20-rich-map-trend-manuals",
+    "title": "Show location of outages by substation and explain the relation to monthly outage trends based on the response procedures recommended by manuals",
+    "description": "Retrieves locations, trends of outages and RAG for procedures to display full report.",
+    "icon": "pin",
+    "tags": ["RAG", "DB", "Map", "Line graph", "Timeline"]
+  }
+]

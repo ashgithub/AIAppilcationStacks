@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import math
 from typing import Any
 
 from langchain.messages import HumanMessage
@@ -60,9 +61,17 @@ class UIWidgetStructuredAgent(BaseAgent):
             except Exception:
                 return None
 
-    def _build_retry_prompt(self, widget_name: str, data_context: str, previous_payload: str, previous_error: str) -> str:
+    def _build_retry_prompt(
+        self,
+        widget_name: str,
+        data_context: str,
+        previous_payload: str,
+        previous_error: str,
+        slot_label: str = "",
+        planner_summary: str = "",
+    ) -> str:
         return (
-            f"{build_widget_structured_prompt(widget_name, data_context)}\n\n"
+            f"{build_widget_structured_prompt(widget_name, data_context, slot_label=slot_label, planner_summary=planner_summary)}\n\n"
             "Retry request: the previous response was invalid for the schema.\n"
             "Generate a corrected response.\n"
             f"Previous payload (possibly invalid):\n{previous_payload}\n\n"
@@ -95,13 +104,18 @@ class UIWidgetStructuredAgent(BaseAgent):
         data_context: str,
         previous_payload: str,
         previous_error: str,
+        slot_label: str = "",
+        planner_summary: str = "",
     ) -> tuple[Any | None, str | None]:
         schema_keys = list((model_cls.model_json_schema() or {}).get("properties", {}).keys())
+        section_line = f"Section focus: {slot_label}\n" if slot_label else ""
+        summary_line = f"Planner summary: {planner_summary}\n" if planner_summary else ""
         strict_prompt = (
             "Return ONLY a valid JSON object for the requested widget schema.\n"
             "No markdown, no comments, no prose.\n"
             f"Widget: {widget_name}\n"
             f"Required top-level keys: {', '.join(schema_keys)}\n"
+            f"{section_line}{summary_line}"
             f"Data context:\n{data_context}\n\n"
             "Correction context (previous invalid attempt):\n"
             f"Payload:\n{previous_payload}\n\n"
@@ -117,7 +131,13 @@ class UIWidgetStructuredAgent(BaseAgent):
         validated, error = self._validate_widget_output(model_cls, payload)
         return validated, error
 
-    async def generate_widget(self, widget_name: str, data_context: str) -> Any:
+    async def generate_widget(
+        self,
+        widget_name: str,
+        data_context: str,
+        slot_label: str = "",
+        planner_summary: str = "",
+    ) -> Any:
         self.last_generation_note = None
         canonical_name = normalize_widget_name(widget_name)
         model_cls = self._model_registry.get(canonical_name)
@@ -134,10 +154,20 @@ class UIWidgetStructuredAgent(BaseAgent):
 
         for attempt in range(1, MAX_WIDGET_GENERATION_ATTEMPTS + 1):
             if attempt == 1:
-                prompt = build_widget_structured_prompt(canonical_name, data_context)
+                prompt = build_widget_structured_prompt(
+                    canonical_name,
+                    data_context,
+                    slot_label=slot_label,
+                    planner_summary=planner_summary,
+                )
             else:
                 prompt = self._build_retry_prompt(
-                    canonical_name, data_context, last_payload_preview, last_error
+                    canonical_name,
+                    data_context,
+                    last_payload_preview,
+                    last_error,
+                    slot_label=slot_label,
+                    planner_summary=planner_summary,
                 )
             try:
                 response = await agent.ainvoke({"messages": [HumanMessage(content=prompt)]})
@@ -149,7 +179,7 @@ class UIWidgetStructuredAgent(BaseAgent):
                         model_cls.__name__,
                         attempt,
                     )
-                    return structured
+                    return self._sanitize_widget_output(canonical_name, structured)
 
                 raw = extract_response_content(response)
                 candidate = parse_json_loose(raw) if isinstance(raw, str) else raw
@@ -161,7 +191,7 @@ class UIWidgetStructuredAgent(BaseAgent):
                         model_cls.__name__,
                         attempt,
                     )
-                    return validated
+                    return self._sanitize_widget_output(canonical_name, validated)
 
                 last_payload_preview = str(raw)[:MAX_RETRY_PAYLOAD_PREVIEW]
                 last_error = validation_error or "Structured extraction failed."
@@ -189,6 +219,8 @@ class UIWidgetStructuredAgent(BaseAgent):
             data_context,
             previous_payload=last_payload_preview,
             previous_error=last_error,
+            slot_label=slot_label,
+            planner_summary=planner_summary,
         )
         if recovered is not None:
             self.last_generation_note = "recovered_after_malformed_payload"
@@ -197,7 +229,7 @@ class UIWidgetStructuredAgent(BaseAgent):
                 canonical_name,
                 model_cls.__name__,
             )
-            return recovered
+            return self._sanitize_widget_output(canonical_name, recovered)
 
         logger.error(
             "Widget fallback exhausted; returning minimal payload | widget=%s model=%s",
@@ -205,7 +237,75 @@ class UIWidgetStructuredAgent(BaseAgent):
             model_cls.__name__,
         )
         self.last_generation_note = "malformed_widget_payload_fallback"
-        return self._build_minimal_widget_output(canonical_name, model_cls)
+        fallback = self._build_minimal_widget_output(canonical_name, model_cls)
+        return self._sanitize_widget_output(canonical_name, fallback)
+
+    def _is_finite_number(self, value: Any) -> bool:
+        return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+
+    def _to_finite_number(self, value: Any) -> float | int | None:
+        if self._is_finite_number(value):
+            return value
+        if isinstance(value, str):
+            candidate = value.strip().replace(",", "")
+            if not candidate:
+                return None
+            try:
+                parsed = float(candidate)
+            except Exception:
+                return None
+            if math.isfinite(parsed):
+                return int(parsed) if parsed.is_integer() else parsed
+        return None
+
+    def _ensure_table_details(self, widget_output: Any) -> None:
+        rows = list(getattr(widget_output, "rows", []) or [])
+        for row in rows:
+            row_values = dict(getattr(row, "values", {}) or {})
+            row_details = dict(getattr(row, "details", {}) or {})
+            if row_details:
+                continue
+            fallback_details = {
+                key: value
+                for key, value in row_values.items()
+                if key and key.lower() != "id"
+            }
+            row.details = fallback_details or {"recordId": str(getattr(row, "id", ""))}
+
+    def _sanitize_widget_output(self, widget_name: str, widget_output: Any) -> Any:
+        if widget_output is None:
+            return None
+        if widget_name == "KpiCard":
+            for item in list(getattr(widget_output, "data", []) or []):
+                safe_value = self._to_finite_number(getattr(item, "value", None))
+                if safe_value is not None:
+                    item.value = safe_value
+                safe_change = self._to_finite_number(getattr(item, "change", None))
+                if safe_change is None:
+                    item.change = None
+                    item.changeLabel = None
+                else:
+                    item.change = safe_change
+                if not getattr(item, "details", None):
+                    item.details = {}
+        elif widget_name == "Table":
+            self._ensure_table_details(widget_output)
+        elif widget_name == "BarGraph":
+            data_points = list(getattr(widget_output, "data", []) or [])
+            for point in data_points:
+                safe_value = self._to_finite_number(getattr(point, "value", None))
+                if safe_value is None:
+                    point.value = 0
+                else:
+                    point.value = safe_value
+        elif widget_name == "LineGraph":
+            for series in list(getattr(widget_output, "series", []) or []):
+                safe_values: list[float] = []
+                for value in list(getattr(series, "values", []) or []):
+                    safe_value = self._to_finite_number(value)
+                    safe_values.append(float(safe_value) if safe_value is not None else 0.0)
+                series.values = safe_values
+        return widget_output
 
 
 class UIParallelWidgetSlotNode:
@@ -219,6 +319,8 @@ class UIParallelWidgetSlotNode:
 
     async def __call__(self, state: DynamicGraphState) -> DynamicGraphState:
         tasks = list(state.get("parallel_execution_tasks") or [])
+        plan_data = state.get("parallel_widget_plan") or {}
+        planner_summary = str(plan_data.get("summary") or "")
         data_context = str(
             state.get("parallel_data_context")
             or (state["messages"][-1].content if state.get("messages") else "")
@@ -230,7 +332,10 @@ class UIParallelWidgetSlotNode:
 
         try:
             widget_output = await self._widget.generate_widget(
-                str(task.get("widget_name", "")), data_context
+                str(task.get("widget_name", "")),
+                data_context,
+                slot_label=str(task.get("slot_label") or ""),
+                planner_summary=planner_summary,
             )
             generation_note = self._widget.last_generation_note
             widget_components, widget_contents = self._fragment_builder._build_widget_payload(

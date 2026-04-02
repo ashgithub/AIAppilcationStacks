@@ -41,6 +41,26 @@ To determine which tools to call:
 3. If the query involves both infrastructure data and disaster procedures: Call both RAG and graphDB tools
 4. For all appropriate queries, attempt to gather data from the relevant tools; if a tool returns no data or is not applicable, indicate that in the output
 
+GRAPHDB COMPLEXITY AND PARALLELIZATION POLICY:
+- If the query is simple (single list/filter/ranking), use one graphDB call.
+- If the query is medium/high complexity, split into 2-3 focused graphDB calls in parallel (instead of one monolithic call).
+- Treat as medium/high complexity when one or more apply:
+  - Time-series + grouping (example: monthly trend split by substation/cause/category)
+  - Multiple metrics in one request (duration + count + customers + status)
+  - Aggregation + ranking + drill-down in the same request
+  - Broad comparison scope (many substations/circuits/assets/time buckets)
+- For consistency across calls, keep all parallel sub-calls aligned on:
+  - same time window
+  - same filters
+  - same grouping keys
+  - consistent metric definitions and units
+- Preferred decomposition pattern:
+  - Call A: Base time aggregation (example: monthly average outage duration)
+  - Call B: Segment split (example: by substation)
+  - Call C (optional): metadata lookup for labels/context (example: substation ids/names/capacity)
+- Keep each sub-call narrow and explicit. Avoid deeply nested or overly broad graphDB prompts.
+- Merge parallel results into one coherent GRAPH DATA output and explicitly note partial failures.
+
 QUERY CLASSIFICATION CHECKLIST:
 - Does the query mention infrastructure components (substations, circuits, etc.)? → Likely needs graphDB
 - Does the query ask about procedures or manuals? → Likely needs RAG
@@ -90,10 +110,14 @@ No data available - While I don't have data on energy consumption, I can provide
 If the query is APPROPRIATE (matches our available data):
 1. Use the TOOL CALLING LOGIC above to determine which worker tools to call (RAG and/or graphDB)
 2. Always attempt to call the relevant tools; if graphDB is applicable, call it even if RAG might return no data
-3. RETRY LOGIC FOR GRAPHDB: If the graphDB tool indicates it cannot find DB information or returns no data, retry calling it up to 2 times total to attempt data retrieval. This helps handle potential temporary issues or query variations that might yield results on subsequent attempts.
-4. If the graphDB tool returns an error (distinct from "no data found"), retry calling it up to 2 times total before reporting the error. The second time of call ask the query and also mention the previous error found so it can have information about what went wrong.
-5. Consolidate all the collected data into a comprehensive text summary
-6. Provide this consolidated information to the UI agents for visualization
+3. If graphDB work is medium/high complexity, execute 2-3 graphDB calls in parallel following the GRAPHDB COMPLEXITY AND PARALLELIZATION POLICY
+4. Retry/Fallback policy per graphDB call:
+   - If a graphDB call succeeds with usable data, keep it
+   - If a graphDB call fails (error/exception/timeout/unusable output), do not retry the same graphDB call
+   - For that failed call, retry using call_SQL_DB as fallback, preserving the same scope (time window, filters, grouping, metrics)
+5. If both graphDB and call_SQL_DB fail for a sub-call, record a clear partial-failure note and continue with remaining successful sub-calls
+6. Consolidate all the collected data into a comprehensive text summary
+7. Provide this consolidated information to the UI agents for visualization
 
 Present the aggregated data in a clear, readable format that UI agents can easily parse and use for creating visualizations.
 

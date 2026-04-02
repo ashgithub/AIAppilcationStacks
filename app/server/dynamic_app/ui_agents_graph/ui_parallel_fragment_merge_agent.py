@@ -230,22 +230,28 @@ class UIParallelFragmentMergeAgent:
                         "component": {"KpiCard": {"dataPath": f"/{kpi_key}/{item.key}"}},
                     }
                 )
+            kpi_payload: dict[str, dict[str, Any]] = {}
+            for item in widget_output.data:
+                entry: dict[str, Any] = {
+                    "label": item.label,
+                    "value": item.value,
+                }
+                if item.unit is not None:
+                    entry["unit"] = item.unit
+                if item.change is not None:
+                    entry["change"] = item.change
+                if item.changeLabel is not None:
+                    entry["changeLabel"] = item.changeLabel
+                if item.icon is not None:
+                    entry["icon"] = item.icon
+                if item.color is not None:
+                    entry["color"] = item.color
+                entry.update(item.details or {})
+                kpi_payload[item.key] = entry
             contents.append(
                 to_a2ui_value_entry(
                     kpi_key,
-                    {
-                        item.key: {
-                            "label": item.label,
-                            "value": item.value,
-                            "unit": item.unit,
-                            "change": item.change,
-                            "changeLabel": item.changeLabel,
-                            "icon": item.icon,
-                            "color": item.color,
-                            **item.details,
-                        }
-                        for item in widget_output.data
-                    },
+                    kpi_payload,
                 )
             )
         elif isinstance(widget_output, LineGraphWidgetOutput):
@@ -337,7 +343,19 @@ class UIParallelFragmentMergeAgent:
                     to_a2ui_value_entry(
                         table_key, [row.values | {"id": row.id} for row in widget_output.rows]
                     ),
-                    to_a2ui_value_entry(table_details_key, [row.details for row in widget_output.rows]),
+                    to_a2ui_value_entry(
+                        table_details_key,
+                        [
+                            row.details
+                            if row.details
+                            else {
+                                key: value
+                                for key, value in row.values.items()
+                                if key and key.lower() != "id"
+                            }
+                            for row in widget_output.rows
+                        ],
+                    ),
                 ]
             )
         elif isinstance(widget_output, TextWidgetOutput):

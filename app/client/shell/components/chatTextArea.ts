@@ -1,65 +1,50 @@
 import { LitElement, html, css, svg, nothing } from "lit"
-import { customElement, state } from "lit/decorators.js"
+import type { PropertyValues } from "lit"
+import { customElement, state, property } from "lit/decorators.js"
 import { consume } from "@lit/context"
 import { routerContext, A2UIRouter } from "../services/a2ui-router.js"
 import { designTokensCSS } from "../theme/design-tokens.js"
 import { SERVER_URLS } from "../services/server-endpoints.js";
+import quickQueriesData from "../configs/quick_queries.json";
 
 type SendTarget = "chat" | "both" | "agent";
 type QuickQueryIcon = "pin" | "warning" | "metrics" | "status" | "shield" | "report";
+type TagTone = "rag" | "db" | "mixed" | "visual" | "language" | "default";
 
 interface QuickQuery {
   id: string;
   title: string;
   description: string;
-  query: string;
   icon: QuickQueryIcon;
+  tags: string[];
 }
 
-const QUICK_QUERIES: QuickQuery[] = [
-  {
-    id: "outage-causes",
-    title: "Outage Causes",
-    description: "Shows a map and bar graph to explain outages",
-    query: "Show outage causes with map and bar graph breakdown.",
-    icon: "pin",
-  },
-  {
-    id: "latest-outage-zones",
-    title: "Latest Outage Zones",
-    description: "Display recent outage areas with severity levels",
-    query: "Show the latest outage zones with severity levels.",
-    icon: "warning",
-  },
-  {
-    id: "performance-metrics",
-    title: "Performance Metrics",
-    description: "System performance dashboard with KPIs",
-    query: "Show system performance metrics and KPI trends.",
-    icon: "metrics",
-  },
-  {
-    id: "real-time-status",
-    title: "Real-time Status",
-    description: "Live system health monitoring view",
-    query: "Give me a real-time status summary of all modules.",
-    icon: "status",
-  },
-  {
-    id: "risk-summary",
-    title: "Risk Summary",
-    description: "Summarize top risks and current mitigation priority",
-    query: "Summarize the top current outage risks and mitigation priorities.",
-    icon: "shield",
-  },
-  {
-    id: "incident-report",
-    title: "Incident Brief",
-    description: "Create a concise operational incident report",
-    query: "Create a concise incident report with impact, root cause, and next steps.",
-    icon: "report",
-  },
-];
+const QUICK_QUERY_ICONS: QuickQueryIcon[] = ["pin", "warning", "metrics", "status", "shield", "report"];
+
+function isQuickQueryIcon(icon: unknown): icon is QuickQueryIcon {
+  return typeof icon === "string" && QUICK_QUERY_ICONS.includes(icon as QuickQueryIcon);
+}
+
+const QUICK_QUERIES: QuickQuery[] = (quickQueriesData as Array<Record<string, unknown>>)
+  .filter((item) => {
+    const tags = item.tags;
+    const hasValidTags =
+      Array.isArray(tags) && tags.length > 0 && tags.every((tag) => typeof tag === "string");
+    return (
+      typeof item.id === "string" &&
+      typeof item.title === "string" &&
+      typeof item.description === "string" &&
+      isQuickQueryIcon(item.icon) &&
+      hasValidTags
+    );
+  })
+  .map((item) => ({
+    id: item.id as string,
+    title: item.title as string,
+    description: item.description as string,
+    icon: item.icon as QuickQueryIcon,
+    tags: item.tags as string[],
+  }));
 
 // #region Component
 @customElement("chat-input")
@@ -67,11 +52,14 @@ export class ChatInput extends LitElement {
   @consume({ context: routerContext })
   accessor router!: A2UIRouter;
 
-  @state()
-  accessor #inputValue = ""
+  @property({ type: Boolean })
+  accessor showingChat = true;
+
+  @property({ type: Boolean })
+  accessor showingAgent = true;
 
   @state()
-  accessor #filterTerm = ""
+  accessor #inputValue = ""
 
   @state()
   accessor #drawerOpen = false
@@ -80,24 +68,27 @@ export class ChatInput extends LitElement {
   accessor #activeSuggestionIndex = -1
 
   @state()
-  accessor #defaultTarget: SendTarget = "chat"
+  accessor #defaultTarget: SendTarget = "both"
 
   private llmDefaultServer = SERVER_URLS.llm;
   private agentDefaultServer = SERVER_URLS.agent;
   readonly #drawerId = "quick-query-listbox";
-  private filterDebounceTimer?: number;
 
   connectedCallback() {
     super.connectedCallback();
+    this.syncDefaultTarget();
     window.addEventListener("pointerdown", this.handlePointerDownOutside);
   }
 
   disconnectedCallback() {
     window.removeEventListener("pointerdown", this.handlePointerDownOutside);
-    if (this.filterDebounceTimer) {
-      window.clearTimeout(this.filterDebounceTimer);
-    }
     super.disconnectedCallback();
+  }
+
+  protected updated(changedProperties: PropertyValues<this>) {
+    if (changedProperties.has("showingChat") || changedProperties.has("showingAgent")) {
+      this.syncDefaultTarget();
+    }
   }
 
   // #region Styles
@@ -161,6 +152,38 @@ export class ChatInput extends LitElement {
       flex-shrink: 0;
     }
 
+    .quick-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: var(--composer-control-height);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      background: var(--surface-secondary);
+      color: var(--text-primary);
+      font-family: var(--font-family);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      line-height: var(--line-height-tight);
+      padding: 0 var(--space-sm);
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background-color var(--transition-normal), transform var(--transition-fast);
+    }
+
+    .quick-btn:hover {
+      background: var(--hover-overlay);
+    }
+
+    .quick-btn:active {
+      transform: translateY(1px);
+    }
+
+    .quick-btn:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 1px var(--focus-ring);
+    }
+
     .target-btn {
       display: inline-flex;
       align-items: center;
@@ -178,26 +201,44 @@ export class ChatInput extends LitElement {
       line-height: var(--line-height-tight);
       padding: 0 var(--space-sm);
       cursor: pointer;
-      transition: background-color var(--transition-normal), color var(--transition-normal), transform var(--transition-fast);
+      transition: background-color var(--transition-normal), color var(--transition-normal), border-color var(--transition-normal), box-shadow var(--transition-normal), transform var(--transition-fast);
     }
 
     .target-btn:hover {
       background: var(--hover-overlay);
     }
 
+    .target-btn[data-target="chat"] {
+      color: var(--oracle-primary);
+      background: rgba(136, 194, 255, 0.1);
+    }
+
+    .target-btn[data-target="both"] {
+      color: var(--chat-bg-secondary);
+      background: rgba(121, 130, 164, 0.12);
+    }
+
+    .target-btn[data-target="agent"] {
+      color: var(--agent-accent);
+      background: rgba(64, 196, 179, 0.12);
+    }
+
     .target-btn.active[data-target="chat"] {
       background: var(--oracle-primary);
       color: var(--neutral-900);
+      border-color: var(--oracle-primary);
     }
 
     .target-btn.active[data-target="both"] {
-      background: var(--chat-bg);
+      background: var(--chat-bg-secondary);
       color: var(--neutral-white);
+      border-color: var(--chat-bg-secondary);
     }
 
     .target-btn.active[data-target="agent"] {
-      color: var(--agent-accent);
-      background: var(--module-agent-active);
+      color: var(--neutral-900);
+      background: var(--agent-accent);
+      border-color: var(--agent-accent);
     }
 
     .target-btn:active {
@@ -388,6 +429,61 @@ export class ChatInput extends LitElement {
       overflow: hidden;
     }
 
+    .row-tags {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: calc(var(--space-xs) / 2);
+      min-height: calc(var(--space-sm) + var(--space-xs));
+      flex-shrink: 0;
+    }
+
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      padding: 1px var(--space-xs);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-medium);
+      line-height: var(--line-height-tight);
+      letter-spacing: 0.2px;
+      color: var(--text-secondary);
+      background: var(--surface-secondary);
+      white-space: nowrap;
+    }
+
+    .tag-chip[data-tone="rag"] {
+      color: var(--chat-bg-secondary);
+      border-color: rgba(121, 130, 164, 0.35);
+      background: rgba(121, 130, 164, 0.1);
+    }
+
+    .tag-chip[data-tone="db"] {
+      color: var(--oracle-primary);
+      border-color: rgba(136, 194, 255, 0.45);
+      background: rgba(136, 194, 255, 0.1);
+    }
+
+    .tag-chip[data-tone="mixed"] {
+      color: var(--agent-accent);
+      border-color: rgba(64, 196, 179, 0.45);
+      background: rgba(64, 196, 179, 0.1);
+    }
+
+    .tag-chip[data-tone="visual"] {
+      color: var(--color-warning);
+      border-color: rgba(245, 158, 11, 0.4);
+      background: rgba(245, 158, 11, 0.1);
+    }
+
+    .tag-chip[data-tone="language"] {
+      color: var(--color-success);
+      border-color: rgba(16, 185, 129, 0.35);
+      background: rgba(16, 185, 129, 0.1);
+    }
+
     .row-title,
     .row-description {
       overflow: hidden;
@@ -398,10 +494,18 @@ export class ChatInput extends LitElement {
       white-space: nowrap;
     }
 
+    .row-meta {
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+      min-width: 0;
+      width: 100%;
+    }
+
     .row-description {
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
+      white-space: nowrap;
+      flex: 1;
+      min-width: 0;
     }
 
     .row-actions {
@@ -480,6 +584,15 @@ export class ChatInput extends LitElement {
         gap: var(--space-xs);
       }
 
+      .row-meta {
+        flex-wrap: wrap;
+        align-items: flex-start;
+      }
+
+      .row-description {
+        white-space: normal;
+      }
+
       .row-actions {
         margin-left: 0;
         width: 100%;
@@ -509,28 +622,23 @@ export class ChatInput extends LitElement {
   // #endregion Styles
 
   // #region Actions
-  private get filteredSuggestions(): QuickQuery[] {
-    const term = this.#filterTerm.trim().toLowerCase();
-    if (!term) return QUICK_QUERIES;
+  private get suggestions(): QuickQuery[] {
+    return QUICK_QUERIES;
+  }
 
-    const ranked = QUICK_QUERIES
-      .map((query) => {
-        const title = query.title.toLowerCase();
-        const description = query.description.toLowerCase();
-        const text = query.query.toLowerCase();
+  private get availableTargets(): SendTarget[] {
+    if (this.showingChat && this.showingAgent) return ["chat", "both", "agent"];
+    if (this.showingChat) return ["chat"];
+    if (this.showingAgent) return ["agent"];
+    return [];
+  }
 
-        let rank = Number.POSITIVE_INFINITY;
-        if (title.startsWith(term)) rank = 0;
-        else if (title.includes(term)) rank = 1;
-        else if (description.includes(term)) rank = 2;
-        else if (text.includes(term)) rank = 3;
-
-        return { query, rank };
-      })
-      .filter((item) => item.rank !== Number.POSITIVE_INFINITY)
-      .sort((a, b) => a.rank - b.rank || a.query.title.localeCompare(b.query.title));
-
-    return ranked.map((item) => item.query);
+  private syncDefaultTarget() {
+    const available = this.availableTargets;
+    if (available.length === 0) return;
+    if (!available.includes(this.#defaultTarget)) {
+      this.#defaultTarget = available[0];
+    }
   }
 
   private optionId(index: number): string {
@@ -539,7 +647,7 @@ export class ChatInput extends LitElement {
 
   private openDrawer() {
     this.#drawerOpen = true;
-    if (this.filteredSuggestions.length > 0 && this.#activeSuggestionIndex < 0) {
+    if (this.suggestions.length > 0 && this.#activeSuggestionIndex < 0) {
       this.#activeSuggestionIndex = 0;
     }
   }
@@ -549,29 +657,22 @@ export class ChatInput extends LitElement {
     this.#activeSuggestionIndex = -1;
   }
 
-  private scheduleFilterUpdate(nextValue: string) {
-    if (this.filterDebounceTimer) {
-      window.clearTimeout(this.filterDebounceTimer);
-    }
-    this.filterDebounceTimer = window.setTimeout(() => {
-      this.#filterTerm = nextValue.trim();
-      this.#activeSuggestionIndex = this.filteredSuggestions.length > 0 ? 0 : -1;
-    }, 120);
-  }
-
   private async sendQuery(rawQuery: string, target: SendTarget = this.#defaultTarget) {
     const query = rawQuery.trim();
     if (!query || !this.router) return;
 
     try {
-      if (target === "chat" || target === "both") {
+      const sendToChat = this.showingChat && (target === "chat" || target === "both");
+      const sendToAgent = this.showingAgent && (target === "agent" || target === "both");
+      if (!sendToChat && !sendToAgent) return;
+
+      if (sendToChat) {
         this.router.sendTextMessage(this.llmDefaultServer, query);
       }
-      if (target === "agent" || target === "both") {
+      if (sendToAgent) {
         this.router.sendTextMessage(this.agentDefaultServer, query);
       }
       this.#inputValue = "";
-      this.#filterTerm = "";
       this.closeDrawer();
     } catch (error) {
       console.error("Failed to send message:", error);
@@ -586,18 +687,19 @@ export class ChatInput extends LitElement {
   }
 
   private handleInputFocus() {
-    this.openDrawer();
+    if (!this.#inputValue.trim()) {
+      this.openDrawer();
+    }
   }
 
   private handleInputChange(e: Event) {
     const nextValue = (e.target as HTMLInputElement).value;
     this.#inputValue = nextValue;
-    this.scheduleFilterUpdate(nextValue);
-    this.openDrawer();
+    this.closeDrawer();
   }
 
   private moveActiveSuggestion(delta: 1 | -1) {
-    const items = this.filteredSuggestions;
+    const items = this.suggestions;
     if (!items.length) {
       this.#activeSuggestionIndex = -1;
       return;
@@ -638,9 +740,9 @@ export class ChatInput extends LitElement {
     }
 
     if (this.#drawerOpen && this.#activeSuggestionIndex >= 0) {
-      const selected = this.filteredSuggestions[this.#activeSuggestionIndex];
+      const selected = this.suggestions[this.#activeSuggestionIndex];
       if (selected) {
-        this.sendQuery(selected.query, this.#defaultTarget);
+        this.sendQuery(selected.title, this.#defaultTarget);
         return;
       }
     }
@@ -650,11 +752,53 @@ export class ChatInput extends LitElement {
 
   private handleTargetClick(target: SendTarget) {
     this.#defaultTarget = target;
-    this.sendQuery(this.#inputValue, target);
   }
 
-  private handleRowSend(item: QuickQuery, target: SendTarget = this.#defaultTarget) {
-    this.sendQuery(item.query, target);
+  private focusComposerInputAtEnd() {
+    const input = this.renderRoot.querySelector<HTMLInputElement>("#chat-composer-input");
+    if (!input) return;
+    input.focus();
+    const textLength = input.value.length;
+    input.setSelectionRange(textLength, textLength);
+  }
+
+  private async handleRowSelection(item: QuickQuery) {
+    this.#inputValue = item.title;
+    this.closeDrawer();
+    await this.updateComplete;
+    this.focusComposerInputAtEnd();
+  }
+
+  private handleQuickToggle() {
+    if (this.#drawerOpen) {
+      this.closeDrawer();
+      return;
+    }
+    this.openDrawer();
+  }
+
+  private normalizeTag(tag: string): string {
+    return tag.trim().toLowerCase();
+  }
+
+  private getTagTone(tag: string): TagTone {
+    const normalized = this.normalizeTag(tag);
+    if (normalized === "rag") return "rag";
+    if (normalized === "db") return "db";
+    if (normalized === "mixed") return "mixed";
+    if (normalized === "spanish") return "language";
+    if (
+      normalized === "timeline" ||
+      normalized === "text" ||
+      normalized === "map" ||
+      normalized === "table" ||
+      normalized === "kpi cards" ||
+      normalized === "bar graph" ||
+      normalized === "line graph"
+    ) {
+      return "visual";
+    }
+    return "default";
   }
 
   private renderIcon(icon: QuickQueryIcon) {
@@ -706,9 +850,10 @@ export class ChatInput extends LitElement {
 
   // #region Render
   render() {
-    const suggestions = this.filteredSuggestions;
+    const suggestions = this.suggestions;
     const hasMatches = suggestions.length > 0;
-    const label = this.#filterTerm.length > 0 ? "Matching queries" : "Suggested queries";
+    const label = "Suggested queries";
+    const availableTargets = this.availableTargets;
 
     return html`
       <div class="composer-shell">
@@ -723,62 +868,35 @@ export class ChatInput extends LitElement {
 
           <ul class="listbox" id=${this.#drawerId} role="listbox" aria-label=${label}>
             ${hasMatches
-              ? suggestions.map(
-                  (item, index) => html`
+        ? suggestions.map(
+          (item, index) => html`
                     <li
                       id=${this.optionId(index)}
                       class="suggestion-row ${this.#activeSuggestionIndex === index ? "active" : ""}"
                       role="option"
                       aria-selected=${this.#activeSuggestionIndex === index ? "true" : "false"}
                       @mouseenter=${() => (this.#activeSuggestionIndex = index)}
-                      @click=${() => this.handleRowSend(item)}
+                      @click=${() => this.handleRowSelection(item)}
                     >
                       <span class="icon-box" aria-hidden="true">${this.renderIcon(item.icon)}</span>
                       <span class="row-copy">
                         <div class="row-title">${item.title}</div>
-                        <div class="row-description">${item.description}</div>
-                      </span>
-                      <span class="row-actions">
-                        <button
-                          type="button"
-                          class="row-action"
-                          data-target="chat"
-                          @click=${(e: Event) => {
-                            e.stopPropagation();
-                            this.handleRowSend(item, "chat");
-                          }}
-                        >
-                          Chat
-                        </button>
-                        <button
-                          type="button"
-                          class="row-action"
-                          data-target="both"
-                          @click=${(e: Event) => {
-                            e.stopPropagation();
-                            this.handleRowSend(item, "both");
-                          }}
-                        >
-                          Both
-                        </button>
-                        <button
-                          type="button"
-                          class="row-action"
-                          data-target="agent"
-                          @click=${(e: Event) => {
-                            e.stopPropagation();
-                            this.handleRowSend(item, "agent");
-                          }}
-                        >
-                          Agent
-                        </button>
+                        <div class="row-meta">
+                          <div class="row-description">${item.description}</div>
+                          <div class="row-tags">
+                            ${item.tags.map(
+                              (tag) =>
+                                html`<span class="tag-chip" data-tone=${this.getTagTone(tag)}>${tag}</span>`,
+                            )}
+                          </div>
+                        </div>
                       </span>
                     </li>
                   `,
-                )
-              : html`
+        )
+        : html`
                   <li class="empty-state" role="option" aria-selected="false">
-                    <div>No matching queries</div>
+                    <div>No suggested queries</div>
                     <div>Press Enter to send your text</div>
                   </li>
                 `}
@@ -786,8 +904,20 @@ export class ChatInput extends LitElement {
         </div>
 
         <div class="composer">
+        <button
+          type="button"
+          class="quick-btn"
+          @click=${() => this.handleQuickToggle()}
+          aria-expanded=${this.#drawerOpen ? "true" : "false"}
+          aria-controls=${this.#drawerId}
+        >
+          Quick
+        </button>
+        
           <div class="input-wrap">
-            <input
+          
+          
+          <input
               id="chat-composer-input"
               type="text"
               .value=${this.#inputValue}
@@ -799,17 +929,22 @@ export class ChatInput extends LitElement {
               aria-expanded=${this.#drawerOpen ? "true" : "false"}
               aria-controls=${this.#drawerId}
               aria-activedescendant=${this.#activeSuggestionIndex >= 0
-                ? this.optionId(this.#activeSuggestionIndex)
-                : nothing}
-              placeholder="Start typing to search queries or enter your own..."
+        ? this.optionId(this.#activeSuggestionIndex)
+        : nothing}
+              placeholder="Click to view suggested queries or type your own..."
             />
           </div>
 
-          <div class="send-targets">
-            ${this.renderTargetButton("chat", "Chat")}
-            ${this.renderTargetButton("both", "Both")}
-            ${this.renderTargetButton("agent", "Agent")}
-          </div>
+          ${availableTargets.length > 0
+            ? html`
+                <div class="send-targets">
+                  ${availableTargets.map((target) => {
+                    const targetLabel = target === "chat" ? "Chat" : target === "agent" ? "Agent" : "Both";
+                    return this.renderTargetButton(target, targetLabel);
+                  })}
+                </div>
+              `
+            : nothing}
         </div>
       </div>
     `

@@ -41,20 +41,6 @@ class UIParallelOrchestratorAgent(BaseAgent):
 
     async def generate_plan(self, state: DynamicGraphState) -> ParallelWidgetPlan:
         data_context = str(state["messages"][-1].content if state["messages"] else "")
-        logger.debug(
-            "Planner start | data_context_len=%s no_data_or_oos=%s",
-            len(data_context),
-            is_no_data_or_out_of_domain(data_context),
-        )
-        if is_no_data_or_out_of_domain(data_context):
-            logger.debug("Planner using guidance-mode static plan.")
-            return ParallelWidgetPlan(
-                summary="Guidance mode with native components.",
-                widget_tasks=[
-                    SuggestedWidgetTask(widget_name="Text", slot_label="Guidance", priority=1),
-                    SuggestedWidgetTask(widget_name="Card", slot_label="Suggestions", priority=2),
-                ],
-            )
 
         raw = await self.agent.ainvoke(state)
         extracted = extract_structured_result(raw, ParallelWidgetPlan)
