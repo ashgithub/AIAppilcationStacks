@@ -73,7 +73,7 @@ def main(host, port):
         base_url = public_base_url or internal_base_url
 
         # region Agent executor setup
-        agent_base_url = f"{base_url}/agent"
+        agent_base_url = f"{base_url}/agent/"
         agent_card = AgentCard(
             name="Energy Outage Agent",
             description="This agent helps analyze power outages, energy statistics, and industry performance.",
@@ -112,7 +112,7 @@ def main(host, port):
         # endregion
 
         # region LLM executor setup
-        llm_base_url = f"{base_url}/llm"
+        llm_base_url = f"{base_url}/llm/"
         llm_capabilities = dynamic_agent_capabilities
         llm_skills = []
         llm_card = AgentCard(
