@@ -15,3 +15,7 @@ __pycache__
 
 ## local files
 scratch/**
+
+deploy
+
+.env.production

@@ -6,8 +6,8 @@ import { SERVER_URLS } from "../services/server-endpoints.js";
 export const config: AppConfig = {
   key: "restaurant",
   title: "EDGE",
-  heroImage: "/hero.png",
-  heroImageDark: "/hero-dark.png",
+  heroImage: "./hero.png",
+  heroImageDark: "./hero-dark.png",
   background: `radial-gradient(
     at 0% 0%,
     light-dark(rgba(161, 196, 253, 0.3), rgba(6, 182, 212, 0.15)) 0px,

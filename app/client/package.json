@@ -8,7 +8,9 @@
   "scripts": {
     "serve:shell": "cd shell && npm run dev",
     "serve:agent:edge": "cd ../server && uv run __main__.py",
-    "demo:edge": "concurrently -k -n \"SHELL,REST\" -c \"magenta,blue\" \"npm run serve:shell\" \"npm run serve:agent:edge\""
+    "demo:edge": "concurrently -k -n \"SHELL,REST\" -c \"magenta,blue\" \"npm run serve:shell\" \"npm run serve:agent:edge\"",
+    "build:shell": "cd shell && npm run build:vite",
+    "build:prod": "npm run build:shell"
   },
   "devDependencies": {
     "concurrently": "9.2.1",

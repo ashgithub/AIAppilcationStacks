@@ -3,7 +3,6 @@ import { customElement, state } from "lit/decorators.js"
 import { provide } from "@lit/context"
 import { a2uiRouter, routerContext } from "./services/a2ui-router.js"
 import { designTokensCSS, buttonStyles, colors, radius, spacing } from "./theme/design-tokens.js"
-import { SERVER_URLS } from "./services/server-endpoints.js";
 import "./components/main_traditional.js"
 import "./components/chatTextArea"
 import "./components/main_agent"
@@ -155,6 +154,10 @@ export class AppContainer extends LitElement {
       min-width: 0;
       overflow: hidden;
     }
+
+    .module-hidden {
+      display: none;
+    }
   `
 
   render() {
@@ -169,9 +172,6 @@ export class AppContainer extends LitElement {
                 .checked=${this.showingTraditional}
                 @change=${(e: Event) => {
                   this.showingTraditional = (e.target as HTMLInputElement).checked;
-                  if (this.showingTraditional) {
-                    this.router.resetSession(SERVER_URLS.traditional);
-                  }
                 }}
               />
               <span class="toggle-switch"></span>
@@ -183,9 +183,6 @@ export class AppContainer extends LitElement {
                 .checked=${this.showingChat}
                 @change=${(e: Event) => {
                   this.showingChat = (e.target as HTMLInputElement).checked;
-                  if (this.showingChat) {
-                    this.router.resetSession(SERVER_URLS.llm);
-                  }
                 }}
               />
               <span class="toggle-switch"></span>
@@ -197,9 +194,6 @@ export class AppContainer extends LitElement {
                 .checked=${this.showingAgent}
                 @change=${(e: Event) => {
                   this.showingAgent = (e.target as HTMLInputElement).checked;
-                  if (this.showingAgent) {
-                    this.router.resetSession(SERVER_URLS.agent);
-                  }
                 }}
               />
               <span class="toggle-switch"></span>
@@ -212,17 +206,17 @@ export class AppContainer extends LitElement {
           </div>
         </div>
         <div class="modules">
-          ${this.showingTraditional ? html`<static-module></static-module>` : ''}
-          ${this.showingChat ? html`<chat-module
-            title="Chatbot LLM"
+          <static-module class=${this.showingTraditional ? '' : 'module-hidden'}></static-module>
+          <chat-module
+            class=${this.showingChat ? '' : 'module-hidden'}
+            title="Chat app"
             subtitle="App using LLM to chat, chatbot-UI">
-          </chat-module>` : ''}
-          ${this.showingAgent ? html`
-            <dynamic-module
-              title="Dynamic agent"
-              subtitle="App using agent cluster and A2UI events for dynamic UI">
-            </dynamic-module>
-            ` : ''}
+          </chat-module>
+          <dynamic-module
+            class=${this.showingAgent ? '' : 'module-hidden'}
+            title="Agent app"
+            subtitle="App using agent cluster and A2UI events for dynamic UI">
+          </dynamic-module>
         </div>
         <chat-input
           .showingChat=${this.showingChat}

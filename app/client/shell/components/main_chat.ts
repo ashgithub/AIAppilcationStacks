@@ -10,7 +10,7 @@ import "./status_drawer.js"
 import { chatConfig } from "../configs/chat_config.js"
 import { designTokensCSS, colors, radius } from "../theme/design-tokens.js"
 import { parseSuggestionsList } from "../services/stream-event-normalizer.js";
-import { SERVER_URLS } from "../services/server-endpoints.js";
+import { buildServerUrl, getServerOrigin, SERVER_URLS } from "../services/server-endpoints.js";
 import { appendStatusWithTiming, getGenericStreamStatus } from "../services/stream-status.js";
 
 // #region Component
@@ -543,7 +543,7 @@ export class ChatModule extends LitElement {
         .title=${this.title}
         .time=${this.#totalDuration > 0 ? `${this.#totalDuration.toFixed(2)}` : '0.00'}
         .tokens=${this.tokenCount ? `${this.tokenCount}`: '0'}
-        .configUrl=${'/llm_config'}
+        .configUrl=${buildServerUrl("/llm_config", getServerOrigin(this.defaultServerUrl))}
         .configType=${'llm'}
         .configData=${chatConfig}
       ></stat-bar>
@@ -602,13 +602,8 @@ export class ChatModule extends LitElement {
   
   #getSourceUrl(source: string): string {
     const sourceFile = source.split(/[\\/]/).pop()?.trim() || source.trim();
-  
-    try {
-      const serverBase = new URL(this.defaultServerUrl);
-      return `${serverBase.origin}/rag_docs/${encodeURIComponent(sourceFile)}`;
-    } catch {
-      return `/rag_docs/${encodeURIComponent(sourceFile)}`;
-    }
+    const base = getServerOrigin(this.defaultServerUrl);
+    return buildServerUrl(`/rag_docs/${encodeURIComponent(sourceFile)}`, base);
   }
 
   #openSourceInNamedTab(event: MouseEvent, source: string) {

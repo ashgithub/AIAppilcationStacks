@@ -2,6 +2,7 @@ import { LitElement, html, css, PropertyValues } from "lit"
 import { customElement, property, state } from "lit/decorators.js"
 import { AppConfigType, ConfigData, AgentAppConfig, LLMConfig, TraditionalConfig, EnhancedAgentAppConfig, ToolAssignments } from "../configs/types.js"
 import { designTokensCSS, buttonStyles, colors, radius, spacing } from "../theme/design-tokens.js"
+import { DEFAULT_SERVER_ORIGIN } from "../services/server-endpoints.js";
 
 type SemanticCacheEntry = {
   id: number;
@@ -24,7 +25,7 @@ export class AgentConfigCanvas extends LitElement {
   @property({ type: Boolean }) accessor open = false;
 
   @property({ type: String })
-  accessor serverURL = "http://localhost:10002/config"
+  accessor serverURL = `${DEFAULT_SERVER_ORIGIN}/config`
 
   @property({ type: String })
   accessor configType: AppConfigType = 'agent';

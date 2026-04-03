@@ -35,7 +35,7 @@ import { AppConfig } from "../configs/types.js";
 import { config as restaurantConfig } from "../configs/restaurant.js";
 import { agentConfig } from "../configs/agent_config.js";
 import { parseSuggestionsList } from "../services/stream-event-normalizer.js";
-import { getServerOrigin, SERVER_URLS } from "../services/server-endpoints.js";
+import { buildServerUrl, getServerOrigin, SERVER_URLS } from "../services/server-endpoints.js";
 import { appendStatusWithTiming, getGenericStreamStatus } from "../services/stream-status.js";
 
 import { marked } from "marked";
@@ -745,7 +745,7 @@ export class DynamicModule extends LitElement {
   #getSourceUrl(source: string): string {
     const sourceFile = source.split(/[\\/]/).pop()?.trim() || source.trim();
     const origin = getServerOrigin(this.config.serverUrl);
-    return `${origin}/rag_docs/${encodeURIComponent(sourceFile)}`;
+    return buildServerUrl(`/rag_docs/${encodeURIComponent(sourceFile)}`, origin);
   }
 
   #openSourceInNamedTab(event: MouseEvent, source: string) {

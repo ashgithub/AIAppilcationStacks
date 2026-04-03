@@ -66,6 +66,23 @@ Optional flags:
 uv run __main__.py --host localhost --port 10002
 ```
 
+You can also set bind values via env:
+
+```env
+SERVER_BIND_HOST=127.0.0.1
+SERVER_BIND_PORT=10002
+```
+
+When running behind Nginx, set:
+
+```env
+PUBLIC_BASE_URL=https://venus.aisandbox.ugbu.oraclepdemos.com/edge_aistack/api
+```
+
+This ensures agent cards return public URLs such as:
+- `https://venus.aisandbox.ugbu.oraclepdemos.com/edge_aistack/api/agent`
+- `https://venus.aisandbox.ugbu.oraclepdemos.com/edge_aistack/api/llm`
+
 ## Key Routes
 
 - `POST /agent/*`: A2A dynamic multi-agent graph endpoint
@@ -78,6 +95,22 @@ uv run __main__.py --host localhost --port 10002
 - `GET /traditional/timeline`
 - `GET /traditional/industry`
 - `GET /rag_docs/*`: static access to source PDFs used by RAG
+
+## Reverse-Proxy Deployment Notes (Nginx)
+
+Recommended production shape:
+- Nginx serves static files at `/edge_aistack/`
+- Nginx proxies `/edge_aistack/api/` to `http://127.0.0.1:10002/`
+- Python server is bound to internal host/port only (`127.0.0.1:10002`)
+
+For streaming endpoints (`/agent/*`, `/llm/*`), keep these Nginx settings:
+- `proxy_http_version 1.1`
+- `proxy_buffering off`
+- `proxy_request_buffering off`
+- `proxy_read_timeout` high enough for long streams (for example `3600s`)
+- forward `Host`, `X-Forwarded-Proto`, `X-Forwarded-For`, `X-Forwarded-Host`
+
+Draft VM deployment files are provided in `app/server/deploy/`.
 
 ## Optional: Load RAG Documents Into DB
 

@@ -10,7 +10,6 @@ interface TableColumn {
   field: string;
   type: string;
 }
-
 interface TableRecord {
   [key: string]: any;
 }
@@ -475,7 +474,7 @@ export class Table extends Root {
       >
         ${this.expandable ? html`
           <td>
-            <span class="expand-icon ${isExpanded ? 'rotated' : ''}" @click=${(e: Event) => this.toggleExpand(e, index)}>▶</span>
+            <span class="expand-icon" @click=${(e: Event) => this.toggleExpand(e, index)}>${isExpanded ? '\u25BC' : '\u25B6'}</span>
           </td>
         ` : ''}
         ${this.columns.map(column => this.renderCell(record, column))}
@@ -526,6 +525,10 @@ export class Table extends Root {
   }
 
   private handleRowClick(record: TableRecord, index: number, details?: TableRecord) {
+    if (this.expandable) {
+      this.toggleExpandedRow(index);
+    }
+
     if (this.showDetailPanel) {
       this.selectedRow = index;
       this.selectedRecord = record;
@@ -537,6 +540,10 @@ export class Table extends Root {
 
   private toggleExpand(e: Event, index: number) {
     e.stopPropagation();
+    this.toggleExpandedRow(index);
+  }
+
+  private toggleExpandedRow(index: number) {
     if (this.expandedRows.has(index)) {
       this.expandedRows.delete(index);
     } else {
@@ -709,3 +716,4 @@ export class Table extends Root {
     return 'severity-medium';
   }
 }
+

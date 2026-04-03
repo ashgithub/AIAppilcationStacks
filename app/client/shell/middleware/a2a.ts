@@ -27,6 +27,7 @@ import { v4 as uuidv4 } from "uuid";
 
 // #region Constants
 const A2UI_MIME_TYPE = "application/json+a2ui";
+const DEV_SERVER_ORIGIN = (process.env.VITE_SERVER_ORIGIN || "http://localhost:10002").replace(/\/+$/, "");
 // #endregion Constants
 
 // #region Helpers
@@ -57,7 +58,7 @@ const createOrGetClient = async () => {
   if (!client) {
     // Create a client pointing to the agent's Agent Card URL.
     client = await A2AClient.fromCardUrl(
-      "http://localhost:10002/.well-known/agent-card.json",
+      `${DEV_SERVER_ORIGIN}/.well-known/agent-card.json`,
       { fetchImpl: fetchWithCustomHeader }
     );
   }

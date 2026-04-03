@@ -10,6 +10,8 @@
     "prepack": "npm run build",
     "build": "wireit",
     "build:tsc": "wireit",
+    "build:vite": "wireit",
+    "build:prod": "npm run build:vite",
     "dev": "npm run serve --watch",
     "test": "wireit",
     "serve": "wireit"
@@ -32,6 +34,24 @@
       "dependencies": [
         "build:tsc"
       ]
+    },
+    "build:vite": {
+      "command": "vite build",
+      "dependencies": [
+        "build:tsc"
+      ],
+      "files": [
+        "**/*.ts",
+        "**/*.json",
+        "index.html",
+        "vite.config.ts",
+        "tsconfig.json",
+        "public/**"
+      ],
+      "output": [
+        "dist_web/**"
+      ],
+      "clean": "if-file-deleted"
     },
     "build:tsc": {
       "command": "tsc -b --pretty",

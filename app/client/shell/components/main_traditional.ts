@@ -726,7 +726,7 @@ export class StaticModule extends LitElement {
   // #region Render
   render() {
     return html`
-      <stat-bar .title=${"Traditional application"} .time=${""} .tokens=${""} .configUrl=${"/outage_config"} .configType=${"traditional"} .configData=${outageConfig}></stat-bar>
+      <stat-bar .title=${"Traditional app"} .time=${""} .tokens=${""} .configUrl=${buildServerUrl("/outage_config")} .configType=${"traditional"} .configData=${outageConfig}></stat-bar>
       <div class="tabs">
         <button class="btn btn-tab ${this.currentTab === 'summary' ? 'active' : ''}" @click=${() => this.switchTab('summary')}>
           Energy Summary

@@ -45,9 +45,19 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+def normalize_public_base_url(value: str | None) -> str | None:
+    if value is None:
+        return None
+    cleaned = value.strip()
+    if not cleaned:
+        return None
+    return cleaned.rstrip("/")
+
+
 @click.command()
-@click.option("--host", default="localhost")
-@click.option("--port", default=10002)
+@click.option("--host", default=os.getenv("SERVER_BIND_HOST", "127.0.0.1"))
+@click.option("--port", default=int(os.getenv("SERVER_BIND_PORT", "10002")))
 def main(host, port):
     try:
         langfuse_client = Langfuse(
@@ -57,8 +67,10 @@ def main(host, port):
             timeout=60,
             tracer_provider=TracerProvider(),
         )
-        
-        base_url = f"http://{host}:{port}"
+
+        internal_base_url = f"http://{host}:{port}"
+        public_base_url = normalize_public_base_url(os.getenv("PUBLIC_BASE_URL"))
+        base_url = public_base_url or internal_base_url
 
         # region Agent executor setup
         agent_base_url = f"{base_url}/agent"

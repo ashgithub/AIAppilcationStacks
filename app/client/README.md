@@ -28,11 +28,19 @@ Full demo (client + server):
 npm run demo:edge
 ```
 
+Production client build (static artifact):
+
+```bash
+npm run build:prod
+```
+
 ## NPM Scripts (root `app/client/package.json`)
 
 - `serve:shell`: starts Vite dev server in `shell` workspace (`cd shell && npm run dev`)
 - `serve:agent:edge`: starts backend from `app/server` (`uv run __main__.py`)
 - `demo:edge`: runs shell + backend in parallel via `concurrently`
+- `build:shell`: builds deployable shell assets (`app/client/shell/dist_web`)
+- `build:prod`: alias for production client build
 
 ## Client Architecture
 
@@ -44,9 +52,25 @@ Main entrypoint is [`shell/app.ts`](./shell/app.ts). It renders three modules th
 
 Message routing and session handling are centralized in [`shell/services/a2ui-router.ts`](./shell/services/a2ui-router.ts), which dispatches normalized streaming events to modules.
 
-Default backend origin is defined in [`shell/services/server-endpoints.ts`](./shell/services/server-endpoints.ts) as:
+Default backend origin is resolved in [`shell/services/server-endpoints.ts`](./shell/services/server-endpoints.ts) with environment-aware rules:
 
-`http://localhost:10002`
+- `VITE_SERVER_ORIGIN` (highest priority, explicit origin)
+- otherwise in `dev`: `http://localhost:10002`
+- otherwise in `build/prod`: `${window.location.origin}${VITE_APP_BASE_PATH}api`
+
+Default `VITE_APP_BASE_PATH` is `/edge_aistack/`.
+Default production API path is therefore `/edge_aistack/api`.
+
+## Reverse Proxy Environment Variables
+
+For VM reverse proxy hosting (for example `https://venus.aisandbox.ugbu.oraclepdemos.com/edge_aistack`):
+
+```bash
+VITE_APP_BASE_PATH=/edge_aistack/
+VITE_SERVER_ORIGIN=https://venus.aisandbox.ugbu.oraclepdemos.com/edge_aistack/api
+```
+
+If `VITE_SERVER_ORIGIN` is omitted in production, the client infers it from current origin and `VITE_APP_BASE_PATH`.
 
 ## Folder Structure
 
@@ -97,10 +121,19 @@ app/client
 
 ## Key Integration Points
 
-- A2A middleware endpoint: `shell/middleware/a2a.ts` handles `/a2a` POST traffic in dev.
+- A2A middleware endpoint: `shell/middleware/a2a.ts` handles `/a2a` POST traffic in dev only.
 - Component registration: `shell/ui/custom-components/register-components.ts`.
 - Config contracts: `shell/configs/types.ts`.
 - Quick query presets: `shell/configs/quick_queries.json`.
+
+## Nginx Streaming Notes
+
+For `/edge_aistack/api/` upstream routes used by A2UI/A2A streaming:
+
+- Disable proxy buffering for streaming responses.
+- Use HTTP/1.1 to upstream.
+- Forward `Host`, `X-Forwarded-Proto`, and `X-Forwarded-For` headers.
+- Use sufficient proxy read timeout to avoid stream interruption.
 
 ## Team Notes
 

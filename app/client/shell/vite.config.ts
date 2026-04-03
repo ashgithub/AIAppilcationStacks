@@ -22,20 +22,31 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-export default async () => {
+function normalizeAppBasePath(rawPath: string | undefined): string {
+  const safePath = (rawPath || "/edge_aistack/").trim();
+  const withLeadingSlash = safePath.startsWith("/") ? safePath : `/${safePath}`;
+  return withLeadingSlash.endsWith("/") ? withLeadingSlash : `${withLeadingSlash}/`;
+}
+
+export default async ({ command }: { command: string }) => {
   config();
 
   const entry: Record<string, string> = {
     shell: resolve(__dirname, "index.html"),
   };
+  const appBasePath = normalizeAppBasePath(process.env.VITE_APP_BASE_PATH);
+  const plugins = command === "serve" ? [Middleware.A2AMiddleware.plugin()] : [];
 
   return {
-    plugins: [Middleware.A2AMiddleware.plugin()],
+    base: appBasePath,
+    plugins,
     build: {
       rollupOptions: {
         input: entry,
       },
       target: "esnext",
+      outDir: "dist_web",
+      emptyOutDir: true,
     },
     define: {},
     resolve: {
