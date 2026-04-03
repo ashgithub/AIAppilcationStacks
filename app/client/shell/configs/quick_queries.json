@@ -39,35 +39,35 @@
     "title": "Which work orders are still open and their associated asset types?",
     "description": "Retrieves from DB and displays table with work orders details, general data on KPI cards and bar graph for compilation of sources.",
     "icon": "report",
-    "tags": ["DB"]
+    "tags": ["DB", "Bar graph", "KPI cards"]
   },
   {
     "id": "q07-db-high-customer-circuits",
     "title": "Find circuits with the highest number of customers served",
     "description": "DB data showing bar graph with number of customers per circuit, table for details and KPI cards to show general trends.",
     "icon": "metrics",
-    "tags": ["DB"]
+    "tags": ["DB", "Bar graph", "Table", "KPI cards"]
   },
   {
     "id": "q08-db-condition-distribution",
     "title": "Display asset health distribution by condition score, include names if possible.",
     "description": "Requires conditional score, results are displayed on bar graph with assets score groups and a table for details on each asset.",
     "icon": "warning",
-    "tags": ["DB"]
+    "tags": ["DB", "Table", "Bar graph"]
   },
   {
     "id": "q09-db-outage-cause-categories",
     "title": "What are the most common outage cause categories in the last 6 months?",
     "description": "Category-analysis use case for bar chart plus KPI summary and supporting details on a table.",
     "icon": "metrics",
-    "tags": ["DB", "Bar graph"]
+    "tags": ["DB", "Bar graph", "KPI cards"]
   },
   {
     "id": "q10-db-map-substations-circuits",
     "title": "Show me the location of the main substations and circuits with characteristics.",
     "description": "Geospatial showcase on map and supporting data on table widget",
     "icon": "pin",
-    "tags": ["DB", "Map"]
+    "tags": ["DB", "Map", "Text"]
   },
   {
     "id": "q11-db-map-substation-capacity",
