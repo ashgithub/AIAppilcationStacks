@@ -19,3 +19,5 @@ scratch/**
 deploy
 
 .env.production
+scripts
+dist_web
