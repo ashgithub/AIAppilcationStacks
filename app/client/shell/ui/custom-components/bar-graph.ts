@@ -54,20 +54,26 @@ export class BarGraph extends Root {
         box-shadow: var(--shadow-lg);
         padding: var(--space-md);
         margin: var(--space-xs);
-        overflow-x: auto;
+        overflow: visible;
       }
 
       .bar-chart {
         width: 100%;
         font-family: var(--font-family);
+        position: relative;
+        isolation: isolate;
+        overflow-x: auto;
+        overflow-y: visible;
       }
 
       .chart-title {
         text-align: center;
-        margin-bottom: 20px;
+        margin-bottom: 28px;
         font-size: 18px;
         font-weight: var(--font-weight-semibold);
         color: var(--text-primary);
+        position: relative;
+        z-index: 30;
       }
 
       .bar-container {
@@ -75,14 +81,20 @@ export class BarGraph extends Root {
         align-items: end;
         justify-content: space-around;
         height: 300px;
-        margin-bottom: 40px;
-        padding: 0 20px;
+        margin-top: 64px;
+        margin-bottom: 52px;
+        padding: 28px 20px 0;
+        position: relative;
+        z-index: 1;
+        overflow: visible;
       }
 
       .bar-item {
         flex: 1;
+        min-width: 72px;
         position: relative;
         height: 100%;
+        z-index: 1;
       }
 
       .bar {
@@ -95,17 +107,23 @@ export class BarGraph extends Root {
 
       .bar-label {
         position: absolute;
-        bottom: -25px;
+        bottom: -40px;
         left: 50%;
         transform: translateX(-50%);
         text-align: center;
         font-size: 12px;
         font-weight: var(--font-weight-medium);
         color: var(--text-secondary);
-        max-width: 80px;
+        width: 100%;
+        max-width: 120px;
+        line-height: 1.2;
+        padding: 0 4px;
         overflow: hidden;
         text-overflow: ellipsis;
-        white-space: nowrap;
+        white-space: normal;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
       }
 
       .value-label {
@@ -129,9 +147,10 @@ export class BarGraph extends Root {
       .legend {
         display: flex;
         justify-content: center;
-        flex-wrap: nowrap;
+        flex-wrap: wrap;
         gap: 15px;
         margin-top: var(--space-md);
+        overflow: visible;
       }
 
       .legend-item {
@@ -159,6 +178,11 @@ export class BarGraph extends Root {
         transform-origin: bottom;
       }
 
+      .bar-item:hover,
+      .bar-item.selected {
+        z-index: 50;
+      }
+
       .bar-item.interactive .bar {
         transition: all var(--transition-normal);
       }
@@ -181,24 +205,32 @@ export class BarGraph extends Root {
         opacity: 1;
       }
 
+      /* Prevent number label and tooltip from competing in the same space */
+      .bar-item:hover .bar .value-label {
+        opacity: 0;
+      }
+
       /* Tooltip */
       .bar-tooltip {
         position: absolute;
-        bottom: 100%;
+        bottom: calc(100% - 4px);
         left: 50%;
-        transform: translateX(-50%);
-        background: var(--surface-elevated);
-        border: 1px solid var(--border-primary);
+        transform: translate(-50%, -8px);
+        background: var(--surface-primary);
+        background-image: none;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
         border-radius: var(--radius-md);
         padding: var(--space-sm) var(--space-md);
         box-shadow: var(--shadow-lg);
-        z-index: 100;
+        z-index: 1000;
         min-width: 120px;
-        margin-bottom: 10px;
+        max-width: 200px;
         pointer-events: none;
         opacity: 0;
         visibility: hidden;
         transition: opacity var(--transition-normal), visibility var(--transition-normal);
+        text-align: left;
       }
 
       .bar-item:hover .bar-tooltip {
@@ -519,15 +551,15 @@ export class BarGraph extends Root {
       >
         <div class="bar" style="height: ${heightPercent}%; background-color: ${item.color};">
           <div class="value-label">${this.formatValue(item.value)}</div>
+          ${this.interactive ? html`
+            <div class="bar-tooltip">
+              <div class="tooltip-category">${item.category}</div>
+              <div class="tooltip-value">${this.formatValue(item.value)}</div>
+              <div class="tooltip-percent">${percentage}% of total</div>
+            </div>
+          ` : ''}
         </div>
         <div class="bar-label">${item.category}</div>
-        ${this.interactive ? html`
-          <div class="bar-tooltip">
-            <div class="tooltip-category">${item.category}</div>
-            <div class="tooltip-value">${this.formatValue(item.value)}</div>
-            <div class="tooltip-percent">${percentage}% of total</div>
-          </div>
-        ` : ''}
       </div>
     `;
   }
