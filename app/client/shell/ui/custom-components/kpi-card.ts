@@ -243,17 +243,17 @@ export class KpiCard extends Root {
     return html`
       <div class="kpi-card ${this.compact ? 'compact' : ''} ${this.clickable ? 'clickable' : ''}" @click=${this.handleClick}>
         <div class="kpi-header">
-          <span class="kpi-label">${kpiData.label}</span>
+          <span class="kpi-label">${this.toDisplayText(kpiData.label) || '--'}</span>
           ${kpiData.icon ? html`
             <div class="kpi-icon" style="background: ${themeColors.bg}; color: ${themeColors.primary};">
-              ${this.getIconSymbol(kpiData.icon)}
+              ${this.getIconSymbol(String(kpiData.icon))}
             </div>
           ` : ''}
         </div>
         <div class="kpi-value-container">
           <div class="kpi-value" style="color: ${themeColors.primary};">
             ${this.formatValue(kpiData.value)}
-            ${kpiData.unit ? html`<span class="kpi-unit">${kpiData.unit}</span>` : ''}
+            ${kpiData.unit ? html`<span class="kpi-unit">${this.toDisplayText(kpiData.unit)}</span>` : ''}
           </div>
         </div>
         ${kpiData.change !== undefined ? html`
@@ -267,7 +267,7 @@ export class KpiCard extends Root {
       </div>
       <detail-modal
         .open=${this.showDetails}
-        .title=${kpiData.label + ' Details'}
+        .title=${(this.toDisplayText(kpiData.label) || 'KPI') + ' Details'}
         .position=${'modal'}
         .data=${this.getDetailData(kpiData)}
         @close=${this.closeDetails}
@@ -286,10 +286,61 @@ export class KpiCard extends Root {
     this.showDetails = false;
   }
 
+  private isMapLike(value: any): boolean {
+    return !!value
+      && typeof value.get === 'function'
+      && typeof value.values === 'function'
+      && typeof value.forEach === 'function';
+  }
+
+  private mapToObject(mapOrValue: any): any {
+    if (this.isMapLike(mapOrValue)) {
+      const obj: Record<string, any> = {};
+      mapOrValue.forEach((value: any, key: string) => {
+        obj[key] = this.mapToObject(value);
+      });
+      return obj;
+    }
+    if (Array.isArray(mapOrValue)) {
+      return mapOrValue.map((entry) => this.mapToObject(entry));
+    }
+    if (mapOrValue && typeof mapOrValue === 'object') {
+      const obj: Record<string, any> = {};
+      Object.entries(mapOrValue).forEach(([key, value]) => {
+        obj[key] = this.mapToObject(value);
+      });
+      return obj;
+    }
+    return mapOrValue;
+  }
+
+  private toDisplayText(value: any): string {
+    const normalized = this.mapToObject(value);
+    if (normalized === undefined || normalized === null) return '';
+    if (typeof normalized === 'string') return normalized.trim();
+    if (typeof normalized === 'number' || typeof normalized === 'boolean') return String(normalized);
+    if (Array.isArray(normalized)) {
+      return normalized
+        .map((item) => this.toDisplayText(item))
+        .filter((item) => item.length > 0)
+        .join(', ');
+    }
+    if (typeof normalized === 'object') {
+      const parts = Object.entries(normalized)
+        .map(([k, v]) => {
+          const text = this.toDisplayText(v);
+          return text ? `${k}: ${text}` : '';
+        })
+        .filter((item) => item.length > 0);
+      return parts.join(', ');
+    }
+    return String(normalized).trim();
+  }
+
   private getDetailData(kpiData: KpiData): Record<string, any> {
     const data: Record<string, any> = {
-      'Metric': kpiData.label,
-      'Current Value': `${this.formatValue(kpiData.value)}${kpiData.unit ? ' ' + kpiData.unit : ''}`,
+      'Metric': this.toDisplayText(kpiData.label) || '--',
+      'Current Value': `${this.formatValue(kpiData.value)}${kpiData.unit ? ' ' + this.toDisplayText(kpiData.unit) : ''}`,
     };
 
     if (kpiData.change !== undefined) {
@@ -300,7 +351,10 @@ export class KpiCard extends Root {
     }
 
     if (kpiData.details) {
-      Object.assign(data, kpiData.details);
+      Object.entries(kpiData.details).forEach(([key, value]) => {
+        const text = this.toDisplayText(value);
+        if (text) data[key] = text;
+      });
     }
 
     return data;
@@ -371,16 +425,28 @@ export class KpiCard extends Root {
     return null;
   }
 
-  private formatValue(value: number | string): string {
-    if (typeof value === 'number') {
-      if (value >= 1000000) {
-        return (value / 1000000).toFixed(1) + 'M';
-      } else if (value >= 1000) {
-        return (value / 1000).toFixed(1) + 'K';
+  private formatValue(value: any): string {
+    const normalized = this.mapToObject(value);
+    if (normalized === undefined || normalized === null || normalized === '') return '--';
+    if (typeof normalized === 'string') {
+      const trimmed = normalized.trim();
+      if (!trimmed) return '--';
+      const numeric = Number(trimmed);
+      if (!Number.isNaN(numeric) && Number.isFinite(numeric)) {
+        return this.formatValue(numeric);
       }
-      return value.toLocaleString();
+      return trimmed;
     }
-    return String(value);
+    if (typeof normalized === 'boolean') return String(normalized);
+    if (typeof normalized === 'number') {
+      if (normalized >= 1000000) {
+        return (normalized / 1000000).toFixed(1) + 'M';
+      } else if (normalized >= 1000) {
+        return (normalized / 1000).toFixed(1) + 'K';
+      }
+      return normalized.toLocaleString();
+    }
+    return this.toDisplayText(normalized) || '--';
   }
 
   private getChangeClass(change?: number): string {

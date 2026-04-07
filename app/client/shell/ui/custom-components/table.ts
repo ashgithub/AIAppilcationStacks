@@ -580,7 +580,40 @@ export class Table extends Root {
       });
       return obj;
     }
+    if (Array.isArray(mapOrValue)) {
+      return mapOrValue.map((entry) => this.mapToObject(entry));
+    }
+    if (mapOrValue && typeof mapOrValue === 'object') {
+      const obj: Record<string, any> = {};
+      Object.entries(mapOrValue).forEach(([key, value]) => {
+        obj[key] = this.mapToObject(value);
+      });
+      return obj;
+    }
     return mapOrValue;
+  }
+
+  private toDisplayText(value: any): string {
+    const normalized = this.mapToObject(value);
+    if (normalized === undefined || normalized === null) return '';
+    if (typeof normalized === 'string') return normalized.trim();
+    if (typeof normalized === 'number' || typeof normalized === 'boolean') return String(normalized);
+    if (Array.isArray(normalized)) {
+      return normalized
+        .map((item) => this.toDisplayText(item))
+        .filter((item) => item.length > 0)
+        .join(', ');
+    }
+    if (typeof normalized === 'object') {
+      const pairs = Object.entries(normalized)
+        .map(([k, v]) => {
+          const text = this.toDisplayText(v);
+          return text ? `${this.formatFieldLabel(k)}: ${text}` : '';
+        })
+        .filter((item) => item.length > 0);
+      return pairs.join(', ');
+    }
+    return String(normalized).trim();
   }
 
   private parseRecordItem(item: any): TableRecord {
@@ -635,37 +668,55 @@ export class Table extends Root {
   }
 
   private formatFieldValue(key: string, value: any): string {
-    if (value === undefined || value === null) return '—';
+    if (value === undefined || value === null) return '--';
+    const displayText = this.toDisplayText(value);
+    if (!displayText) return '--';
     const keyLower = key.toLowerCase();
     if (keyLower.includes('date') || keyLower.includes('time')) {
-      return this.formatDateTime(String(value));
+      return this.formatDateTime(displayText);
     }
     if (typeof value === 'number') {
       return this.formatNumber(value);
     }
-    return String(value);
+    if (typeof value === 'string') {
+      const numericValue = Number(value);
+      if (!Number.isNaN(numericValue) && Number.isFinite(numericValue) && value.trim() !== '') {
+        return this.formatNumber(numericValue);
+      }
+    }
+    return displayText;
   }
 
   private renderCell(record: TableRecord, column: TableColumn) {
     const value = record[column.field];
-    let formattedValue = value;
+    let formattedValue = this.toDisplayText(value);
 
     if (value === undefined || value === null) {
-      formattedValue = '—';
+      formattedValue = '--';
     } else {
       switch (column.type) {
         case 'number':
-          formattedValue = this.formatNumber(value);
+          {
+            const numericValue = typeof value === 'number' ? value : Number(this.toDisplayText(value));
+            formattedValue = Number.isFinite(numericValue) ? this.formatNumber(numericValue) : '--';
+          }
           return html`<td class="number-cell">${formattedValue}</td>`;
         case 'date':
-          formattedValue = this.formatDateTime(value);
+          formattedValue = this.formatDateTime(this.toDisplayText(value));
           return html`<td class="time-cell"><span class="date">${formattedValue}</span></td>`;
-        case 'status':
-          return html`<td><span class="status-badge ${this.getStatusClass(value)}">${value}</span></td>`;
-        case 'severity':
-          return html`<td><span class="severity-badge ${this.getSeverityClass(value)}"><span class="severity-dot"></span>${value}</span></td>`;
+        case 'status': {
+          const statusText = this.toDisplayText(value);
+          if (!statusText) return html`<td>--</td>`;
+          return html`<td><span class="status-badge ${this.getStatusClass(statusText)}">${statusText}</span></td>`;
+        }
+        case 'severity': {
+          const severityText = this.toDisplayText(value);
+          if (!severityText) return html`<td>--</td>`;
+          return html`<td><span class="severity-badge ${this.getSeverityClass(severityText)}"><span class="severity-dot"></span>${severityText}</span></td>`;
+        }
         case 'string':
         default:
+          if (!formattedValue) formattedValue = '--';
           return html`<td class="string-cell">${formattedValue}</td>`;
       }
     }
@@ -677,6 +728,7 @@ export class Table extends Root {
     if (!dateStr) return '—';
     try {
       const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return dateStr;
       return date.toLocaleString('en-US', {
         month: 'short',
         day: 'numeric',
@@ -716,4 +768,5 @@ export class Table extends Root {
     return 'severity-medium';
   }
 }
+
 

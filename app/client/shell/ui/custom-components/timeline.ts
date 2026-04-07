@@ -253,7 +253,8 @@ export class TimelineComponent extends Root {
     const detailRecords = this.parseRecordsFromPath(this.detailsPath);
 
     eventRecords.forEach((eventData, index) => {
-      if (!eventData.date) return;
+      const dateText = this.toDisplayText(eventData.date);
+      if (!dateText) return;
 
       const mainKeys = new Set(['date', 'title', 'description', 'category', 'color']);
       const fallbackDetails = Object.fromEntries(
@@ -264,11 +265,11 @@ export class TimelineComponent extends Root {
         : fallbackDetails;
 
       events.push({
-        date: String(eventData.date),
-        title: String(eventData.title || 'Event'),
-        description: eventData.description ? String(eventData.description) : '',
-        category: eventData.category ? String(eventData.category) : 'Event',
-        color: eventData.color ? String(eventData.color) : colors.semantic.success,
+        date: dateText,
+        title: this.toDisplayText(eventData.title) || 'Event',
+        description: this.toDisplayText(eventData.description),
+        category: this.toDisplayText(eventData.category) || 'Event',
+        color: this.toDisplayText(eventData.color) || colors.semantic.success,
         details: Object.keys(details).length > 0 ? details : undefined
       });
     });
@@ -293,7 +294,40 @@ export class TimelineComponent extends Root {
       });
       return obj;
     }
+    if (Array.isArray(mapOrValue)) {
+      return mapOrValue.map((entry) => this.mapToObject(entry));
+    }
+    if (mapOrValue && typeof mapOrValue === 'object') {
+      const obj: Record<string, any> = {};
+      Object.entries(mapOrValue).forEach(([key, value]) => {
+        obj[key] = this.mapToObject(value);
+      });
+      return obj;
+    }
     return mapOrValue;
+  }
+
+  private toDisplayText(value: any): string {
+    const normalized = this.mapToObject(value);
+    if (normalized === undefined || normalized === null) return '';
+    if (typeof normalized === 'string') return normalized.trim();
+    if (typeof normalized === 'number' || typeof normalized === 'boolean') return String(normalized);
+    if (Array.isArray(normalized)) {
+      return normalized
+        .map((item) => this.toDisplayText(item))
+        .filter((item) => item.length > 0)
+        .join(', ');
+    }
+    if (typeof normalized === 'object') {
+      const segments = Object.entries(normalized)
+        .map(([k, v]) => {
+          const text = this.toDisplayText(v);
+          return text ? `${this.formatLabel(k)}: ${text}` : '';
+        })
+        .filter((item) => item.length > 0);
+      return segments.join(', ');
+    }
+    return String(normalized).trim();
   }
 
   private parseRecordItem(item: any): Record<string, any> {
@@ -378,7 +412,7 @@ export class TimelineComponent extends Root {
                 ${event.details ? Object.entries(event.details).map(([key, value]) => html`
                   <div class="timeline-detail-item">
                     <span class="timeline-detail-label">${this.formatLabel(key)}</span>
-                    <span class="timeline-detail-value">${value}</span>
+                    <span class="timeline-detail-value">${this.toDisplayText(value) || '--'}</span>
                   </div>
                 `) : ''}
               </div>
@@ -465,7 +499,7 @@ export class TimelineComponent extends Root {
         if (typeof value === "number") {
           return { key, value: { literalNumber: value } };
         }
-        return { key, value: { literalString: String(value) } };
+        return { key, value: { literalString: this.toDisplayText(value) || "--" } };
       });
 
     const resolvedAction: v0_8.Types.Action = {
