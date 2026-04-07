@@ -19,3 +19,5 @@ scratch/**
 deploy
 
 .env.production
+run
+logs
