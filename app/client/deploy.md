@@ -1,13 +1,13 @@
-## Client Deployment Guide (Dedicated Client Process on Port 5003)
+## Client Deployment Guide (Dedicated Client Process on Port 6003)
 
 This environment intentionally uses split upstreams for failure isolation:
 
 - Public UI path: `https://venus.aisandbox.ugbu.oraclepdemos.com/edge_aistack/`
 - Public API path: `https://venus.aisandbox.ugbu.oraclepdemos.com/edge_aistack/api/`
-- Internal client static process: `127.0.0.1:5003`
+- Internal client static process: `127.0.0.1:6003`
 - Internal API process: `127.0.0.1:10002`
 
-The client is served by a dedicated process on `5003` (not by Nginx static root).
+The client is served by a dedicated process on `6003` (not by Nginx static root).
 
 ---
 
@@ -56,7 +56,7 @@ rsync -av --delete app/client/shell/dist_web/ /opt/edge_aistack/app/client/shell
 
 ---
 
-## 4. Client service (port 5003)
+## 4. Client service (port 6003)
 
 Use the draft service file:
 
@@ -86,7 +86,7 @@ Important:
 
 - `location ^~ /edge_aistack/api/` must be declared before `location ^~ /edge_aistack/`.
 - `/edge_aistack/api/` proxies to `127.0.0.1:10002`.
-- `/edge_aistack/` proxies to `127.0.0.1:5003`.
+- `/edge_aistack/` proxies to `127.0.0.1:6003`.
 
 Apply:
 
@@ -102,7 +102,7 @@ sudo systemctl reload nginx
 1. Client upstream:
 
 ```bash
-curl -I http://127.0.0.1:5003/
+curl -I http://127.0.0.1:6003/
 ```
 
 Expected: `200`.

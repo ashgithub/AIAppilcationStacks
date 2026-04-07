@@ -237,6 +237,15 @@ Alternative run modes:
 uv run __main__.py --host localhost --port 10002 --mock
 ```
 
+## VM Port Mapping (Shared Demo Instance)
+
+For the Venus shared Nginx environment, this demo uses:
+
+- Client static process: `127.0.0.1:6003` (mapped to `/edge_aistack/`)
+- API server process: `127.0.0.1:10002` (mapped to `/edge_aistack/api/`)
+
+This split-process mapping is used for isolation from other demos running on the same VM.
+
 ## API Endpoints
 
 ### Agent + Config

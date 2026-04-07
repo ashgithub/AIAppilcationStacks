@@ -2,7 +2,7 @@
 
 This environment uses split processes by design:
 
-- Client static server: `127.0.0.1:5003`
+- Client static server: `127.0.0.1:6003`
 - API server: `127.0.0.1:10002`
 - Public UI: `/edge_aistack/`
 - Public API: `/edge_aistack/api/`
@@ -40,11 +40,11 @@ TimeoutStopSec=30
 WantedBy=multi-user.target
 ```
 
-## 2) Client static service (port 5003)
+## 2) Client static service (port 6003)
 
 ```ini
 [Unit]
-Description=Edge AI Stack Client Static Server (Port 5003)
+Description=Edge AI Stack Client Static Server (Port 6003)
 After=network.target
 
 [Service]
@@ -52,7 +52,7 @@ Type=simple
 User=<VM_USER>
 Group=<VM_USER>
 WorkingDirectory=/opt/edge_aistack
-ExecStart=/usr/bin/python3 -m http.server 5003 --bind 127.0.0.1 --directory /opt/edge_aistack/app/client/shell/dist_web
+ExecStart=/usr/bin/python3 -m http.server 6003 --bind 127.0.0.1 --directory /opt/edge_aistack/app/client/shell/dist_web
 Restart=always
 RestartSec=5
 TimeoutStopSec=15
@@ -122,7 +122,7 @@ server {
     }
 
     location ^~ /edge_aistack/ {
-        proxy_pass http://127.0.0.1:5003/;
+        proxy_pass http://127.0.0.1:6003/;
         proxy_http_version 1.1;
 
         proxy_set_header Host $host;
@@ -149,7 +149,7 @@ server {
    - `sudo nginx -t`
    - `sudo systemctl reload nginx`
 6. Smoke checks:
-   - `curl -I http://127.0.0.1:5003/`
+   - `curl -I http://127.0.0.1:6003/`
    - `curl -I http://127.0.0.1:10002/agent/.well-known/agent-card.json`
    - `https://venus.aisandbox.ugbu.oraclepdemos.com/edge_aistack/`
    - `https://venus.aisandbox.ugbu.oraclepdemos.com/edge_aistack/api/agent/.well-known/agent-card.json`
