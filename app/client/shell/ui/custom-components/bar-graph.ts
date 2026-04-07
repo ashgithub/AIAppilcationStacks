@@ -446,27 +446,10 @@ export class BarGraph extends Root {
           let detailsData: any[] = [];
           if (this.detailsPath && typeof this.detailsPath === 'string') {
             let details = this.processor.getData(this.component, this.detailsPath, this.surfaceId ?? 'default') as any;
-            
-            // Helper to check if value is Map-like (works with SignalMap too)
-            const isMapLike = (val: any): boolean => {
-              return val && typeof val.get === 'function' && typeof val.values === 'function' && typeof val.forEach === 'function';
-            };
-            
-            // Helper function to recursively convert Map-like objects to plain object
-            const mapToObject = (mapOrValue: any): any => {
-              if (isMapLike(mapOrValue)) {
-                const obj: Record<string, any> = {};
-                mapOrValue.forEach((value: any, key: string) => {
-                  obj[key] = mapToObject(value);
-                });
-                return obj;
-              }
-              return mapOrValue;
-            };
 
             // Convert top-level Map-like to array of values
-            if (isMapLike(details)) {
-              detailsData = Array.from(details.values()).map(mapToObject);
+            if (this.isMapLike(details)) {
+              detailsData = Array.from(details.values()).map((entry: any) => this.mapToObject(entry));
             } else if (Array.isArray(details)) {
               // Process each item - might be objects with valueMap arrays
               detailsData = details.map((item: any) => {
@@ -482,8 +465,8 @@ export class BarGraph extends Root {
                     return obj;
                   }
                   // Check if item itself is Map-like
-                  if (isMapLike(item)) {
-                    return mapToObject(item);
+                  if (this.isMapLike(item)) {
+                    return this.mapToObject(item);
                   }
                   // Already a proper object
                   return item;
@@ -553,7 +536,7 @@ export class BarGraph extends Root {
           <div class="value-label">${this.formatValue(item.value)}</div>
           ${this.interactive ? html`
             <div class="bar-tooltip">
-              <div class="tooltip-category">${item.category}</div>
+              <div class="tooltip-category">${this.toDisplayText(item.category) || '--'}</div>
               <div class="tooltip-value">${this.formatValue(item.value)}</div>
               <div class="tooltip-percent">${percentage}% of total</div>
             </div>
@@ -592,7 +575,7 @@ export class BarGraph extends Root {
         <div class="details-header">
           <div class="details-title">
             <div class="details-color" style="background-color: ${data.color};"></div>
-            ${data.category}
+            ${this.toDisplayText(data.category) || '--'}
           </div>
           <button class="details-close" @click=${this.closeDetails}>✕</button>
         </div>
@@ -621,14 +604,21 @@ export class BarGraph extends Root {
         .trim();
     };
 
-    return Object.entries(details).map(([key, value]) => html`
-      <div class="detail-item">
-        <span class="detail-label">${formatLabel(key)}</span>
-        <span class="detail-value ${typeof value === 'number' ? 'highlight' : 'small'}">
-          ${typeof value === 'number' ? this.formatValue(value) : String(value)}
-        </span>
-      </div>
-    `);
+    return Object.entries(details).map(([key, value]) => {
+      const normalized = this.mapToObject(value);
+      const isNumericString = typeof normalized === 'string' && normalized.trim() !== '' && Number.isFinite(Number(normalized));
+      const numericValue = typeof normalized === 'number' ? normalized : (isNumericString ? Number(normalized) : null);
+      const displayValue = numericValue !== null ? this.formatValue(numericValue) : (this.toDisplayText(normalized) || '--');
+
+      return html`
+        <div class="detail-item">
+          <span class="detail-label">${formatLabel(key)}</span>
+          <span class="detail-value ${numericValue !== null ? 'highlight' : 'small'}">
+            ${displayValue}
+          </span>
+        </div>
+      `;
+    });
   }
 
   private renderDefaultDetails(data: BarData, totalValue: number, maxValue: number) {
@@ -761,7 +751,7 @@ export class BarGraph extends Root {
         if (typeof value === "number") {
           return { key, value: { literalNumber: value } };
         }
-        return { key, value: { literalString: String(value) } };
+        return { key, value: { literalString: this.toDisplayText(value) || "--" } };
       });
 
     const resolvedAction: v0_8.Types.Action = {
@@ -787,5 +777,56 @@ export class BarGraph extends Root {
       return (value / 1000).toFixed(1) + 'K';
     }
     return value.toLocaleString();
+  }
+
+  private isMapLike(value: any): boolean {
+    return !!value
+      && typeof value.get === 'function'
+      && typeof value.values === 'function'
+      && typeof value.forEach === 'function';
+  }
+
+  private mapToObject(mapOrValue: any): any {
+    if (this.isMapLike(mapOrValue)) {
+      const obj: Record<string, any> = {};
+      mapOrValue.forEach((value: any, key: string) => {
+        obj[key] = this.mapToObject(value);
+      });
+      return obj;
+    }
+    if (Array.isArray(mapOrValue)) {
+      return mapOrValue.map((entry) => this.mapToObject(entry));
+    }
+    if (mapOrValue && typeof mapOrValue === 'object') {
+      const obj: Record<string, any> = {};
+      Object.entries(mapOrValue).forEach(([key, value]) => {
+        obj[key] = this.mapToObject(value);
+      });
+      return obj;
+    }
+    return mapOrValue;
+  }
+
+  private toDisplayText(value: any): string {
+    const normalized = this.mapToObject(value);
+    if (normalized === undefined || normalized === null) return '';
+    if (typeof normalized === 'string') return normalized.trim();
+    if (typeof normalized === 'number' || typeof normalized === 'boolean') return String(normalized);
+    if (Array.isArray(normalized)) {
+      return normalized
+        .map((item) => this.toDisplayText(item))
+        .filter((item) => item.length > 0)
+        .join(', ');
+    }
+    if (typeof normalized === 'object') {
+      const parts = Object.entries(normalized)
+        .map(([k, v]) => {
+          const text = this.toDisplayText(v);
+          return text ? `${k}: ${text}` : '';
+        })
+        .filter((item) => item.length > 0);
+      return parts.join(', ');
+    }
+    return String(normalized).trim();
   }
 }
