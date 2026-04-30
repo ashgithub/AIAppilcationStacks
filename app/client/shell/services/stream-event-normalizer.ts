@@ -102,17 +102,83 @@ function isServerToClientMessage(value: unknown): value is v0_8.Types.ServerToCl
   );
 }
 
+function decodeEscapedText(value: string): string {
+  return value
+    .replace(/\\r\\n/g, "\n")
+    .replace(/\\n/g, "\n")
+    .replace(/\\t/g, "\t")
+    .replace(/\\"/g, "\"")
+    .replace(/\\'/g, "'");
+}
+
+function tryExtractStructuredText(value: unknown): string | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const texts = value
+    .map((item) => {
+      if (!item || typeof item !== "object") {
+        return "";
+      }
+      const record = item as Record<string, unknown>;
+      if (typeof record.text === "string") {
+        return record.text;
+      }
+      return "";
+    })
+    .filter((text) => text.trim().length > 0);
+
+  if (texts.length === 0) {
+    return null;
+  }
+
+  return texts.join("\n");
+}
+
+function unpackStructuredText(rawText: string): string {
+  const text = rawText.trim();
+  if (!text.startsWith("[") || !text.endsWith("]")) {
+    return rawText;
+  }
+
+  try {
+    const parsed = JSON.parse(text);
+    const extracted = tryExtractStructuredText(parsed);
+    if (extracted) {
+      return extracted;
+    }
+  } catch {
+    // Continue with loose parser for Python-like list repr.
+  }
+
+  const regex = /['"]text['"]\s*:\s*(['"])([\s\S]*?)\1/g;
+  const extractedTexts: string[] = [];
+  for (const match of text.matchAll(regex)) {
+    const candidate = match[2]?.trim();
+    if (candidate) {
+      extractedTexts.push(decodeEscapedText(candidate));
+    }
+  }
+
+  if (extractedTexts.length > 0) {
+    return extractedTexts.join("\n");
+  }
+
+  return rawText;
+}
+
 function extractTextFromPart(part: StreamPart): string[] {
   const texts: string[] = [];
 
   if (part.kind === "text" && typeof part.text === "string") {
-    texts.push(part.text);
+    texts.push(unpackStructuredText(part.text));
   }
 
   const root = part.root as Record<string, unknown> | undefined;
   if (root && typeof root === "object") {
     if (root.kind === "text" && typeof root.text === "string") {
-      texts.push(root.text);
+      texts.push(unpackStructuredText(root.text));
     }
   }
 

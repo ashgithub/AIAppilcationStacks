@@ -156,7 +156,11 @@ export class ChatModule extends LitElement {
       }
 
       if (state === 'failed') {
-        this.#addStatusWithDuration("Task failed - An error occurred", "error");
+        const failureMessage =
+          serverMessage && serverMessage !== "No text content"
+            ? serverMessage
+            : "Connection error. Please wait and retry, or reload the page.";
+        this.#addStatusWithDuration(failureMessage, "error");
         this.#pendingResponse = false;
       }
 

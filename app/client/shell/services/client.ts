@@ -99,88 +99,118 @@ export class A2UIClient extends EventTarget {
     sessionId?: string,
     requestId?: string
   ): Promise<v0_8.Types.ServerToClientMessage[]> {
-    const client = await this.#getClient();
-    const catalog = componentRegistry.getInlineCatalog();
+    try {
+      const client = await this.#getClient();
+      const catalog = componentRegistry.getInlineCatalog();
 
-    let clientMessage: any;
+      let clientMessage: any;
 
-    if (typeof message === 'string') {
-      clientMessage = {
-        request: message,
-      };
-    } else {
-      clientMessage = message;
-    }
+      if (typeof message === "string") {
+        clientMessage = {
+          request: message,
+        };
+      } else {
+        clientMessage = message;
+      }
 
-    const supportedCatalogIds = new Set<string>([A2UI_STANDARD_CATALOG_ID]);
-    const catalogId = (catalog as { catalogId?: string } | null | undefined)?.catalogId;
-    if (catalogId) {
-      supportedCatalogIds.add(catalogId);
-    }
+      const supportedCatalogIds = new Set<string>([A2UI_STANDARD_CATALOG_ID]);
+      const catalogId = (catalog as { catalogId?: string } | null | undefined)?.catalogId;
+      if (catalogId) {
+        supportedCatalogIds.add(catalogId);
+      }
 
-    const finalClientMessage = {
-      ...clientMessage,
-      metadata: {
-        a2uiClientCapabilities: {
-          supportedCatalogIds: Array.from(supportedCatalogIds),
+      const finalClientMessage = {
+        ...clientMessage,
+        metadata: {
+          a2uiClientCapabilities: {
+            supportedCatalogIds: Array.from(supportedCatalogIds),
+            inlineCatalogs: [catalog],
+          },
+          // Backward compatibility for server handlers still reading metadata.inlineCatalogs directly.
           inlineCatalogs: [catalog],
+          ...(sessionId && { sessionId }),
         },
-        // Backward compatibility for server handlers still reading metadata.inlineCatalogs directly.
-        inlineCatalogs: [catalog],
-        ...(sessionId && { sessionId }),
-      },
-    };
+      };
 
-    const parts: Part[] = [{
-      kind: "data",
-      data: finalClientMessage as unknown as Record<string, unknown>,
-      mimeType: A2UI_MIME_TYPE,
-    } as Part];
+      const parts: Part[] = [{
+        kind: "data",
+        data: finalClientMessage as unknown as Record<string, unknown>,
+        mimeType: A2UI_MIME_TYPE,
+      } as Part];
 
-    const finalMessage = {
-      messageId: crypto.randomUUID(),
-      role: "user" as const,
-      parts: parts,
-      kind: "message" as const,
-    };
+      const finalMessage = {
+        messageId: crypto.randomUUID(),
+        role: "user" as const,
+        parts: parts,
+        kind: "message" as const,
+      };
 
-    const streamingResponse = client.sendMessageStream({
-      message: finalMessage,
-      configuration: {
-        acceptedOutputModes: [
-          "text",
-          "text/plain",
-          "text/event-stream",
-          A2UI_MIME_TYPE,
-        ],
-      },
-    });
+      const streamingResponse = client.sendMessageStream({
+        message: finalMessage,
+        configuration: {
+          acceptedOutputModes: [
+            "text",
+            "text/plain",
+            "text/event-stream",
+            A2UI_MIME_TYPE,
+          ],
+        },
+      });
 
-    const messages: v0_8.Types.ServerToClientMessage[] = [];
+      const messages: v0_8.Types.ServerToClientMessage[] = [];
 
-    for await (const event of streamingResponse) {
-      this.dispatchEvent(new CustomEvent('streaming-event', {
-        detail: {
-          ...event,
-          clientRequestId: requestId
-        }
-      }));
+      for await (const event of streamingResponse) {
+        this.dispatchEvent(new CustomEvent("streaming-event", {
+          detail: {
+            ...event,
+            clientRequestId: requestId
+          }
+        }));
 
-      const statusParts = event.kind === "status-update" ? (event.status?.message?.parts || []) : [];
-      const artifactParts = event.kind === "artifact-update" ? (event.artifact?.parts || []) : [];
+        const statusParts = event.kind === "status-update" ? (event.status?.message?.parts || []) : [];
+        const artifactParts = event.kind === "artifact-update" ? (event.artifact?.parts || []) : [];
 
-      for (const part of [...statusParts, ...artifactParts]) {
-        if (part.kind === "data") {
-          collectServerMessages(part.data, messages);
-          continue;
-        }
-        const root = (part as { root?: { kind?: string; data?: unknown } }).root;
-        if (root?.kind === "data") {
-          collectServerMessages(root.data, messages);
+        for (const part of [...statusParts, ...artifactParts]) {
+          if (part.kind === "data") {
+            collectServerMessages(part.data, messages);
+            continue;
+          }
+          const root = (part as { root?: { kind?: string; data?: unknown } }).root;
+          if (root?.kind === "data") {
+            collectServerMessages(root.data, messages);
+          }
         }
       }
+      return messages;
+    } catch (error) {
+      const details =
+        error instanceof Error && error.message
+          ? ` (${error.message})`
+          : "";
+      const fallbackMessage =
+        `Connection error while streaming response${details}. Please wait a few seconds and retry, or reload the page.`;
+
+      this.dispatchEvent(new CustomEvent("streaming-event", {
+        detail: {
+          kind: "status-update",
+          final: true,
+          status: {
+            state: "failed",
+            message: {
+              parts: [
+                {
+                  kind: "text",
+                  text: fallbackMessage,
+                },
+              ],
+            },
+          },
+          clientRequestId: requestId,
+        },
+      }));
+
+      return [];
     }
-    return messages;
   }
 }
 
