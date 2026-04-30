@@ -17,6 +17,7 @@ dependencies = [
     "langchain-text-splitters>=1.1.1",
     "langfuse>=4.0.0",
     "mcp>=1.25.0",
+    "oci-genai-auth>=1.0.0",
     "oracledb>=3.4.2",
     "pydantic>=2.6.0",
     "pypdf>=6.7.4",

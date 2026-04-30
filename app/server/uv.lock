@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.13"
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -214,6 +214,7 @@ dependencies = [
     { name = "langchain-text-splitters" },
     { name = "langfuse" },
     { name = "mcp" },
+    { name = "oci-genai-auth" },
     { name = "oracledb" },
     { name = "pydantic" },
     { name = "pypdf" },
@@ -242,6 +243,7 @@ requires-dist = [
     { name = "langchain-text-splitters", specifier = ">=1.1.1" },
     { name = "langfuse", specifier = ">=4.0.0" },
     { name = "mcp", specifier = ">=1.25.0" },
+    { name = "oci-genai-auth", specifier = ">=1.0.0" },
     { name = "oracledb", specifier = ">=3.4.2" },
     { name = "pydantic", specifier = ">=2.6.0" },
     { name = "pypdf", specifier = ">=6.7.4" },
@@ -2001,6 +2003,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/3b/aa/0632d094b788ba676c37a65baa53365751402e59b4d05b3ef71da6db19f7/oci-2.168.2.tar.gz", hash = "sha256:1b0bc7be5eca58fc3ba482f56419710ea3cf09f515e6c0224c3118495684008e", size = 16639772, upload-time = "2026-03-18T04:23:59.049Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/6d/45/5a96430733922efb96bdfbe03cf59a45b3c0f06179a84eafe293cff09819/oci-2.168.2-py3-none-any.whl", hash = "sha256:47e797d408c881e7a17cafd9a51d30c5b216f170598e6f121eb7e61d55639977", size = 33883868, upload-time = "2026-03-18T04:23:51.62Z" },
+]
+
+[[package]]
+name = "oci-genai-auth"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx" },
+    { name = "oci" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a3/82/cd63aa2fff566ac6362c670a3a13e35ade02c45fcfefea5382e02ac52631/oci_genai_auth-1.0.0.tar.gz", hash = "sha256:2570034c76d852efe4340fec3a2458ded31c6e8e669fe3b81e586eabc8eb5fa9", size = 269597, upload-time = "2026-03-24T22:59:02.806Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/98/94/f8e67e664ab997ef0fc11b465ff5ebba26c8114ce1cb1539fd74a76b0c04/oci_genai_auth-1.0.0-py3-none-any.whl", hash = "sha256:b6ab742177f985023c143e034142a24d58e45fae1a55206206be709884ca5504", size = 9176, upload-time = "2026-03-24T22:59:02.007Z" },
 ]
 
 [[package]]

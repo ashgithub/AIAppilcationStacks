@@ -7,6 +7,10 @@ from langchain_openai import ChatOpenAI
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_oci.embeddings import OCIGenAIEmbeddings
 from oci_openai import OciUserPrincipalAuth
+#OpenAI SDK migration
+from oci_genai_auth import OciUserPrincipalAuth
+from openai import OpenAI, AsyncOpenAI
+from langchain_openai import ChatOpenAI
 
 from database.connections import RAGDBConnection
 
@@ -33,29 +37,42 @@ class GenAIProvider:
         pass
 
     def _build_default_headers(self) -> dict[str, str]:
-        headers = {
-            "opc-compartment-id": os.getenv("COMPARTMENT_ID", ""),
-        }
-
-        conversation_store_id = os.getenv("OCI_CONVERSATION_STORE_ID")
-        if conversation_store_id:
-            headers["opc-conversation-store-id"] = conversation_store_id
-
+        headers: dict[str, str] = {}
+        if os.getenv("COMPARTMENT_ID"):
+            headers["opc-compartment-id"] = os.getenv("COMPARTMENT_ID")
+            headers["CompartmentId"] = os.getenv("COMPARTMENT_ID")
+        if os.getenv("OCI_OPENAI_PROJECT"):
+            headers["OpenAI-Project"] = os.getenv("OCI_OPENAI_PROJECT")
         return headers
 
     def build_oci_client(self, model_id: str | None = None, model_kwargs: dict[str, Any] | None = None):
         resolved_model_id = model_id or os.getenv("GEN_AI_MODEL", DEFAULT_CHAT_MODEL)
         resolved_model_kwargs = model_kwargs or {}
 
+        # client = ChatOpenAI(
+        #     base_url=os.getenv("SERVICE_ENDPOINT", "https://inference.generativeai.us-chicago-1.oci.oraclecloud.com/20231130/actions/v1"),
+        #     http_client=httpx.Client(
+        #         auth=OciUserPrincipalAuth(profile_name=os.getenv("AUTH_PROFILE"))
+        #     ),
+        #     default_headers=self._build_default_headers(),
+        #     api_key=os.getenv("OPENAI_INNO_DEV1"),
+        #     model=resolved_model_id,
+        #     store=False,
+        #     **resolved_model_kwargs,
+        # )
+
         client = ChatOpenAI(
-            base_url=os.getenv("SERVICE_ENDPOINT", "https://inference.generativeai.us-chicago-1.oci.oraclecloud.com/20231130/actions/v1"),
+            model=resolved_model_id,
+            openai_api_base="https://inference.generativeai.us-chicago-1.oci.oraclecloud.com/openai/v1",
+            openai_api_key="OCI",
+            default_headers=self._build_default_headers(),
             http_client=httpx.Client(
                 auth=OciUserPrincipalAuth(profile_name=os.getenv("AUTH_PROFILE"))
             ),
-            default_headers=self._build_default_headers(),
-            api_key=os.getenv("OPENAI_INNO_DEV1"),
-            model=resolved_model_id,
-            store=False,
+            http_async_client=httpx.AsyncClient(
+                auth=OciUserPrincipalAuth(profile_name=os.getenv("AUTH_PROFILE"))
+            ),
+            use_responses_api=True,
             **resolved_model_kwargs,
         )
 
